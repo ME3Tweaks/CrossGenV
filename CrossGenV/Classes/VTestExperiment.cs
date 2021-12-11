@@ -387,7 +387,7 @@ namespace CrossGenV.Classes
 
             var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
 
-            vTestOptions.SetStatusText($"Preparing\n{levelName}");
+            vTestOptions.SetStatusText($"Preparing {levelName}");
 
             // BIOC_BASE -> SFXGame
             var bcBaseIdx = me1File.findName("BIOC_Base");
@@ -1822,11 +1822,6 @@ namespace CrossGenV.Classes
         {
             // Older games (ME1 at least) can reference levels that don't exist. This didn't break game. Later games this does break. Maybe. IDK.
 
-            //if (triggerStream.ObjectName.Instanced == "BioTriggerStream_0")
-            //    Debugger.Break();
-            // triggerStream.RemoveProperty("m_oAreaMapOverride"); // Remove this when stuff is NOT borked up
-            //
-            // return;
             var streamingStates = triggerStream.GetProperty<ArrayProperty<StructProperty>>("StreamingStates");
             if (streamingStates != null)
             {
@@ -2073,7 +2068,7 @@ namespace CrossGenV.Classes
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2"))
             {
                 #region PRC1 BioSoundNodeWaveStreamingData
-                // This is hack to port things over in ModdedSource. The streaming data was refenced by an object that doesn't acttually
+                // This is hack to port things over in ModdedSource. The streaming data was referenced by an object that doesn't actually
                 // use this (game will die if it tries). We remove this reference and setup our own.
                 // This is a total hack but it works for less code.
 
@@ -2140,6 +2135,15 @@ namespace CrossGenV.Classes
                 #region Level Load Blocking Texture Streaming
                 InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence", "HelperSequences.LevelLoadTextureStreaming", vTestOptions);
                 // The original logic is removed in the ModdedSource file
+                #endregion
+
+                #region Mod level files
+                // Step 1: Make more LevelStreamingKismet objects
+
+                // Step 2: Rebuild StreamingLevels
+
+                // Step 3: Add levels to states
+
                 #endregion
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
