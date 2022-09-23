@@ -164,9 +164,7 @@ namespace CrossGenV.Classes
                 var ms = new MemoryStream();
                 stream.CopyTo(ms);
                 var decompressed = new MemoryStream(LZMA.DecompressLZMAFile(ms.ToArray()));
-                var sr = new StreamReader(decompressed);
-                vTestOptions.objectDB = ObjectInstanceDB.DeserializeDB(sr.ReadToEnd());
-                vTestOptions.objectDB.BuildLookupTable(); // Lookup table is required as we are going to compile things
+                vTestOptions.objectDB = ObjectInstanceDB.Deserialize(MEGame.LE1, decompressed);
             }
             else
             {
@@ -202,8 +200,7 @@ namespace CrossGenV.Classes
                     {
                         // Inventory
                         vTestOptions.SetStatusText($@"Inventorying {Path.GetFileName(file)}");
-                        using var p = MEPackageHandler.OpenMEPackage(file);
-                        VTestSupport.IndexFileForObjDB(vTestOptions.objectDB, MEGame.LE1, p);
+                        VTestSupport.IndexFileForObjDB(vTestOptions.objectDB, file);
                     }
                 }
             }
@@ -341,29 +338,29 @@ namespace CrossGenV.Classes
 
         private static void VTestCheckImports(IMEPackage p, VTestOptions vTestOptions)
         {
-            foreach (var import in p.Imports)
-            {
-                if (import.IsAKnownNativeClass())
-                    continue; //skip
-                var resolvedExp = EntryImporter.ResolveImport(import, null, vTestOptions.cache, clipRootLevelPackage: false);
-                if (resolvedExp == null)
-                {
-                    // Look in DB for objects that have same suffix
-                    // This is going to be VERY slow
+            //foreach (var import in p.Imports)
+            //{
+            //    if (import.IsAKnownNativeClass())
+            //        continue; //skip
+            //    var resolvedExp = EntryImporter.ResolveImport(import, null, vTestOptions.cache);
+            //    if (resolvedExp == null)
+            //    {
+            //        // Look in DB for objects that have same suffix
+            //        // This is going to be VERY slow
 
-                    var instancedNameSuffix = "." + import.ObjectName.Instanced;
-                    string similar = "";
-                    foreach (var name in vTestOptions.objectDB.NameTable)
-                    {
-                        if (name.EndsWith(instancedNameSuffix, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            similar += ", " + name;
-                        }
-                    }
+            //        var instancedNameSuffix = "." + import.ObjectName.Instanced;
+            //        string similar = "";
+            //        foreach (var name in vTestOptions.objectDB.NameTable)
+            //        {
+            //            if (name.EndsWith(instancedNameSuffix, StringComparison.InvariantCultureIgnoreCase))
+            //            {
+            //                similar += ", " + name;
+            //            }
+            //        }
 
-                    Debug.WriteLine($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}, may be these ones instead: {similar}");
-                }
-            }
+            //        Debug.WriteLine($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}, may be these ones instead: {similar}");
+            //    }
+            //}
         }
 
         /// <summary>
@@ -414,8 +411,8 @@ namespace CrossGenV.Classes
             var me1PL = me1File.FindExport(@"TheWorld.PersistentLevel");
             var me1PersistentLevel = ObjectBinary.From<Level>(me1PL);
 
-            itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x.value != 0) // Skip blanks
-                .Select(x => me1File.GetUExport(x.value))
+            itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x != 0) // Skip blanks
+                .Select(x => me1File.GetUExport(x))
                 .Where(x => ClassesToVTestPort.Contains(x.ClassName) || (syncBioWorldInfo && ClassesToVTestPortMasterOnly.Contains(x.ClassName))));
 
             if (vTestOptions.debugBuild && vTestOptions.debugConvertStaticLightingToNonStatic)
@@ -436,7 +433,7 @@ namespace CrossGenV.Classes
             // like scene desaturation in it worth porting.
             //foreach (var v in me1PersistentLevel.Actors)
             //{
-            //    var entry = v.value != 0 ? v.GetEntry(me1File) : null;
+            //    var entry = v != 0 ? v.GetEntry(me1File) : null;
             //    if (entry != null && !actorTypesNotPorted.Contains(entry.ClassName) && !ClassesToVTestPort.Contains(entry.ClassName) && !ClassesToVTestPortMasterOnly.Contains(entry.ClassName) && entry.ClassName != "BioWorldInfo")
             //    {
             //        actorTypesNotPorted.Add(entry.ClassName);
@@ -452,7 +449,13 @@ namespace CrossGenV.Classes
                 Cache = vTestOptions.cache,
                 IsCrossGame = true,
                 ImportExportDependencies = true,
-                TargetGameDonorDB = vTestOptions.objectDB
+                TargetGameDonorDB = vTestOptions.objectDB,
+                ErrorOccurredCallback = x =>
+                {
+                    Debug.WriteLine($"Error relinking: {x}");
+                    Debugger.Break();
+                },
+
             };
 
             // Replace BioWorldInfo if requested
@@ -491,7 +494,7 @@ namespace CrossGenV.Classes
             if (/*vTestOptions.portModels && */ShouldPortModel(sourceName.ToUpper()))
             {
                 var me1ModelUIndex = ObjectBinary.From<Level>(me1PL).Model;
-                List<UIndex> modelComponents = new List<UIndex>();
+                List<int> modelComponents = new List<int>();
                 foreach (var mc in me1File.Exports.Where(x => x.ClassName == "ModelComponent"))
                 {
                     var mcb = ObjectBinary.From<ModelComponent>(mc);
@@ -1216,7 +1219,7 @@ namespace CrossGenV.Classes
                             // Clear light and shadowmaps
                             if (vTestOptions == null || vTestOptions.stripShadowMaps || vTestOptions.useDynamicLighting)
                             {
-                                lod.ShadowMaps = new UIndex[0];
+                                lod.ShadowMaps = Array.Empty<int>();
                             }
 
                             if (vTestOptions == null || vTestOptions.useDynamicLighting)
@@ -1254,7 +1257,7 @@ namespace CrossGenV.Classes
                         var mcb = ObjectBinary.From<ModelComponent>(exp);
                         foreach (var elem in mcb.Elements)
                         {
-                            elem.ShadowMaps = new UIndex[0]; // We want no shadowmaps
+                            elem.ShadowMaps = Array.Empty<int>(); // We want no shadowmaps
                             elem.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None }; // Strip the lightmaps
                         }
 
@@ -1974,6 +1977,14 @@ namespace CrossGenV.Classes
         private static void PostPortingCorrections(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
             // Corrections to run AFTER porting is done
+
+            // Copy over the AdditionalPackagesToCook
+            if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
+            {
+                // This will be used for lighting build step (has to be done manually)
+                le1FileP.AdditionalPackagesToCook.ReplaceAll(le1FileP.AdditionalPackagesToCook);
+            }
+
             var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
 
             vTestOptions.SetStatusText($"PPC (CoverSlots)");
@@ -2608,7 +2619,7 @@ namespace CrossGenV.Classes
             var world = le1File.FindExport("TheWorld");
             var worldBin = ObjectBinary.From<World>(world);
             var newItems = worldBin.ExtraReferencedObjects.ToList();
-            newItems.AddRange(entriesToReference.Select(x => new UIndex(x.UIndex)));
+            newItems.AddRange(entriesToReference.Select(x => x.UIndex));
             worldBin.ExtraReferencedObjects = newItems.ToArray();
             world.WriteBinary(worldBin);
         }
@@ -3525,49 +3536,49 @@ namespace CrossGenV.Classes
             {
                 case "RA":
                 case "RU":
-                    stringRefs.Add(new TLKStringRef(338464, 1, "Загрузка данных"));
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Настройка музыки"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Отключить музыку"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Включить музыку"));
+                    stringRefs.Add(new TLKStringRef(338464, "Загрузка данных"));
+                    stringRefs.Add(new TLKStringRef(338465, "Настройка музыки"));
+                    stringRefs.Add(new TLKStringRef(338466, "Отключить музыку"));
+                    stringRefs.Add(new TLKStringRef(338467, "Включить музыку"));
                     break;
                 case "ES":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Configuración de Música"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Desactivar Música"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Activar Música"));
+                    stringRefs.Add(new TLKStringRef(338465, "Configuración de Música"));
+                    stringRefs.Add(new TLKStringRef(338466, "Desactivar Música"));
+                    stringRefs.Add(new TLKStringRef(338467, "Activar Música"));
                     break;
                 case "IT":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "PL":
                 case "PLPC":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "FR":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "DE":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "JA":
-                    stringRefs.Add(new TLKStringRef(338464, 1, "Downloading Data"));
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338464, "Downloading Data"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
             }
 
 
             var huff = new HuffmanCompression();
             huff.LoadInputData(stringRefs);
-            huff.serializeTalkfileToExport(tlkExport);
+            huff.SerializeTalkfileToExport(tlkExport);
         }
 
         private static void PostUpdateTLKs(VTestOptions vTestOptions)
@@ -3626,7 +3637,8 @@ namespace CrossGenV.Classes
                         // We can ID these by the position data since they are built from a template and thus always have the same positions
                         // It also references destroying the spawned particle system
                         var props = seqObj.GetProperties();
-                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 && props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
+                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 &&
+                            props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
                         {
                             // This needs removed too
                             var nextNodes = SeqTools.GetOutboundLinksOfNode(seqObj);
@@ -4322,7 +4334,7 @@ namespace CrossGenV.Classes
 
             var rop = new RelinkerOptionsPackage() { Cache = vTestOptions.cache };
             var le1TerrainBin = ObjectBinary.From<Terrain>(le1DonorTerrain);
-            le1TerrainBin.WeightedTextureMaps = new UIndex[0]; // These don't work with our different data format for these maps
+            le1TerrainBin.WeightedTextureMaps = Array.Empty<int>(); // These don't work with our different data format for these maps
             le1DonorTerrain.WriteBinary(le1TerrainBin);
 
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, le1DonorTerrain, le1File,
@@ -4354,25 +4366,25 @@ namespace CrossGenV.Classes
                     {
                         le1TC.LightMap = me1TC.LightMap;
                         var le1LM = le1TC.LightMap as LightMap_2D; // This is same ref, I suppose...
-                        // Port textures
+                                                                   // Port textures
                         if (lm2d.Texture1 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture1.value), le1File, out var tex1, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture1), le1File, out var tex1, vTestOptions.cache);
                             le1LM.Texture1 = tex1.UIndex;
                         }
                         if (lm2d.Texture2 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture2.value), le1File, out var tex2, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture2), le1File, out var tex2, vTestOptions.cache);
                             le1LM.Texture2 = tex2.UIndex;
                         }
                         if (lm2d.Texture3 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture3.value), le1File, out var tex3, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture3), le1File, out var tex3, vTestOptions.cache);
                             le1LM.Texture3 = tex3.UIndex;
                         }
                         if (lm2d.Texture4 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture4.value), le1File, out var tex4, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture4), le1File, out var tex4, vTestOptions.cache);
                             le1LM.Texture4 = tex4.UIndex;
                         }
                     }
@@ -4399,10 +4411,10 @@ namespace CrossGenV.Classes
                 }
 
                 portedTC.WriteProperties(propertiesME1); // The original game has no object refs
-                //foreach (var prop in propertiesME1.Where(x => x is ArrayProperty<StructProperty> or BoolProperty))
-                //{
-                //    portedTC.WriteProperty(prop); // Irrelevant lights, some lighting bools
-                //}
+                                                         //foreach (var prop in propertiesME1.Where(x => x is ArrayProperty<StructProperty> or BoolProperty))
+                                                         //{
+                                                         //    portedTC.WriteProperty(prop); // Irrelevant lights, some lighting bools
+                                                         //}
             }
             destTerrain.WriteProperty(components);
 
@@ -4506,7 +4518,7 @@ namespace CrossGenV.Classes
                     continue; // Debug builds with debugConvertStaticLightingToNonStatic don't add StaticLightCollectionActor, instead porting over the lights individually.
                 }
 
-                level.Actors.Add(new UIndex(actor.UIndex));
+                level.Actors.Add(actor.UIndex);
             }
 
             //if (level.Actors.Count > 1)
@@ -4515,8 +4527,8 @@ namespace CrossGenV.Classes
             // BioWorldInfo will always be present
             // or at least, it better be!
             // Slot 2 has to be blank in LE. In ME1 i guess it was a brush.
-            level.Actors.Insert(1, new UIndex(0)); // This is stupid
-                                                   //}
+            level.Actors.Insert(1, 0); // This is stupid
+                                       //}
 
             pl.WriteBinary(level);
         }
@@ -4664,13 +4676,13 @@ namespace CrossGenV.Classes
             //StructProperty maxPathSize = new StructProperty("Cylinder", mcs, "MaxPathSize");
 
             // NavList Chain start and end
-            if (me1L.NavListEnd.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListEnd.value).InstancedFullPath) is { } matchingNavEnd)
+            if (me1L.NavListEnd != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListEnd).InstancedFullPath) is { } matchingNavEnd)
             {
-                le1L.NavListEnd = new UIndex(matchingNavEnd.UIndex);
+                le1L.NavListEnd = matchingNavEnd.UIndex;
 
-                if (me1L.NavListStart.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListStart.value).InstancedFullPath) is { } matchingNavStart)
+                if (me1L.NavListStart != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListStart).InstancedFullPath) is { } matchingNavStart)
                 {
-                    le1L.NavListStart = new UIndex(matchingNavStart.UIndex);
+                    le1L.NavListStart = matchingNavStart.UIndex;
                     while (matchingNavStart != null)
                     {
                         int uindex = matchingNavStart.UIndex;
@@ -4688,13 +4700,13 @@ namespace CrossGenV.Classes
             }
 
             // CoverList Chain start and end
-            if (me1L.CoverListEnd.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListEnd.value).InstancedFullPath) is { } matchingCoverEnd)
+            if (me1L.CoverListEnd != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListEnd).InstancedFullPath) is { } matchingCoverEnd)
             {
-                le1L.CoverListEnd = new UIndex(matchingCoverEnd.UIndex);
+                le1L.CoverListEnd = matchingCoverEnd.UIndex;
 
-                if (me1L.CoverListStart.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListStart.value).InstancedFullPath) is { } matchingCoverStart)
+                if (me1L.CoverListStart != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListStart).InstancedFullPath) is { } matchingCoverStart)
                 {
-                    le1L.CoverListStart = new UIndex(matchingCoverStart.UIndex);
+                    le1L.CoverListStart = matchingCoverStart.UIndex;
                     while (matchingCoverStart != null)
                     {
                         int uindex = matchingCoverStart.UIndex;
@@ -4714,10 +4726,10 @@ namespace CrossGenV.Classes
             // Cross level actors
             foreach (var exportIdx in me1L.CrossLevelActors)
             {
-                var me1E = me1File.GetUExport(exportIdx.value);
+                var me1E = me1File.GetUExport(exportIdx);
                 if (le1File.FindExport(me1E.InstancedFullPath) is { } crossLevelActor)
                 {
-                    le1L.CrossLevelActors.Add(new UIndex(crossLevelActor.UIndex));
+                    le1L.CrossLevelActors.Add(crossLevelActor.UIndex);
                 }
             }
 
@@ -4851,7 +4863,7 @@ namespace CrossGenV.Classes
                 }
             }
 
-            VTestCheckImports(package, vTestOptions);
+            // VTestCheckImports(package, vTestOptions);
             VTestCheckTextures(package, vTestOptions);
 
             #endregion

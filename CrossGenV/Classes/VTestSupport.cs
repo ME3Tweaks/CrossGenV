@@ -18,10 +18,10 @@ namespace CrossGenV.Classes
     /// </summary>
     class VTestSupport
     {
-        internal static void IndexFileForObjDB(ObjectInstanceDB objectDB, MEGame game, IMEPackage package)
+        internal static void IndexFileForObjDB(ObjectInstanceDB objectDB, string path)
         {
             // Index package path
-            int packageNameIndex;
+            /*int packageNameIndex;
             if (package.FilePath.StartsWith(MEDirectories.GetDefaultGamePath(game)))
             {
                 // Get relative path
@@ -45,8 +45,9 @@ namespace CrossGenV.Classes
                     continue;
 
                 // Index it
-                objectDB.AddRecord(ifp, packageNameIndex, true);
-            }
+                objectDB.AddFileToDB(ifp, packageNameIndex, true);
+            }*/
+            objectDB.AddFileToDB(path, true); // Donors go first
         }
 
         public static void ImportUDKTerrainData(ExportEntry udkTerrain, ExportEntry targetTerrain, bool removeExistingComponents = true)
