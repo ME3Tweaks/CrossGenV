@@ -1982,7 +1982,7 @@ namespace CrossGenV.Classes
             if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
             {
                 // This will be used for lighting build step (has to be done manually)
-                le1FileP.AdditionalPackagesToCook.ReplaceAll(le1FileP.AdditionalPackagesToCook);
+                le1FileP.AdditionalPackagesToCook.ReplaceAll(me1FileP.AdditionalPackagesToCook);
             }
 
             var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
