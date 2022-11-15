@@ -187,7 +187,9 @@ namespace CrossGenV.Classes
 
                         // Inventory the classes from vtest helper to ensure they can be created without having to be in the 
                         // code for LEC
-                        foreach (var e in vTestOptions.vTestHelperPackage.Exports.Where(x => x.IsClass && x.InheritsFrom("SequenceObject")))
+                        var vTestSeqObjClasses = vTestOptions.vTestHelperPackage.Exports.Where(x =>
+                            x.IsClass && x.InheritsFrom("SequenceObject")).ToList();
+                        foreach (var e in vTestSeqObjClasses)
                         {
                             var classInfo = GlobalUnrealObjectInfo.generateClassInfo(e);
                             var defaults = vTestOptions.vTestHelperPackage.GetUExport(ObjectBinary.From<UClass>(e).Defaults);
@@ -1979,13 +1981,19 @@ namespace CrossGenV.Classes
             // Corrections to run AFTER porting is done
 
             // Copy over the AdditionalPackagesToCook
-            if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
+            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+            if (fName.CaseInsensitiveEquals("BIOA_PRC2") || fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
             {
-                // This will be used for lighting build step (has to be done manually)
-                le1FileP.AdditionalPackagesToCook.ReplaceAll(me1FileP.AdditionalPackagesToCook);
-            }
 
-            var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+                if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
+                {
+                    // This will be used for lighting build step (has to be done manually)
+                    var files = Directory.GetFiles(Directory.GetParent(me1File.FilePath).FullName, "*.sfm",
+                        SearchOption.TopDirectoryOnly).Where(x => Path.GetFileNameWithoutExtension(x).StartsWith(fName, StringComparison.InvariantCultureIgnoreCase) && Path.GetFileNameWithoutExtension(x) != fName && x.GetUnrealLocalization() == MELocalization.None).ToList();
+
+                    le1FileP.AdditionalPackagesToCook.ReplaceAll(files.Select(x => Path.GetFileNameWithoutExtension(x)));
+                }
+            }
 
             vTestOptions.SetStatusText($"PPC (CoverSlots)");
             ReinstateCoverSlots(me1File, le1File, vTestOptions);
@@ -2022,7 +2030,6 @@ namespace CrossGenV.Classes
             vTestOptions.SetStatusText($"PPC (LEVEL SPECIFIC)");
 
 
-            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
             // Port in the collision-corrected terrain
             if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCLava"))
             {
