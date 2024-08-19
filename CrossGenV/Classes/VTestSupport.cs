@@ -18,36 +18,37 @@ namespace CrossGenV.Classes
     /// </summary>
     class VTestSupport
     {
-        internal static void IndexFileForObjDB(ObjectInstanceDB objectDB, MEGame game, IMEPackage package)
-        {
-            // Index package path
-            int packageNameIndex;
-            if (package.FilePath.StartsWith(MEDirectories.GetDefaultGamePath(game)))
-            {
-                // Get relative path
-                packageNameIndex = objectDB.GetNameTableIndex(package.FilePath.Substring(MEDirectories.GetDefaultGamePath(game).Length + 1));
-            }
-            else
-            {
-                // Store full path
-                packageNameIndex = objectDB.GetNameTableIndex(package.FilePath);
-            }
+        // 08/18/2024 - LEC upgrade to6.4 makes this no longer necessary
+        //internal static void IndexFileForObjDB(ObjectInstanceDB objectDB, MEGame game, IMEPackage package)
+        //{
+        //    // Index package path
+        //    int packageNameIndex;
+        //    if (package.FilePath.StartsWith(MEDirectories.GetDefaultGamePath(game)))
+        //    {
+        //        // Get relative path
+        //        packageNameIndex = objectDB.GetNameTableIndex(package.FilePath.Substring(MEDirectories.GetDefaultGamePath(game).Length + 1));
+        //    }
+        //    else
+        //    {
+        //        // Store full path
+        //        packageNameIndex = objectDB.GetNameTableIndex(package.FilePath);
+        //    }
 
-            // Index objects
-            foreach (var exp in package.Exports)
-            {
-                var ifp = exp.InstancedFullPath;
+        //    // Index objects
+        //    foreach (var exp in package.Exports)
+        //    {
+        //        var ifp = exp.InstancedFullPath;
 
-                // Things to ignore
-                if (ifp.StartsWith(@"TheWorld"))
-                    continue;
-                if (ifp.StartsWith(@"ObjectReferencer"))
-                    continue;
+        //        // Things to ignore
+        //        if (ifp.StartsWith(@"TheWorld"))
+        //            continue;
+        //        if (ifp.StartsWith(@"ObjectReferencer"))
+        //            continue;
 
-                // Index it
-                objectDB.AddRecord(ifp, packageNameIndex, true);
-            }
-        }
+        //        // Index it
+        //        objectDB.AddRecord(ifp, packageNameIndex, true);
+        //    }
+        //}
 
         public static void ImportUDKTerrainData(ExportEntry udkTerrain, ExportEntry targetTerrain, bool removeExistingComponents = true)
         {

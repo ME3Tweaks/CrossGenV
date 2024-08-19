@@ -11,6 +11,7 @@ using LegendaryExplorerCore.GameFilesystem;
 using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Kismet;
+using LegendaryExplorerCore.Localization;
 using LegendaryExplorerCore.Misc;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
@@ -147,6 +148,13 @@ namespace CrossGenV.Classes
             return Path.Combine(VTestPaths.VTest_DonorsDir, "Z_CrossgenV_AssetCache.pcc");
         }
 
+        private static string GetObjectDBPath()
+        {
+            var lexPath = Directory.CreateDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\LegendaryExplorer\").FullName;
+            var dbPath = Directory.CreateDirectory(Path.Combine(lexPath, "ObjectDatabases")).FullName;
+            return Path.Combine(dbPath, $"{MEGame.LE1}.bin");
+        }
+
         /// <summary>
         /// Internal single-thread VTest session
         /// </summary>
@@ -159,20 +167,23 @@ namespace CrossGenV.Classes
             //Dictionary<Guid, string> me1MaterialMap = null;
             vTestOptions.SetStatusText("Loading databases");
 
-            if (VTestUtility.LoadEmbeddedFile("le1db.lzma", out var stream))
-            {
-                var ms = new MemoryStream();
-                stream.CopyTo(ms);
-                var decompressed = new MemoryStream(LZMA.DecompressLZMAFile(ms.ToArray()));
-                var sr = new StreamReader(decompressed);
-                vTestOptions.objectDB = ObjectInstanceDB.DeserializeDB(sr.ReadToEnd());
-                vTestOptions.objectDB.BuildLookupTable(); // Lookup table is required as we are going to compile things
-            }
-            else
-            {
-                Console.WriteLine("Failed to open LE1 database of objects");
-                return;
-            }
+            vTestOptions.objectDB = ObjectInstanceDB.Deserialize(MEGame.LE1, new MemoryStream(File.ReadAllBytes(GetObjectDBPath())));
+            //if (VTestUtility.LoadEmbeddedFile("le1db.lzma", out var stream))
+            //{
+            //    var ms = new MemoryStream();
+            //    stream.CopyTo(ms);
+            //    var decompressed = new MemoryStream(LZMA.DecompressLZMAFile(ms.ToArray()));
+            //    var sr = new StreamReader(decompressed);
+            //    vTestOptions.objectDB = ObjectInstanceDB.Deserialize(MEGame.LE1,decompressed);
+
+            //    // 08/18/2024 - Upgrade to LEC6.4 shows this method was removed. Unsure how much it's needed...
+            //    //vTestOptions.objectDB.BuildLookupTable(); // Lookup table is required as we are going to compile things
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Failed to open LE1 database of objects");
+            //    return;
+            //}
 
             vTestOptions.SetStatusText("Inventorying donors");
 
@@ -203,7 +214,7 @@ namespace CrossGenV.Classes
                         // Inventory
                         vTestOptions.SetStatusText($@"Inventorying {Path.GetFileName(file)}");
                         using var p = MEPackageHandler.OpenMEPackage(file);
-                        VTestSupport.IndexFileForObjDB(vTestOptions.objectDB, MEGame.LE1, p);
+                        vTestOptions.objectDB.AddFileToDB(p, p.FilePath);
                     }
                 }
             }
@@ -345,23 +356,25 @@ namespace CrossGenV.Classes
             {
                 if (import.IsAKnownNativeClass())
                     continue; //skip
-                var resolvedExp = EntryImporter.ResolveImport(import, null, vTestOptions.cache, clipRootLevelPackage: false);
+                var resolvedExp = EntryImporter.ResolveImport(import, vTestOptions.cache);
                 if (resolvedExp == null)
                 {
+                    // 08/18/2024 - Upgrade to LEC6.4 - disable similar import guessing.
+
                     // Look in DB for objects that have same suffix
                     // This is going to be VERY slow
 
-                    var instancedNameSuffix = "." + import.ObjectName.Instanced;
-                    string similar = "";
-                    foreach (var name in vTestOptions.objectDB.NameTable)
-                    {
-                        if (name.EndsWith(instancedNameSuffix, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            similar += ", " + name;
-                        }
-                    }
+                    //var instancedNameSuffix = "." + import.ObjectName.Instanced;
+                    //string similar = "";
+                    //foreach (var name in vTestOptions.objectDB.Names)
+                    //{
+                    //    if (name.EndsWith(instancedNameSuffix, StringComparison.InvariantCultureIgnoreCase))
+                    //    {
+                    //        similar += ", " + name;
+                    //    }
+                    //}
 
-                    Debug.WriteLine($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}, may be these ones instead: {similar}");
+                    Debug.WriteLine($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}");
                 }
             }
         }
@@ -384,7 +397,12 @@ namespace CrossGenV.Classes
             CreateEmptyLevel(outputFile);
 
             using var le1File = MEPackageHandler.OpenMEPackage(outputFile, forceLoadFromDisk: true);
-            using var me1File = MEPackageHandler.OpenMEPackage($@"{VTestPaths.VTest_SourceDir}\{mapName}\{sourceName}.SFM", forceLoadFromDisk: true);
+            var name = $@"{VTestPaths.VTest_SourceDir}\{mapName}\{sourceName}.SFM";
+            if (!File.Exists(name))
+            {
+                name = $@"{VTestPaths.VTest_SourceDir}\{mapName}\{sourceName}.u";
+            }
+            using var me1File = MEPackageHandler.OpenMEPackage(name, forceLoadFromDisk: true);
 
             var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
 
@@ -414,8 +432,8 @@ namespace CrossGenV.Classes
             var me1PL = me1File.FindExport(@"TheWorld.PersistentLevel");
             var me1PersistentLevel = ObjectBinary.From<Level>(me1PL);
 
-            itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x.value != 0) // Skip blanks
-                .Select(x => me1File.GetUExport(x.value))
+            itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x != 0) // Skip blanks
+                .Select(x => me1File.GetUExport(x))
                 .Where(x => ClassesToVTestPort.Contains(x.ClassName) || (syncBioWorldInfo && ClassesToVTestPortMasterOnly.Contains(x.ClassName))));
 
             if (vTestOptions.debugBuild && vTestOptions.debugConvertStaticLightingToNonStatic)
@@ -491,7 +509,7 @@ namespace CrossGenV.Classes
             if (/*vTestOptions.portModels && */ShouldPortModel(sourceName.ToUpper()))
             {
                 var me1ModelUIndex = ObjectBinary.From<Level>(me1PL).Model;
-                List<UIndex> modelComponents = new List<UIndex>();
+                List<int> modelComponents = new List<int>();
                 foreach (var mc in me1File.Exports.Where(x => x.ClassName == "ModelComponent"))
                 {
                     var mcb = ObjectBinary.From<ModelComponent>(mc);
@@ -593,7 +611,7 @@ namespace CrossGenV.Classes
 
             Debug.WriteLine($"RCP CHECK FOR {Path.GetFileNameWithoutExtension(le1File.FilePath)} -------------------------");
             ReferenceCheckPackage rcp = new ReferenceCheckPackage();
-            EntryChecker.CheckReferences(rcp, le1File, EntryChecker.NonLocalizedStringConverter);
+            EntryChecker.CheckReferences(rcp, le1File, LECLocalizationShim.NonLocalizedStringConverter);
 
             foreach (var err in rcp.GetBlockingErrors())
             {
@@ -1077,32 +1095,44 @@ namespace CrossGenV.Classes
                 sourcePackage.replaceName(bcBaseIdx, "SFXGame");
             }
 
-            foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "ObjectReferencer"))
+            // Portp ackages
+            foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "Package"))
+            {
+                RelinkerOptionsPackage rop = new RelinkerOptionsPackage()
+                {
+                    IsCrossGame = false,
+                    ImportExportDependencies = false,
+                };
+                var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.AddSingularAsChild, e, package, package.FindEntry(e?.ParentFullPath), true, rop, out _);
+            }
+
+
+            foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "BioMorphFace"))
             {
                 // Correct the object referencer to remove objects that shouldn't be be ported.
-                var ro = e.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects");
-                foreach (var refObj in ro.ToList())
-                {
-                    if (refObj.ResolveToEntry(sourcePackage) is ExportEntry resolved)
-                    {
-                        bool removed = false; // for if we check more than just archetypes
+                //var ro = e.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects");
+                //foreach (var refObj in ro.ToList())
+                //{
+                //    if (refObj.ResolveToEntry(sourcePackage) is ExportEntry resolved)
+                //    {
+                //        bool removed = false; // for if we check more than just archetypes
 
-                        // Prune items with bad archetypes
-                        var archetypeObjectName = resolved.Archetype?.ObjectName.Name ?? null;
-                        switch (archetypeObjectName) // Not instanced as these are typically sub items and have instance numbers
-                        {
-                            case "DistributionLPFMaxRadius":
-                            case "DistributionLPFMinRadius":
-                                ro.Remove(refObj);
-                                removed = true;
-                                break;
-                        }
+                //        // Prune items with bad archetypes
+                //        var archetypeObjectName = resolved.Archetype?.ObjectName.Name ?? null;
+                //        switch (archetypeObjectName) // Not instanced as these are typically sub items and have instance numbers
+                //        {
+                //            case "DistributionLPFMaxRadius":
+                //            case "DistributionLPFMinRadius":
+                //                ro.Remove(refObj);
+                //                removed = true;
+                //                break;
+                //        }
 
-                        if (removed)
-                            continue;
-                    }
-                }
-                e.WriteProperty(ro);
+                //        if (removed)
+                //            continue;
+                //    }
+                //}
+                //e.WriteProperty(ro);
                 RelinkerOptionsPackage rop = new RelinkerOptionsPackage()
                 {
                     IsCrossGame = true,
@@ -1110,8 +1140,8 @@ namespace CrossGenV.Classes
                     Cache = vTestOptions.cache,
                     TargetGameDonorDB = vTestOptions.objectDB
                 };
-
-                var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, e, package, null, true, rop, out _);
+                var link = e.Parent != null ? package.FindEntry(e.ParentFullPath) : null;
+                var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, e, package, link, true, rop, out _);
                 if (report.Any())
                 {
                     //Debugger.Break();
@@ -1216,7 +1246,7 @@ namespace CrossGenV.Classes
                             // Clear light and shadowmaps
                             if (vTestOptions == null || vTestOptions.stripShadowMaps || vTestOptions.useDynamicLighting)
                             {
-                                lod.ShadowMaps = new UIndex[0];
+                                lod.ShadowMaps = [0];
                             }
 
                             if (vTestOptions == null || vTestOptions.useDynamicLighting)
@@ -1254,7 +1284,7 @@ namespace CrossGenV.Classes
                         var mcb = ObjectBinary.From<ModelComponent>(exp);
                         foreach (var elem in mcb.Elements)
                         {
-                            elem.ShadowMaps = new UIndex[0]; // We want no shadowmaps
+                            elem.ShadowMaps = [0]; // We want no shadowmaps
                             elem.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None }; // Strip the lightmaps
                         }
 
@@ -1286,6 +1316,10 @@ namespace CrossGenV.Classes
 
         private static bool ShouldPortLightmaps(IEntry smEntry)
         {
+            // 08/18/2024 - Lighting rebake via UDK means we should try to port all lightmaps, so when we rebake in UDK the lightmap data is present
+            return true;
+
+            // Disabled
             if (PossibleLightMapUsers.Contains(smEntry.InstancedFullPath))
             {
                 return true; // We will try to use the original lightmaps for this
@@ -1417,7 +1451,7 @@ namespace CrossGenV.Classes
 
             KismetHelper.CreateOutputLink(doAction, "Next", compareObject, 0); // Connect DoAction Next to CompareObject
             KismetHelper.CreateOutputLink(compareObject, "A == B", takeDamage); // TEST ONLY - TOUCHING PLAYER
-            //KismetHelper.CreateOutputLink(compareObject, "A == B", doAction, 1); // Connect CompareObj to DoAction (The touching pawn is Player, skip damage)
+                                                                                //KismetHelper.CreateOutputLink(compareObject, "A == B", doAction, 1); // Connect CompareObj to DoAction (The touching pawn is Player, skip damage)
             KismetHelper.CreateOutputLink(compareObject, "A != B", takeDamage); // Connect CompareObj to DoAction (The touching pawn is Player, skip damage)
 
             KismetHelper.CreateOutputLink(takeDamage, "Out", doAction, 1); // Connect DoAction Next to Damage In
@@ -1428,9 +1462,9 @@ namespace CrossGenV.Classes
             KismetHelper.RemoveAllLinks(destroy);
 
             //remove from sequence
-            var seqObjs = SeqTools.GetParentSequence(destroy).GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects");
+            var seqObjs = KismetHelper.GetParentSequence(destroy).GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects");
             seqObjs.Remove(new ObjectProperty(destroy));
-            SeqTools.GetParentSequence(destroy).WriteProperty(seqObjs);
+            KismetHelper.GetParentSequence(destroy).WriteProperty(seqObjs);
 
             //Trash
             EntryPruner.TrashEntryAndDescendants(destroy);
@@ -1456,7 +1490,7 @@ namespace CrossGenV.Classes
             newBV.WriteProperty(new BoolProperty(false, "bInclusionaryList"));
             newBV.WriteProperty(new BoolProperty(false, "bBlockCamera"));
 
-            var killVolume = (SeqTools.GetVariableLinksOfNode(SeqTools.GetParentSequence(killTriggerSeq))[0].LinkedNodes[0] as ExportEntry).GetProperty<ObjectProperty>("ObjValue").ResolveToEntry(killTriggerSeq.FileRef) as ExportEntry;
+            var killVolume = (KismetHelper.GetVariableLinksOfNode(KismetHelper.GetParentSequence(killTriggerSeq))[0].LinkedNodes[0] as ExportEntry).GetProperty<ObjectProperty>("ObjValue").ResolveToEntry(killTriggerSeq.FileRef) as ExportEntry;
             var tempClone = EntryCloner.CloneTree(killVolume);
 
             foreach (var exp in killVolume.FileRef.Exports.Where(x => x.idxLink == tempClone.UIndex))
@@ -2006,9 +2040,12 @@ namespace CrossGenV.Classes
             FixLighting(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Ahern Conversation)");
             FixAhernConversation(le1File, vTestOptions);
-            vTestOptions.SetStatusText($"PPC (Optimization)");
-            PortME1OptimizationAssets(me1File, le1File, vTestOptions);
+
+            // Disabled 08/18/2024 - Do not use assets for optimization as we now rebake lighting
+            //vTestOptions.SetStatusText($"PPC (Optimization)");
+            //PortME1OptimizationAssets(me1File, le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (LEVEL SPECIFIC)");
+            // Todo: Port in UDK lighting for .udk files
 
 
             var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
@@ -2072,9 +2109,9 @@ namespace CrossGenV.Classes
             {
                 #region PRC1 BioSoundNodeWaveStreamingData
                 // This is hack to port things over in ModdedSource. The streaming data was referenced by an object that doesn't actually
-                // use this (game will die if it tries). We remove this reference and setup our own.
-                // This is a total hack but it works for less code.
-
+                // use this (game will die if it tries). We remove this reference and set up our own.
+                // This is a total hack, but it works for less code.
+                le1File.Save();
                 le1File.FindExport("TheWorld.PersistentLevel.AmbientSound_20").RemoveProperty("Base");
                 AddWorldReferencedObjects(le1File, le1File.FindExport("DVDStreamingAudioData.PC.snd_prc1_music")); // This must stay in memory for the music 2DA to work for PRC1 audio
                 #endregion
@@ -2504,10 +2541,10 @@ namespace CrossGenV.Classes
         private static void SetGenderSpecificLength(ExportEntry export, float femaleOffset, float maleOffset, VTestOptions vTestOptions)
         {
             // Split the nodes
-            var sequence = SeqTools.GetParentSequence(export);
-            var outbound = SeqTools.GetOutboundLinksOfNode(export);
+            var sequence = KismetHelper.GetParentSequence(export);
+            var outbound = KismetHelper.GetOutputLinksOfNode(export);
             var interpFemale = outbound[0][0].LinkedOp as ExportEntry;
-            var interpDataFemale = SeqTools.GetVariableLinksOfNode(interpFemale)[0].LinkedNodes[0] as ExportEntry;
+            var interpDataFemale = KismetHelper.GetVariableLinksOfNode(interpFemale)[0].LinkedNodes[0] as ExportEntry;
 
             var interpMale = EntryCloner.CloneTree(interpFemale);
             var interpDataMale = EntryCloner.CloneTree(interpDataFemale);
@@ -2520,7 +2557,7 @@ namespace CrossGenV.Classes
 
             // Link everything up.
             outbound[0][0].LinkedOp = pmCheckFemale;
-            SeqTools.WriteOutboundLinksToNode(export, outbound); // Start Event to Conditional check
+            KismetHelper.WriteOutputLinksToNode(export, outbound); // Start Event to Conditional check
             KismetHelper.CreateOutputLink(pmCheckFemale, "True", interpFemale); // Player Female -> Female Interp
             KismetHelper.CreateOutputLink(pmCheckFemale, "False", interpMale); // Player Male -> Male Interp
             KismetHelper.RemoveVariableLinks(interpMale); // Remove existing interp data
@@ -2548,7 +2585,7 @@ namespace CrossGenV.Classes
         {
             gate = null;
             var sourceItemToOutFrom = le1File.FindExport(sourceSequenceOpIFP);
-            var parentSequence = SeqTools.GetParentSequence(sourceItemToOutFrom, true);
+            var parentSequence = KismetHelper.GetParentSequence(sourceItemToOutFrom, true);
             var donorSequence = vTestOptions.vTestHelperPackage.FindExport(vTestSequenceIFP);
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, donorSequence, le1File, parentSequence, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var newUiSeq);
             KismetHelper.AddObjectToSequence(newUiSeq as ExportEntry, parentSequence);
@@ -2595,7 +2632,7 @@ namespace CrossGenV.Classes
         private static ExportEntry InstallVTestHelperSequenceViaEvent(IMEPackage le1File, string eventIFP, string vTestSequenceIFP, VTestOptions vTestOptions, string outName = "Out")
         {
             var targetEvent = le1File.FindExport(eventIFP);
-            var sequence = SeqTools.GetParentSequence(targetEvent);
+            var sequence = KismetHelper.GetParentSequence(targetEvent);
             var donorSequence = vTestOptions.vTestHelperPackage.FindExport(vTestSequenceIFP);
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, donorSequence, le1File, sequence, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var newUiSeq);
             KismetHelper.AddObjectToSequence(newUiSeq as ExportEntry, sequence);
@@ -2608,7 +2645,7 @@ namespace CrossGenV.Classes
             var world = le1File.FindExport("TheWorld");
             var worldBin = ObjectBinary.From<World>(world);
             var newItems = worldBin.ExtraReferencedObjects.ToList();
-            newItems.AddRange(entriesToReference.Select(x => new UIndex(x.UIndex)));
+            newItems.AddRange(entriesToReference.Select(x => x.UIndex));
             worldBin.ExtraReferencedObjects = newItems.ToArray();
             world.WriteBinary(worldBin);
         }
@@ -2675,7 +2712,7 @@ namespace CrossGenV.Classes
                             {
                                 // Fadein is handled by scoreboard DSG
                                 var compareBool = FindSequenceObjectByClassAndPosition(exp, "SeqCond_CompareBool", 8064, 3672);
-                                SeqTools.SkipSequenceElement(compareBool, "True"); // Skip out to true
+                                KismetHelper.SkipSequenceElement(compareBool, "True"); // Skip out to true
                             }
                         }
 
@@ -2807,7 +2844,7 @@ namespace CrossGenV.Classes
                                     KismetHelper.CreateVariableLink(assaultAiLog, "Object", currentPawn);
 
                                     // Stop timer on any event in this sequence 
-                                    var events = SeqTools.GetAllSequenceElements(exp).OfType<ExportEntry>().Where(x => x.IsA("SeqEvent")).ToList();
+                                    var events = KismetHelper.GetAllSequenceElements(exp).OfType<ExportEntry>().Where(x => x.IsA("SeqEvent")).ToList();
                                     foreach (var seqEvent in events)
                                     {
                                         KismetHelper.CreateOutputLink(seqEvent, "Out", delay, 1); // Cancel the delay as spawn stopped or changed (or restarted)
@@ -2923,7 +2960,7 @@ namespace CrossGenV.Classes
                             {
                                 // Fadein is handled by scoreboard DSG
                                 var compareBool = FindSequenceObjectByClassAndPosition(exp, "SeqCond_CompareBool", 8064, 3672);
-                                SeqTools.SkipSequenceElement(compareBool, "True"); // Skip out to true
+                                KismetHelper.SkipSequenceElement(compareBool, "True"); // Skip out to true
 
                                 // Add signal to stop decay and restore healthgate
                                 if (IsContainedWithinSequenceNamed(exp, "SUR_Lava_Handler", true) ||
@@ -3471,10 +3508,10 @@ namespace CrossGenV.Classes
 
             // ATTACH FLASHLIGHT
             {
-                var outLinksFactory = SeqTools.GetOutboundLinksOfNode(actorFactoryWithOwner);
+                var outLinksFactory = KismetHelper.GetOutputLinksOfNode(actorFactoryWithOwner);
                 var originalOutlink = outLinksFactory[0][2].LinkedOp;
                 outLinksFactory[0][2].LinkedOp = attachFL; // repoint to attachFL
-                SeqTools.WriteOutboundLinksToNode(actorFactoryWithOwner, outLinksFactory);
+                KismetHelper.WriteOutputLinksToNode(actorFactoryWithOwner, outLinksFactory);
                 KismetHelper.CreateOutputLink(attachFL, "Done", originalOutlink as ExportEntry);
                 var currentPawn = FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 4536, 2016);
                 KismetHelper.CreateVariableLink(attachFL, "Target", currentPawn);
@@ -3482,11 +3519,11 @@ namespace CrossGenV.Classes
             // DETACH FLASHLIGHT
             {
                 var attachCrustEffect = FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_AttachCrustEffect", 5752, 2000);
-                var attachOutlinks = SeqTools.GetOutboundLinksOfNode(attachCrustEffect);
+                var attachOutlinks = KismetHelper.GetOutputLinksOfNode(attachCrustEffect);
                 var originalOutlink = attachOutlinks[0][1].LinkedOp;
                 attachOutlinks[0][1].LinkedOp = deattachFL; // repoint to deattachFL
                 attachOutlinks[0][1].InputLinkIdx = 1; // Detach
-                SeqTools.WriteOutboundLinksToNode(attachCrustEffect, attachOutlinks);
+                KismetHelper.WriteOutputLinksToNode(attachCrustEffect, attachOutlinks);
                 KismetHelper.CreateOutputLink(deattachFL, "Done", originalOutlink as ExportEntry);
 
                 var cachedPawn = FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 5640, 2128);
@@ -3525,49 +3562,49 @@ namespace CrossGenV.Classes
             {
                 case "RA":
                 case "RU":
-                    stringRefs.Add(new TLKStringRef(338464, 1, "Загрузка данных"));
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Настройка музыки"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Отключить музыку"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Включить музыку"));
+                    stringRefs.Add(new TLKStringRef(338464, "Загрузка данных"));
+                    stringRefs.Add(new TLKStringRef(338465, "Настройка музыки"));
+                    stringRefs.Add(new TLKStringRef(338466, "Отключить музыку"));
+                    stringRefs.Add(new TLKStringRef(338467, "Включить музыку"));
                     break;
                 case "ES":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Configuración de Música"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Desactivar Música"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Activar Música"));
+                    stringRefs.Add(new TLKStringRef(338465, "Configuración de Música"));
+                    stringRefs.Add(new TLKStringRef(338466, "Desactivar Música"));
+                    stringRefs.Add(new TLKStringRef(338467, "Activar Música"));
                     break;
                 case "IT":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "PL":
                 case "PLPC":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "FR":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "DE":
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "JA":
-                    stringRefs.Add(new TLKStringRef(338464, 1, "Downloading Data"));
-                    stringRefs.Add(new TLKStringRef(338465, 1, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, 1, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, 1, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338464, "Downloading Data"));
+                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
+                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
+                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
             }
 
 
             var huff = new HuffmanCompression();
             huff.LoadInputData(stringRefs);
-            huff.serializeTalkfileToExport(tlkExport);
+            huff.SerializeTalkfileToExport(tlkExport);
         }
 
         private static void PostUpdateTLKs(VTestOptions vTestOptions)
@@ -3615,10 +3652,10 @@ namespace CrossGenV.Classes
                 {
                     if (seqObj.ClassName == "SeqAct_ActorFactory")
                     {
-                        var outLinks = SeqTools.GetOutboundLinksOfNode(seqObj);
+                        var outLinks = KismetHelper.GetOutputLinksOfNode(seqObj);
                         outLinks[0].RemoveAt(0); // Remove the first outlink, which goes to Delay
-                        SeqTools.WriteOutboundLinksToNode(seqObj, outLinks); // remove the link so we don't try to connect to it when skipping
-                        SeqTools.SkipSequenceElement(seqObj, "Finished");
+                        KismetHelper.WriteOutputLinksToNode(seqObj, outLinks); // remove the link so we don't try to connect to it when skipping
+                        KismetHelper.SkipSequenceElement(seqObj, "Finished");
                         sequenceObjects.Remove(seqObjProp);
                     }
                     else if (seqObj.ClassName == "BioSeqAct_Delay")
@@ -3629,9 +3666,9 @@ namespace CrossGenV.Classes
                         if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 && props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
                         {
                             // This needs removed too
-                            var nextNodes = SeqTools.GetOutboundLinksOfNode(seqObj);
+                            var nextNodes = KismetHelper.GetOutputLinksOfNode(seqObj);
                             var nextNode = nextNodes[0][0].LinkedOp as ExportEntry;
-                            var subNodeOfNext = SeqTools.GetVariableLinksOfNode(nextNode)[0].LinkedNodes[0] as ExportEntry;
+                            var subNodeOfNext = KismetHelper.GetVariableLinksOfNode(nextNode)[0].LinkedNodes[0] as ExportEntry;
 
                             // Remove all of them from the sequence
                             sequenceObjects.Remove(seqObjProp); // Delay
@@ -3646,8 +3683,8 @@ namespace CrossGenV.Classes
         }
 
         private static string[] PossibleLightMapUsers = new[]
-    {
-            "BIOA_Apartment_S.APT_ANgledCeinling_01",
+        {
+            "BIOA_Apartment_S.APT_ANgledCeinling_01", // sic
             "BIOA_Apartment_S.APT_BackWall",
             "BIOA_Apartment_S.APT_Central_Floor_01",
             "BIOA_Apartment_S.APT_ExtWall_01",
@@ -3709,7 +3746,7 @@ namespace CrossGenV.Classes
             "BIOG_v_DLC_Vegas.Meshes.UNC_Vegas_Rings",
 
             // THE FOLLOWING WERE FOUND TO HAVE SAME LOD COUNT AND VERTICE COUNT
-            // Calcaulted in PackageEditorExperimentsM
+            // Calculated in PackageEditorExperimentsM
             "BIOA_ICE50_S.ice50_ceilingredo01",
             "BIOA_JUG80_S.jug80_damwall04",
             "BIOA_PRO10_S.PRO10_BEAMLIFT00",
@@ -3811,7 +3848,7 @@ namespace CrossGenV.Classes
             "BIOA_UNC20_T.UNC_HORIZONLINE",
 
             "BIOA_JUG40_S.CROSSGENFIX_SANDBARB" // This is done via special donor, renamed, but we want the original lightmaps as we use a few less poly version (but def the lightmaps)
-    };
+        };
 
         // These assets will be used from ME1 (not using LE1's version). They must exist with same IFP in LE1 however. 
         // Objects that match these will use static lighting
@@ -3826,13 +3863,13 @@ namespace CrossGenV.Classes
             "BIOA_JUG40_S.JUG40_BASERAILINGRAMP",
             "BIOA_JUG40_S.JUG20_RAMPSHEET",
             "BIOA_JUG40_S.jug40_Object01", // Pathway to the 'hole of doom'
-
-
-
         };
 
         public static void PortME1OptimizationAssets(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
+            // Disabled 08/18/2024 for lighting rebake.
+            return;
+
             foreach (var me1oa in ME1OptimizationAssets)
             {
                 var le1Version = le1File.FindExport(me1oa);
@@ -3966,7 +4003,7 @@ namespace CrossGenV.Classes
         /// <returns></returns>
         private static bool IsContainedWithinSequenceNamed(ExportEntry sequenceObject, string seqName, bool fullParentChain = true)
         {
-            var parent = SeqTools.GetParentSequence(sequenceObject);
+            var parent = KismetHelper.GetParentSequence(sequenceObject);
             while (parent != null)
             {
                 var parentName = parent.GetProperty<StrProperty>("ObjName");
@@ -3974,7 +4011,7 @@ namespace CrossGenV.Classes
                     return true;
                 if (!fullParentChain)
                     break;
-                parent = SeqTools.GetParentSequence(parent);
+                parent = KismetHelper.GetParentSequence(parent);
             }
 
             return false;
@@ -4049,7 +4086,7 @@ namespace CrossGenV.Classes
         private static void InstallRemoteEventSignal(IMEPackage le1File, string sourceIFP, string remoteEventName, VTestOptions vTestOptions, string outlinkName = "Out")
         {
             var source = le1File.FindExport(sourceIFP);
-            var sequence = SeqTools.GetParentSequence(source);
+            var sequence = KismetHelper.GetParentSequence(source);
             var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
             KismetHelper.AddObjectToSequence(remoteEvent, sequence);
             remoteEvent.WriteProperty(new NameProperty(remoteEventName, "EventName"));
@@ -4205,7 +4242,7 @@ namespace CrossGenV.Classes
         /// <param name="findSequenceObjectByClassAndPosition"></param>
         private static void FixSimMapTextureLoading(ExportEntry startDelay, VTestOptions vTestOptions, ExportEntry streamingLocation = null)
         {
-            var sequence = SeqTools.GetParentSequence(startDelay);
+            var sequence = KismetHelper.GetParentSequence(startDelay);
             var stopLoadingMovie = FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_StopLoadingMovie");
             KismetHelper.RemoveOutputLinks(startDelay);
 
@@ -4322,7 +4359,7 @@ namespace CrossGenV.Classes
 
             var rop = new RelinkerOptionsPackage() { Cache = vTestOptions.cache };
             var le1TerrainBin = ObjectBinary.From<Terrain>(le1DonorTerrain);
-            le1TerrainBin.WeightedTextureMaps = new UIndex[0]; // These don't work with our different data format for these maps
+            le1TerrainBin.WeightedTextureMaps = [0]; // These don't work with our different data format for these maps
             le1DonorTerrain.WriteBinary(le1TerrainBin);
 
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, le1DonorTerrain, le1File,
@@ -4354,25 +4391,25 @@ namespace CrossGenV.Classes
                     {
                         le1TC.LightMap = me1TC.LightMap;
                         var le1LM = le1TC.LightMap as LightMap_2D; // This is same ref, I suppose...
-                        // Port textures
+                                                                   // Port textures
                         if (lm2d.Texture1 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture1.value), le1File, out var tex1, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture1), le1File, out var tex1, vTestOptions.cache);
                             le1LM.Texture1 = tex1.UIndex;
                         }
                         if (lm2d.Texture2 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture2.value), le1File, out var tex2, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture2), le1File, out var tex2, vTestOptions.cache);
                             le1LM.Texture2 = tex2.UIndex;
                         }
                         if (lm2d.Texture3 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture3.value), le1File, out var tex3, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture3), le1File, out var tex3, vTestOptions.cache);
                             le1LM.Texture3 = tex3.UIndex;
                         }
                         if (lm2d.Texture4 > 0)
                         {
-                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture4.value), le1File, out var tex4, vTestOptions.cache);
+                            EntryExporter.ExportExportToPackage(me1File.GetUExport(lm2d.Texture4), le1File, out var tex4, vTestOptions.cache);
                             le1LM.Texture4 = tex4.UIndex;
                         }
                     }
@@ -4399,10 +4436,10 @@ namespace CrossGenV.Classes
                 }
 
                 portedTC.WriteProperties(propertiesME1); // The original game has no object refs
-                //foreach (var prop in propertiesME1.Where(x => x is ArrayProperty<StructProperty> or BoolProperty))
-                //{
-                //    portedTC.WriteProperty(prop); // Irrelevant lights, some lighting bools
-                //}
+                                                         //foreach (var prop in propertiesME1.Where(x => x is ArrayProperty<StructProperty> or BoolProperty))
+                                                         //{
+                                                         //    portedTC.WriteProperty(prop); // Irrelevant lights, some lighting bools
+                                                         //}
             }
             destTerrain.WriteProperty(components);
 
@@ -4506,7 +4543,7 @@ namespace CrossGenV.Classes
                     continue; // Debug builds with debugConvertStaticLightingToNonStatic don't add StaticLightCollectionActor, instead porting over the lights individually.
                 }
 
-                level.Actors.Add(new UIndex(actor.UIndex));
+                level.Actors.Add(actor.UIndex);
             }
 
             //if (level.Actors.Count > 1)
@@ -4515,8 +4552,7 @@ namespace CrossGenV.Classes
             // BioWorldInfo will always be present
             // or at least, it better be!
             // Slot 2 has to be blank in LE. In ME1 i guess it was a brush.
-            level.Actors.Insert(1, new UIndex(0)); // This is stupid
-                                                   //}
+            level.Actors.Insert(1, 0); // This is stupid
 
             pl.WriteBinary(level);
         }
@@ -4526,7 +4562,7 @@ namespace CrossGenV.Classes
             // Set ObjInstanceVersions to LE value
             if (seq.IsA("SequenceObject"))
             {
-                if (LE1UnrealObjectInfo.SequenceObjects.TryGetValue(seq.ClassName, out var soi))
+                if (LE1UnrealObjectInfo.ObjectInfo.SequenceObjects.TryGetValue(seq.ClassName, out var soi))
                 {
                     seq.WriteProperty(new IntProperty(soi.ObjInstanceVersion, "ObjInstanceVersion"));
                 }
@@ -4664,13 +4700,13 @@ namespace CrossGenV.Classes
             //StructProperty maxPathSize = new StructProperty("Cylinder", mcs, "MaxPathSize");
 
             // NavList Chain start and end
-            if (me1L.NavListEnd.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListEnd.value).InstancedFullPath) is { } matchingNavEnd)
+            if (me1L.NavListEnd != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListEnd).InstancedFullPath) is { } matchingNavEnd)
             {
-                le1L.NavListEnd = new UIndex(matchingNavEnd.UIndex);
+                le1L.NavListEnd = matchingNavEnd.UIndex;
 
-                if (me1L.NavListStart.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListStart.value).InstancedFullPath) is { } matchingNavStart)
+                if (me1L.NavListStart != 0 && le1File.FindExport(me1File.GetUExport(me1L.NavListStart).InstancedFullPath) is { } matchingNavStart)
                 {
-                    le1L.NavListStart = new UIndex(matchingNavStart.UIndex);
+                    le1L.NavListStart = matchingNavStart.UIndex;
                     while (matchingNavStart != null)
                     {
                         int uindex = matchingNavStart.UIndex;
@@ -4688,13 +4724,13 @@ namespace CrossGenV.Classes
             }
 
             // CoverList Chain start and end
-            if (me1L.CoverListEnd.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListEnd.value).InstancedFullPath) is { } matchingCoverEnd)
+            if (me1L.CoverListEnd != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListEnd).InstancedFullPath) is { } matchingCoverEnd)
             {
-                le1L.CoverListEnd = new UIndex(matchingCoverEnd.UIndex);
+                le1L.CoverListEnd = matchingCoverEnd.UIndex;
 
-                if (me1L.CoverListStart.value != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListStart.value).InstancedFullPath) is { } matchingCoverStart)
+                if (me1L.CoverListStart != 0 && le1File.FindExport(me1File.GetUExport(me1L.CoverListStart).InstancedFullPath) is { } matchingCoverStart)
                 {
-                    le1L.CoverListStart = new UIndex(matchingCoverStart.UIndex);
+                    le1L.CoverListStart = matchingCoverStart.UIndex;
                     while (matchingCoverStart != null)
                     {
                         int uindex = matchingCoverStart.UIndex;
@@ -4714,10 +4750,10 @@ namespace CrossGenV.Classes
             // Cross level actors
             foreach (var exportIdx in me1L.CrossLevelActors)
             {
-                var me1E = me1File.GetUExport(exportIdx.value);
+                var me1E = me1File.GetUExport(exportIdx);
                 if (le1File.FindExport(me1E.InstancedFullPath) is { } crossLevelActor)
                 {
-                    le1L.CrossLevelActors.Add(new UIndex(crossLevelActor.UIndex));
+                    le1L.CrossLevelActors.Add(crossLevelActor.UIndex);
                 }
             }
 

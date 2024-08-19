@@ -24,7 +24,7 @@ namespace CrossGenV.Classes
         /// <summary>
         /// If lightmaps and shadowmaps should be stripped and dynamic lighting turned on
         /// </summary>
-        public bool useDynamicLighting = true;
+        public bool useDynamicLighting = false;
 
         /// <summary>
         /// Strips shadow maps off. If using dynamic lighting, shadow maps are always stripped
@@ -40,11 +40,6 @@ namespace CrossGenV.Classes
         /// If terrains should have their lightmaps ported over (if they exist)
         /// </summary>
         public bool portTerrainLightmaps = true;
-
-        /// <summary>
-        /// If level models should be ported.
-        /// </summary>
-        public bool portModels = false;
 
         /// <summary>
         /// If the audio localizations should be ported
