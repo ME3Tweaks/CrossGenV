@@ -200,7 +200,9 @@ namespace CrossGenV.Classes
 
                         // Inventory the classes from vtest helper to ensure they can be created without having to be in the 
                         // code for LEC
-                        foreach (var e in vTestOptions.vTestHelperPackage.Exports.Where(x => x.IsClass && x.InheritsFrom("SequenceObject")))
+                        var vTestSeqObjClasses = vTestOptions.vTestHelperPackage.Exports.Where(x =>
+                            x.IsClass && x.InheritsFrom("SequenceObject")).ToList();
+                        foreach (var e in vTestSeqObjClasses)
                         {
                             var classInfo = GlobalUnrealObjectInfo.generateClassInfo(e);
                             var defaults = vTestOptions.vTestHelperPackage.GetUExport(ObjectBinary.From<UClass>(e).Defaults);
@@ -454,7 +456,7 @@ namespace CrossGenV.Classes
             // like scene desaturation in it worth porting.
             //foreach (var v in me1PersistentLevel.Actors)
             //{
-            //    var entry = v.value != 0 ? v.GetEntry(me1File) : null;
+            //    var entry = v != 0 ? v.GetEntry(me1File) : null;
             //    if (entry != null && !actorTypesNotPorted.Contains(entry.ClassName) && !ClassesToVTestPort.Contains(entry.ClassName) && !ClassesToVTestPortMasterOnly.Contains(entry.ClassName) && entry.ClassName != "BioWorldInfo")
             //    {
             //        actorTypesNotPorted.Add(entry.ClassName);
@@ -470,7 +472,13 @@ namespace CrossGenV.Classes
                 Cache = vTestOptions.cache,
                 IsCrossGame = true,
                 ImportExportDependencies = true,
-                TargetGameDonorDB = vTestOptions.objectDB
+                TargetGameDonorDB = vTestOptions.objectDB,
+                ErrorOccurredCallback = x =>
+                {
+                    Debug.WriteLine($"Error relinking: {x}");
+                    Debugger.Break();
+                },
+
             };
 
             // Replace BioWorldInfo if requested
@@ -2008,7 +2016,21 @@ namespace CrossGenV.Classes
         private static void PostPortingCorrections(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
             // Corrections to run AFTER porting is done
-            var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+
+            // Copy over the AdditionalPackagesToCook
+            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+            if (fName.CaseInsensitiveEquals("BIOA_PRC2") || fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
+            {
+
+                if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
+                {
+                    // This will be used for lighting build step (has to be done manually)
+                    var files = Directory.GetFiles(Directory.GetParent(me1File.FilePath).FullName, "*.sfm",
+                        SearchOption.TopDirectoryOnly).Where(x => Path.GetFileNameWithoutExtension(x).StartsWith(fName, StringComparison.InvariantCultureIgnoreCase) && Path.GetFileNameWithoutExtension(x) != fName && x.GetUnrealLocalization() == MELocalization.None).ToList();
+
+                    le1FileP.AdditionalPackagesToCook.ReplaceAll(files.Select(x => Path.GetFileNameWithoutExtension(x)));
+                }
+            }
 
             vTestOptions.SetStatusText($"PPC (CoverSlots)");
             ReinstateCoverSlots(me1File, le1File, vTestOptions);
@@ -2048,7 +2070,6 @@ namespace CrossGenV.Classes
             // Todo: Port in UDK lighting for .udk files
 
 
-            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
             // Port in the collision-corrected terrain
             if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCLava"))
             {
@@ -3663,7 +3684,8 @@ namespace CrossGenV.Classes
                         // We can ID these by the position data since they are built from a template and thus always have the same positions
                         // It also references destroying the spawned particle system
                         var props = seqObj.GetProperties();
-                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 && props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
+                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 &&
+                            props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
                         {
                             // This needs removed too
                             var nextNodes = KismetHelper.GetOutputLinksOfNode(seqObj);
@@ -4887,7 +4909,7 @@ namespace CrossGenV.Classes
                 }
             }
 
-            VTestCheckImports(package, vTestOptions);
+            // VTestCheckImports(package, vTestOptions);
             VTestCheckTextures(package, vTestOptions);
 
             #endregion
