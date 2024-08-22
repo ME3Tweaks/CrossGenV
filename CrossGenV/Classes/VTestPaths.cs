@@ -32,5 +32,10 @@ namespace CrossGenV.Classes
         /// Folder that contains the precomputed files for the mod
         /// </summary>
         internal const string VTest_PrecomputedDir = @"Z:\ModLibrary\LE1\V Test\PrecomputedFiles";
+
+        /// <summary>
+        /// Folder that contains the precomputed files for the mod
+        /// </summary>
+        internal const string VTest_StaticLightingDir = @"Z:\ModLibrary\LE1\V Test\StaticLighting";
     }
 }

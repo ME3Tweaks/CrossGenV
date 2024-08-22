@@ -9,19 +9,21 @@ using System.Threading.Tasks;
 using LegendaryExplorerCore.Compression;
 using LegendaryExplorerCore.GameFilesystem;
 using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
+using LegendaryExplorerCore.Gammtek.Paths;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Localization;
 using LegendaryExplorerCore.Misc;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
+using LegendaryExplorerCore.Pathing;
 using LegendaryExplorerCore.Textures;
 using LegendaryExplorerCore.TLK;
 using LegendaryExplorerCore.TLK.ME1;
+using LegendaryExplorerCore.UDK;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
-using Microsoft.Win32;
 
 namespace CrossGenV.Classes
 {
@@ -82,7 +84,6 @@ namespace CrossGenV.Classes
             "BioWaypointSet",
             "BioPathPoint",
             "Emitter"
-
         };
 
         /// <summary>
@@ -98,7 +99,6 @@ namespace CrossGenV.Classes
         {
             "PointLight",
             "SpotLight",
-
         };
 
         // Files we know are referenced by name but do not exist
@@ -253,6 +253,7 @@ namespace CrossGenV.Classes
             vTestOptions.SetStatusText("Running VTest");
 
             // VTest File Loop ---------------------------------------
+            var rootCache = vTestOptions.cache;
             foreach (var vTestLevel in vTestOptions.vTestLevels)
             {
                 var levelFiles = Directory.GetFiles(Path.Combine(VTestPaths.VTest_SourceDir, vTestLevel)).ToList();
@@ -267,21 +268,15 @@ namespace CrossGenV.Classes
                         }
                     }
 
+                    vTestOptions.cache = vTestOptions.cache.ChainNewCache();
                     PortFile(f, vTestLevel, vTestOptions);
                 }
             }
 
-            vTestOptions.cache.ReleasePackages(true); // Dump everything out of memory
+            vTestOptions.cache = rootCache.ChainNewCache();
 
             // TLKS ARE DONE POST ONLY
             PostUpdateTLKs(vTestOptions);
-
-
-            Debug.WriteLine("Non donated items: ");
-            foreach (var nonDonorItems in EntryImporter.NonDonorItems.OrderBy(x => x))
-            {
-                Debug.WriteLine(nonDonorItems);
-            }
 
             // VTest post QA
             vTestOptions.SetStatusText("Performing checks");
@@ -305,6 +300,30 @@ namespace CrossGenV.Classes
                 EntryPruner.TrashEntries(vTestOptions.assetCachePackage, vTestOptions.assetCachePackage.Exports.Where(x => x.InstancedFullPath.StartsWith("TheWorld")).ToList());
 
                 vTestOptions.assetCachePackage.Save();
+            }
+
+            if (vTestOptions.buildUdkLevelMasters)
+            {
+                string[] levels = ["ccthai", "cccrate", "cccave", "cclava", "ccahern"];
+
+                foreach (var level in levels)
+                {
+                    vTestOptions.SetStatusText($"Generating UDK lighting master for {level}");
+                    var path = Path.Combine(VTestPaths.VTest_FinalDestDir, $"BioP_UDKLighting_{level.UpperFirst()}.pcc");
+                    MEPackageHandler.CreateEmptyLevel(path, MEGame.LE1);
+                    using var destPackage = (MEPackage)MEPackageHandler.OpenMEPackage(path);
+
+                    foreach (var f in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.Contains(level, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (f.Contains("UDKLighting"))
+                            continue;
+                        if (f.Contains("_LOC_"))
+                            continue;
+                        destPackage.AdditionalPackagesToCook.Add(Path.GetFileNameWithoutExtension(f));
+                    }
+
+                    destPackage.Save();
+                }
             }
         }
 
@@ -394,7 +413,6 @@ namespace CrossGenV.Classes
         /// <param name="portMainSequence"></param>
         private static void PortVTestLevel(string mapName, string sourceName, VTestOptions vTestOptions, bool syncBioWorldInfo = false, bool portMainSequence = false)
         {
-            vTestOptions.cache.ReleasePackages(x => Path.GetFileNameWithoutExtension(x) != "SFXGame" && Path.GetFileNameWithoutExtension(x) != "Engine"); //Reduce memory overhead
             var outputFile = $@"{VTestPaths.VTest_FinalDestDir}\{sourceName.ToUpper()}.pcc";
             CreateEmptyLevel(outputFile);
 
@@ -584,10 +602,14 @@ namespace CrossGenV.Classes
                 VTest_EnableDebugOptionsOnPackage(le1File, vTestOptions);
             }
 
-            //if (le1File.Exports.Any(x => x.IsA("PathNode")))
-            //{
-            //    Debugger.Break();
-            //}
+            // 08/21/2024 - Add static lighting import
+            vTestOptions.SetStatusText($"Importing static lighting for {levelName}");
+            StaticLightingImporter.ImportStaticLighting(le1File, VTestPaths.VTest_StaticLightingDir);
+
+            // 08/21/2024 - Add texture to instances map calculator
+            vTestOptions.SetStatusText($"Generating texture to instances map for {levelName}");
+            LevelTools.CalculateTextureToInstancesMap(le1File, vTestOptions.cache);
+
             vTestOptions.SetStatusText($"Saving package {levelName}");
             le1File.Save();
 
@@ -724,7 +746,7 @@ namespace CrossGenV.Classes
             // How to convert a coverslot
 
             // 1. Draw some circles
-            var csProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "CoverSlot", true, vTestOptions.cache);
+            var csProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "CoverSlot", true, le1File, vTestOptions.cache);
 
             // Populate Actions in 684 before we enumerate things
             var actions = csProps.GetProp<ArrayProperty<EnumProperty>>("Actions");
@@ -783,7 +805,7 @@ namespace CrossGenV.Classes
                                         var le1DLProp = csProps.GetProp<ArrayProperty<StructProperty>>("DangerLinks");
                                         foreach (var dl in asp)
                                         {
-                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "DangerLink", true, vTestOptions.cache);
+                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "DangerLink", true, le1File, vTestOptions.cache);
                                             ConvertDangerLink(dl, dlProps, me1File, le1File, vTestOptions);
                                             le1DLProp.Add(new StructProperty("DangerLink", dlProps, isImmutable: true));
                                         }
@@ -799,7 +821,7 @@ namespace CrossGenV.Classes
                                         foreach (var dl in asp)
                                         {
                                             // CoverReference -> ExposedLink (ExposedScale). No way to compute this at all... Guess just random ¯\_(ツ)_/¯
-                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "ExposedLink", true, vTestOptions.cache);
+                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "ExposedLink", true, le1File, vTestOptions.cache);
                                             ConvertExposedLink(dl, dlProps, me1File, le1File, vTestOptions);
                                             le1DLProp.Add(new StructProperty("ExposedLink", dlProps, isImmutable: true));
                                             //Debug.WriteLine($"Converted EFL {linkNum} of {asp.Count}");
@@ -815,7 +837,7 @@ namespace CrossGenV.Classes
                                         foreach (var dl in asp)
                                         {
                                             // FireLink -> FireLink. This struct changed a lot
-                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "FireLink", true, vTestOptions.cache);
+                                            var dlProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "FireLink", true, le1File, vTestOptions.cache);
                                             ConvertFireLink(dl, dlProps, me1File, le1File, vTestOptions);
                                             le1DLProp.Add(new StructProperty("FireLink", dlProps, isImmutable: true));
                                         }
@@ -829,7 +851,7 @@ namespace CrossGenV.Classes
                                         foreach (var me1CovRef in asp)
                                         {
                                             // FireLink -> FireLink. This struct changed a lot
-                                            var le1CovRefProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, me1CovRef.StructType, true, vTestOptions.cache);
+                                            var le1CovRefProps = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, me1CovRef.StructType, true, le1File, vTestOptions.cache);
                                             ConvertCoverReference(me1CovRef, le1CovRefProps, me1File, le1File, vTestOptions);
                                             le1DLProp.Add(new StructProperty(me1CovRef.StructType, le1CovRefProps, isImmutable: true));
                                         }
@@ -1060,7 +1082,8 @@ namespace CrossGenV.Classes
                     Cache = vTestOptions.cache,
                     ImportExportDependencies = true,
                     IsCrossGame = true,
-                    TargetGameDonorDB = vTestOptions.objectDB
+                    TargetGameDonorDB = vTestOptions.objectDB,
+                    RelinkAllowDifferingClassesInRelink = true // Allows swapping Material and MaterialInstanceConstants
                 };
                 var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, e, destPackage,
                     le1PL, true, rop, out _);
@@ -2466,6 +2489,11 @@ namespace CrossGenV.Classes
         private static void FixAudioLengths(IMEPackage le1File, VTestOptions vTestOptions)
         {
             var fname = Path.GetFileNameWithoutExtension(le1File.FilePath);
+            if (fname == "BIOA_PRC2_CCMAIN_CONV.pcc")
+            {
+                le1File.Save();
+                Debugger.Break();
+            }
             foreach (var exp in le1File.Exports.Where(x => x.ClassName == "BioSeqEvt_ConvNode").ToList())
             {
                 switch (le1File.Localization)
@@ -2494,9 +2522,8 @@ namespace CrossGenV.Classes
                     SetGenderSpecificLength(export, 0.5f, 0.5f, vTestOptions); // I never thought I'd see the day. Good work, Shepard. Really good work
                     break;
                 case "prc2_ahern_N.Node_Data_Sequence.BioSeqEvt_ConvNode_217":
-                    SetGenderSpecificLength(export, 0.5f, 0f, vTestOptions); // I got a brochure from ExoGeni and they dropped a prefab down on Intai'sae for me, here in teh Argus Rho cluster.
+                    SetGenderSpecificLength(export, 0.5f, 0f, vTestOptions); // I got a brochure from ExoGeni and they dropped a prefab down on Intai'sae for me, here in the Argus Rho cluster.
                     break;
-
                 case "prc2_ochren_N.Node_Data_Sequence.BioSeqEvt_ConvNode_67":
                     SetGenderSpecificLength(export, 0, 1.1f, vTestOptions); // So you must be the famous commander shepard
                     break;
@@ -4840,7 +4867,7 @@ namespace CrossGenV.Classes
 
                 foreach (var mWay in mWaypointRefs)
                 {
-                    var le1Props = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "ActorReference", true, vTestOptions.cache);
+                    var le1Props = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "ActorReference", true, le1File, packageCache: vTestOptions.cache);
                     ConvertNavRefToActorRef(mWay, le1Props, me1File, le1File, vTestOptions);
                     lWaypointRefs.Add(new StructProperty("ActorReference", le1Props, isImmutable: true));
                 }

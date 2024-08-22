@@ -62,6 +62,11 @@ namespace CrossGenV.Classes
         public float LavaLightmapScalar = 0.15f;
 
         /// <summary>
+        /// If BioP files should be built to enable baking lighting in UDK without doing the whole map at one time, which is very slow.
+        /// </summary>
+        public bool buildUdkLevelMasters = true;
+
+        /// <summary>
         /// If debug features should be enabled in the build
         /// </summary>
         public bool debugBuild = false;
@@ -77,10 +82,9 @@ namespace CrossGenV.Classes
         public bool debugBuildAssetCachePackage = false;
 
         /// <summary>
-        /// The cache that is passed through to sub operations. You can change the
-        /// CacheMaxSize to tune memory usage vs performance.
+        /// The cache that is passed through to sub operations.
         /// </summary>
-        public PackageCache cache = new PackageCache() { CacheMaxSize = 20 };
+        public TieredPackageCache cache { get; set; }
         #endregion
 
         #region Autoset options - Do not change these
@@ -94,5 +98,6 @@ namespace CrossGenV.Classes
         /// Delegate to invoke when a status message should be presented to the user
         /// </summary>
         public Action<string> SetStatusText { get; init; }
+
     }
 }

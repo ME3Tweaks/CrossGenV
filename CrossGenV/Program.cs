@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CrossGenV.Classes;
 using LegendaryExplorerCore;
 using LegendaryExplorerCore.Helpers;
+using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using Microsoft.Win32;
 
@@ -31,14 +32,12 @@ namespace CrossGenV
             var installAndBootGame = readItem.Key == ConsoleKey.Y;
 
             // RUN VTEST
-            EntryImporter.NonDonorItems.Clear();
-            var actorTypesNotPorted = new List<string>();
-
 
             // This object is passed through to all the methods so we don't have to constantly update the signatures
             var vTestOptions = new VTestOptions()
             {
-                SetStatusText = x => Console.WriteLine(x)
+                SetStatusText = x => Console.WriteLine(x),
+                cache = TieredPackageCache.GetGlobalPackageCache(MEGame.LE1)
             };
 
             Console.WriteLine("Performing VTest");
