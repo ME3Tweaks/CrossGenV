@@ -49,7 +49,7 @@ namespace CrossGenV.Classes
         /// <summary>
         /// If a level's list of StreamableTextureInstance's should be copied over.
         /// </summary>
-        public bool installTexturesInstanceMap = true;
+        public bool installTexturesInstanceMap = false;
 
         /// <summary>
         /// If a level's list of textures to force streaming should be copied over.
@@ -62,14 +62,9 @@ namespace CrossGenV.Classes
         public float LavaLightmapScalar = 0.15f;
 
         /// <summary>
-        /// If BioP files should be built to enable baking lighting in UDK without doing the whole map at one time, which is very slow.
-        /// </summary>
-        public bool buildUdkLevelMasters = true;
-
-        /// <summary>
         /// If debug features should be enabled in the build
         /// </summary>
-        public bool debugBuild = false;
+        public bool debugBuild = true;
 
         /// <summary>
         /// If static lighting should be converted to non-static lighting. Only works if debugBuild is true
@@ -80,6 +75,16 @@ namespace CrossGenV.Classes
         /// If each actor porting should also import into a new asset package that can speed up build 
         /// </summary>
         public bool debugBuildAssetCachePackage = false;
+
+        /// <summary>
+        /// If this build is for files that will be used in static lighting; do not make adjustments that could affect proper light baking.
+        /// </summary>
+        public bool isBuildForStaticLightingBake = false;
+
+        /// <summary>
+        /// If packages should be resynthesized for cleanliness at the end
+        /// </summary>
+        public bool resynthesizePackages = false;
 
         /// <summary>
         /// The cache that is passed through to sub operations.
