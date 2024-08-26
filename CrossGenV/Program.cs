@@ -14,6 +14,17 @@ namespace CrossGenV
 {
     class Program
     {
+        // From https://stackoverflow.com/a/46226327
+        public static string ConsoleReadLineWithTimeout(TimeSpan timeout)
+        {
+            Task<ConsoleKeyInfo> task = Task.Factory.StartNew(Console.ReadKey);
+
+            string result = Task.WaitAny(new Task[] { task }, timeout) == 0
+                ? task.Result.KeyChar.ToString()
+                : string.Empty;
+            return result;
+        }
+
         static void Main(string[] args)
         {
             VTestOptions options = new VTestOptions()
@@ -27,9 +38,10 @@ namespace CrossGenV
             LegendaryExplorerCoreLib.InitLib(TaskScheduler.Current, x => Console.WriteLine($"ERROR: {x}"));
 
             // ASK FOR GAME BOOT
-            Console.WriteLine("Install mod and boot game on completion? [Y/N] (Default is no)");
-            var readItem = Console.ReadKey();
-            var installAndBootGame = readItem.Key == ConsoleKey.Y;
+            Console.WriteLine("-------------------------------");
+            Console.WriteLine("Install mod when compiling completes [Y/N]? (5 second timeout)");
+            var input = ConsoleReadLineWithTimeout(TimeSpan.FromSeconds(5));
+            bool installAndBootGame = "Y".CaseInsensitiveEquals(input);
 
             // RUN VTEST
 
