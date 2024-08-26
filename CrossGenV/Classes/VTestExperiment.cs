@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LegendaryExplorerCore.Compression;
 using LegendaryExplorerCore.GameFilesystem;
+using LegendaryExplorerCore.Gammtek.Extensions;
 using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
 using LegendaryExplorerCore.Gammtek.Paths;
 using LegendaryExplorerCore.Helpers;
@@ -257,26 +258,53 @@ namespace CrossGenV.Classes
             foreach (var vTestLevel in vTestOptions.vTestLevels)
             {
                 var levelFiles = Directory.GetFiles(Path.Combine(VTestPaths.VTest_SourceDir, vTestLevel)).ToList();
-                foreach (var f in levelFiles)
+                PortFile(levelFiles[0], vTestLevel, vTestOptions); // Master file is first in the list.
+                levelFiles.RemoveAt(0);
+
+                //foreach (var f in levelFiles)
+                Parallel.ForEach(levelFiles, f =>
                 {
+                    // Uncomment to filter for iteration
+                    //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
+                    //    return;
+
                     if (f.Contains("_LOC_", StringComparison.InvariantCultureIgnoreCase))
                     {
                         // Check if we should port this in this session.
                         if (!f.Contains("_LOC_INT", StringComparison.InvariantCultureIgnoreCase) && !vTestOptions.portAudioLocalizations)
                         {
-                            continue; // Do not port this non-int file.
+                            return; // Do not port this non-int file.
                         }
                     }
 
                     vTestOptions.cache = vTestOptions.cache.ChainNewCache();
                     PortFile(f, vTestLevel, vTestOptions);
-                }
+                });
             }
 
             vTestOptions.cache = rootCache.ChainNewCache();
 
             // TLKS ARE DONE POST ONLY
             PostUpdateTLKs(vTestOptions);
+
+            // 08/23/2024 - Externalize lightmap textures. There are not enough new textures to
+            // make it worth doing non-lighting (also annoying bugs I don't want to fix in TFC Compactor)
+            if (!vTestOptions.isBuildForStaticLightingBake)
+            {
+                VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true);
+                // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
+            }
+
+            // 08/23/2024 - Add package resynthesis for cleaner output
+            if (vTestOptions.resynthesizePackages)
+            {
+                foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir)
+                             .Where(x => x.RepresentsPackageFilePath()))
+                {
+                    var package = MEPackageHandler.OpenMEPackage(packagePath);
+                    PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache);
+                }
+            }
 
             // VTest post QA
             vTestOptions.SetStatusText("Performing checks");
@@ -302,9 +330,9 @@ namespace CrossGenV.Classes
                 vTestOptions.assetCachePackage.Save();
             }
 
-            if (vTestOptions.buildUdkLevelMasters)
+            if (vTestOptions.isBuildForStaticLightingBake)
             {
-                string[] levels = ["ccthai", "cccrate", "cccave", "cclava", "ccahern"];
+                string[] levels = ["ccthai", "cccrate", "cccave", "cclava", "ccahern", "prc2aa"];
 
                 foreach (var level in levels)
                 {
@@ -324,20 +352,43 @@ namespace CrossGenV.Classes
 
                     destPackage.Save();
                 }
+
+                // PRC2 LOBBY (NON-SIMULATOR)
+                {
+                    vTestOptions.SetStatusText($"Generating UDK lighting master for PRC2 NON-SIMULATOR");
+                    var path = Path.Combine(VTestPaths.VTest_FinalDestDir, $"BioP_UDKLighting_NonSimulator.pcc");
+                    MEPackageHandler.CreateEmptyLevel(path, MEGame.LE1);
+                    using var destPackage = (MEPackage)MEPackageHandler.OpenMEPackage(path);
+                    destPackage.AdditionalPackagesToCook.AddRange(File.ReadAllLines(Path.Combine(VTestPaths.VTest_StaticLightingDir, "SLLevels-NonSimulator.txt")).Where(x => x.GetUnrealLocalization() == MELocalization.None));
+                    destPackage.Save();
+                }
+
+                // PRC2AA
+                {
+                    vTestOptions.SetStatusText($"Generating UDK lighting master for PRC2AA");
+                    var path = Path.Combine(VTestPaths.VTest_FinalDestDir, $"BioP_UDKLighting_PRC2AA.pcc");
+                    MEPackageHandler.CreateEmptyLevel(path, MEGame.LE1);
+                    using var destPackage = (MEPackage)MEPackageHandler.OpenMEPackage(path);
+                    destPackage.AdditionalPackagesToCook.AddRange(File.ReadAllLines(Path.Combine(VTestPaths.VTest_StaticLightingDir, "SLLevels-PRC2AA.txt")).Where(x => x.GetUnrealLocalization() == MELocalization.None));
+                    destPackage.Save();
+                }
             }
         }
 
         private static void PortFile(string levelFileName, string masterMapName, VTestOptions vTestOptions)
         {
+            var levelName = Path.GetFileNameWithoutExtension(levelFileName);
+            //if (!levelName.CaseInsensitiveEquals("BIOA_PRC2_CCLAVA"))
+            //    return;
+
             if (levelFileName.Contains("_LOC_", StringComparison.InvariantCultureIgnoreCase))
             {
-                //if (levelFileName.Contains("bioa_prc2_ccsim05_dsg_LOC_FR", StringComparison.InvariantCultureIgnoreCase))
+                //if (levelFileName.Contains("ccsim", StringComparison.InvariantCultureIgnoreCase))
                 PortLOCFile(levelFileName, vTestOptions);
             }
             else
             {
-                var levelName = Path.GetFileNameWithoutExtension(levelFileName);
-                //if (levelName.CaseInsensitiveEquals("BIOA_PRC2_CCMID04_LAY"))
+                //if (levelName.CaseInsensitiveEquals("BIOA_PRC2_CCLAVA"))
                 PortVTestLevel(masterMapName, levelName, vTestOptions, levelName is "BIOA_PRC2" or "BIOA_PRC2AA", true);
             }
         }
@@ -454,7 +505,9 @@ namespace CrossGenV.Classes
 
             itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x != 0) // Skip blanks
                 .Select(x => me1File.GetUExport(x))
-                .Where(x => ClassesToVTestPort.Contains(x.ClassName) || (syncBioWorldInfo && ClassesToVTestPortMasterOnly.Contains(x.ClassName))));
+                .Where(x => ClassesToVTestPort.Contains(x.ClassName) || (syncBioWorldInfo && ClassesToVTestPortMasterOnly.Contains(x.ClassName))
+                                                                     // Allow porting terrain if doing static lighting build because we don't care about the collision data
+                                                                     || (vTestOptions.isBuildForStaticLightingBake && x.ClassName == "Terrain")));
 
             if (vTestOptions.debugBuild && vTestOptions.debugConvertStaticLightingToNonStatic)
             {
@@ -603,8 +656,22 @@ namespace CrossGenV.Classes
             }
 
             // 08/21/2024 - Add static lighting import
-            vTestOptions.SetStatusText($"Importing static lighting for {levelName}");
-            StaticLightingImporter.ImportStaticLighting(le1File, VTestPaths.VTest_StaticLightingDir);
+            // PRC2AA lightmaps look awful
+            if (!levelName.Contains("PRC2AA"))
+            {
+                // No point importing static lighting if we are going to bake it again
+                if (!vTestOptions.isBuildForStaticLightingBake)
+                {
+                    vTestOptions.SetStatusText($"Importing static lighting for {levelName}");
+
+                    var lightmapSetup = new LightingImportSetup();
+                    lightmapSetup.UDKMapsBasePath = VTestPaths.VTest_StaticLightingDir;
+                    lightmapSetup.IncludeSubLevels = false;
+                    lightmapSetup.KeptLightmapPrefix = "Original_";
+                    lightmapSetup.ShouldKeepLightMap = entry => entry.IsA("TerrainComponent");
+                    StaticLightingImporter.ImportStaticLighting(le1File, lightmapSetup);
+                }
+            }
 
             // 08/21/2024 - Add texture to instances map calculator
             vTestOptions.SetStatusText($"Generating texture to instances map for {levelName}");
@@ -718,7 +785,7 @@ namespace CrossGenV.Classes
                         // PLANTER HIGH
                         using var planterSource = MEPackageHandler.OpenMEPackage(Path.Combine(MEDirectories.GetCookedPath(MEGame.LE1), "BIOA_ICE20_03_DSG.pcc"), forceLoadFromDisk: true);
                         EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, planterSource.FindExport("TheWorld.PersistentLevel.InterpActor_67"), le1File, le1File.FindEntry("TheWorld.PersistentLevel"), true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var leavesSMA);
-                        PathEdUtils.SetLocation(leavesSMA as ExportEntry, -35797.312f, 10758.975f, 6777.0386f);
+                        LevelTools.SetLocation(leavesSMA as ExportEntry, -35797.312f, 10758.975f, 6777.0386f);
                     }
                     break;
                 case "BIOA_PRC2AA_00_LAY":
@@ -726,15 +793,15 @@ namespace CrossGenV.Classes
                         // PLANTER HIGH (DOOR)
                         using var planterSource = MEPackageHandler.OpenMEPackage(Path.Combine(MEDirectories.GetCookedPath(MEGame.LE1), "BIOA_ICE20_03_DSG.pcc"), forceLoadFromDisk: true);
                         EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, planterSource.FindExport("TheWorld.PersistentLevel.InterpActor_67"), le1File, le1File.FindEntry("TheWorld.PersistentLevel"), true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var leavesHighSMA);
-                        PathEdUtils.SetLocation(leavesHighSMA as ExportEntry, -35043.76f, 10664f, 6792.9917f);
+                        LevelTools.SetLocation(leavesHighSMA as ExportEntry, -35043.76f, 10664f, 6792.9917f);
 
                         // PLANTER MEDIUM (NEARBED)
                         EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, planterSource.FindExport("TheWorld.PersistentLevel.InterpActor_23"), le1File, le1File.FindEntry("TheWorld.PersistentLevel"), true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var leavesMedSMA);
-                        PathEdUtils.SetLocation(leavesMedSMA as ExportEntry, -35470.273f, 11690.752f, 6687.2974f + (112f * 0.6f)); // 112f is the offset
+                        LevelTools.SetLocation(leavesMedSMA as ExportEntry, -35470.273f, 11690.752f, 6687.2974f + (112f * 0.6f)); // 112f is the offset
 
                         // PLANTER MEDIUM (TABLE)
                         var leavesMed2SMA = EntryCloner.CloneTree(leavesMedSMA);
-                        PathEdUtils.SetLocation(leavesMed2SMA as ExportEntry, -34559.5f, 11378.695f, 6687.457f + (112f * 0.6f)); // 112f is the offset
+                        LevelTools.SetLocation(leavesMed2SMA as ExportEntry, -34559.5f, 11378.695f, 6687.457f + (112f * 0.6f)); // 112f is the offset
 
                     }
                     break;
@@ -1126,16 +1193,33 @@ namespace CrossGenV.Classes
                 sourcePackage.replaceName(bcBaseIdx, "SFXGame");
             }
 
-            // Portp ackages
-            foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "Package"))
+            // Port packages
+            var objReferencer = sourcePackage.Exports.First(x => x.idxLink == 0 && x.ClassName == "ObjectReferencer");
+            var objs = objReferencer.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects");
+            objs.RemoveAll(x => x.ResolveToEntry(sourcePackage).IsA("MaterialExpression")); // These will be referenced as needed. Don't port the originals. If these aren't removed we will get debug logger output.
+            objReferencer.WriteProperty(objs);
+
+            var rop = new RelinkerOptionsPackage()
             {
-                RelinkerOptionsPackage rop = new RelinkerOptionsPackage()
-                {
-                    IsCrossGame = false,
-                    ImportExportDependencies = false,
-                };
-                var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.AddSingularAsChild, e, package, package.FindEntry(e?.ParentFullPath), true, rop, out _);
-            }
+                Cache = vTestOptions.cache,
+                TargetGameDonorDB = vTestOptions.objectDB,
+                PortExportsAsImportsWhenPossible = true,
+                GenerateImportsForGlobalFiles = true,
+            };
+
+            var results = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, objReferencer,
+                package, null, true, rop, out var newEntry);
+
+
+            //foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "Package"))
+            //{
+            //    RelinkerOptionsPackage rop = new RelinkerOptionsPackage()
+            //    {
+            //        IsCrossGame = false,
+            //        ImportExportDependencies = false,
+            //    };
+            //    var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.AddSingularAsChild, e, package, package.FindEntry(e?.ParentFullPath), true, rop, out _);
+            //}
 
 
             foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "BioMorphFace"))
@@ -1164,7 +1248,7 @@ namespace CrossGenV.Classes
                 //    }
                 //}
                 //e.WriteProperty(ro);
-                RelinkerOptionsPackage rop = new RelinkerOptionsPackage()
+                rop = new RelinkerOptionsPackage()
                 {
                     IsCrossGame = true,
                     ImportExportDependencies = true,
@@ -1228,6 +1312,80 @@ namespace CrossGenV.Classes
         #endregion
 
         #region Correction methods
+        internal static IEntry GetImportArchetype(IMEPackage package, string packageFile, string ifp)
+        {
+            IEntry result = package.FindExport($"{packageFile}.{ifp}");
+            if (result != null)
+                return result;
+
+            var file = $"{packageFile}.{(package.Game is MEGame.ME1 or MEGame.UDK ? "u" : "pcc")}";
+            var fullPath = Path.Combine(MEDirectories.GetCookedPath(package.Game), file);
+            using var lookupPackage = MEPackageHandler.UnsafePartialLoad(fullPath, x => false);
+            var entry = lookupPackage.FindExport(ifp) as IEntry;
+            if (entry == null)
+                Debugger.Break();
+
+            Stack<IEntry> children = new Stack<IEntry>();
+            children.Push(entry); // Must port at least the found IFP.
+            while (entry.Parent != null && package.FindEntry(entry.ParentInstancedFullPath) == null)
+            {
+                children.Push(entry.Parent);
+                entry = entry.Parent;
+            }
+
+            // Create imports from top down.
+            var packageExport = (IEntry)ExportCreator.CreatePackageExport(package, packageFile);
+
+            // This doesn't work if the part of the parents already exist.
+            var attachParent = packageExport;
+            foreach (var item in children)
+            {
+                ImportEntry imp = new ImportEntry(item as ExportEntry, packageExport.UIndex, package);
+                imp.idxLink = attachParent.UIndex;
+                package.AddImport(imp);
+                attachParent = imp;
+                result = imp;
+            }
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Creates a static mesh actor from an SMC (that is not under collection - e.g. interpactor)
+        /// </summary>
+        /// <param name="smc"></param>
+        /// <returns></returns>
+        public static ExportEntry CreateSMAFromSMC(ExportEntry smc)
+        {
+            var level = smc.FileRef.GetLevel();
+            var sma = ExportCreator.CreateExport(smc.FileRef, "StaticMeshActor", "StaticMeshActor", level, createWithStack: true);
+
+            PropertyCollection props = new PropertyCollection();
+            props.AddOrReplaceProp(new ObjectProperty(smc, "StaticMeshComponent"));
+            props.AddOrReplaceProp(new ObjectProperty(smc, "CollisionComponent"));
+            props.AddOrReplaceProp(new BoolProperty(true, "bCollideActors"));
+            sma.WriteProperties(props);
+
+            var parent = smc.Parent as ExportEntry;
+
+            var loc = parent.GetProperty<StructProperty>("Location");
+            if (loc != null) sma.WriteProperty(loc);
+
+            var rot = parent.GetProperty<StructProperty>("Rotation");
+            if (rot != null) sma.WriteProperty(rot);
+
+            smc.Archetype = GetImportArchetype(smc.FileRef, "Engine", "Default__StaticMeshActor.StaticMeshComponent0");
+            var lightingChannels = smc.GetProperty<StructProperty>("LightingChannels")?.Properties ?? new PropertyCollection();
+            lightingChannels.AddOrReplaceProp(new BoolProperty(true, "bInitialized"));
+            lightingChannels.AddOrReplaceProp(new BoolProperty(true, "Static")); // Add static
+            smc.WriteProperty(new StructProperty("LightingChannelContainer", lightingChannels, "LightingChannels"));
+            smc.RemoveProperty("bUsePrecomputedShadows"); // Required for static lighting
+            smc.Parent = sma; // Move under SMA
+
+            return sma;
+        }
+
         public static void PrePortingCorrections(IMEPackage sourcePackage, VTestOptions vTestOptions)
         {
             // FILE SPECIFIC
@@ -1236,6 +1394,33 @@ namespace CrossGenV.Classes
             {
                 // garage door
                 sourcePackage.FindExport("TheWorld.PersistentLevel.BioDoor_1.SkeletalMeshComponent_1").RemoveProperty("Materials"); // The materials changed in LE so using the original set is wrong. Remove this property to prevent porting donors for it
+            }
+
+            // Todo: Remove this if lightmap is OK.
+            if (sourcePackageName == "BIOA_PRC2_CCLAVA")
+            {
+                // 08/22/2024
+                // Ensure we don't remove lightmaps for terrain component by
+                // cloning the textures and updating the references, since
+                // static lighting generator will delete them due to them being shared with static meshes
+
+                //foreach (var tc in sourcePackage.Exports.Where(x => x.ClassName == "TerrainComponent").ToList())
+                //{
+                //    var bin = ObjectBinary.From<TerrainComponent>(tc);
+                //    KeepLightmapTextures(bin.LightMap, sourcePackage);
+                //    tc.WriteBinary(bin);
+                //}
+
+                // 08/25/2024 - Fan blade needs changed to static mesh as it does not receive lighting otherwise
+                // Tried to make it spin but it just is black no matter what I do
+                var fanBladeSMC = sourcePackage.FindExport("TheWorld.PersistentLevel.InterpActor_11.StaticMeshComponent_914");
+                var originalIA = fanBladeSMC.Parent;
+                var fanBladeSMA = CreateSMAFromSMC(fanBladeSMC);
+                sourcePackage.AddToLevelActorsIfNotThere(fanBladeSMA);
+                var rot = fanBladeSMA.GetProperty<StructProperty>("Rotation");
+                rot.GetProp<IntProperty>("Roll").Value = 15474; // 85 degrees
+                fanBladeSMA.WriteProperty(rot);
+                EntryPruner.TrashEntries(sourcePackage, [originalIA]);
             }
 
             // Strip static mesh light maps since they don't work crossgen. Strip them from
@@ -1310,25 +1495,39 @@ namespace CrossGenV.Classes
                 }
                 else if (exp.ClassName == "ModelComponent")
                 {
+                    var mcb = ObjectBinary.From<ModelComponent>(exp);
                     if (vTestOptions.useDynamicLighting)
                     {
-                        var mcb = ObjectBinary.From<ModelComponent>(exp);
                         foreach (var elem in mcb.Elements)
                         {
                             elem.ShadowMaps = [0]; // We want no shadowmaps
                             elem.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None }; // Strip the lightmaps
                         }
-
-                        exp.WriteBinary(mcb);
                     }
+                    else
+                    {
+                        //foreach (var elem in mcb.Elements)
+                        //{
+                        //    KeepLightmapTextures(elem.LightMap, sourcePackage);
+                        //}
+                    }
+
+                    exp.WriteBinary(mcb);
+
                 }
                 else if (exp.ClassName == "Sequence" && exp.GetProperty<StrProperty>("ObjName")?.Value == "PRC2_KillTriggerVolume")
                 {
                     // Done before porting to prevent Trash from appearing in target
                     PreCorrectKillTriggerVolume(exp, vTestOptions);
                 }
+                else if (exp.IsA("LightComponent"))
+                {
+                    // 08/24/2024 - Enable all lights
+                    exp.RemoveProperty("bEnabled");
+                }
 
                 // KNOWN BAD NAMES
+                // Rename duplicate texture/material objects to be unique to avoid some issues with tooling
                 if (exp.ClassName == "Texture2D")
                 {
                     if (exp.InstancedFullPath == "BIOA_JUG80_T.JUG80_SAIL")
@@ -1344,6 +1543,7 @@ namespace CrossGenV.Classes
                 }
             }
         }
+
 
         private static bool ShouldPortLightmaps(IEntry smEntry)
         {
@@ -1540,7 +1740,7 @@ namespace CrossGenV.Classes
             }
             EntryPruner.TrashEntryAndDescendants(tempClone); // delete the clone
 
-            PathEdUtils.SetLocation(newBV, PathEdUtils.GetLocation(killVolume));
+            LevelTools.SetLocation(newBV, LevelTools.GetLocation(killVolume));
             var drawScale3d = killVolume.GetProperty<StructProperty>("DrawScale3D");
             if (drawScale3d != null)
             {
@@ -2002,20 +2202,23 @@ namespace CrossGenV.Classes
                         break;
                     case "lav60_RIVER01_terrain_setup": // PRC2_CCLAVA
                         {
-                            // Memory Unique
-                            var cgv = le1File.FindExport("CROSSGENV");
-                            if (cgv == null)
+                            if (!vTestOptions.isBuildForStaticLightingBake)
                             {
-                                cgv = ExportCreator.CreatePackageExport(lTerrain.FileRef, "CROSSGENV", null);
-                                cgv.indexValue = 0;
+                                // Memory Unique
+                                var cgv = le1File.FindExport("CROSSGENV");
+                                if (cgv == null)
+                                {
+                                    cgv = ExportCreator.CreatePackageExport(lTerrain.FileRef, "CROSSGENV", null);
+                                    cgv.indexValue = 0;
+                                }
+
+                                lSetup.Parent = cgv;
+                                lSetup.ObjectName = "CROSSGENV_PRC2_CCLAVA_TerrainLayerSetup";
+
+                                // No idea why this fixes it tbh but it does
+                                lMaterials[0].GetProp<FloatProperty>("Alpha").Value = 0;
+                                lMaterials[1].GetProp<FloatProperty>("Alpha").Value = 0;
                             }
-
-                            lSetup.Parent = cgv;
-                            lSetup.ObjectName = "CROSSGENV_PRC2_CCLAVA_TerrainLayerSetup";
-
-                            // No idea why this fixes it tbh but it does
-                            lMaterials[0].GetProp<FloatProperty>("Alpha").Value = 0;
-                            lMaterials[1].GetProp<FloatProperty>("Alpha").Value = 0;
                         }
                         break;
                 }
@@ -2090,38 +2293,65 @@ namespace CrossGenV.Classes
             //vTestOptions.SetStatusText($"PPC (Optimization)");
             //PortME1OptimizationAssets(me1File, le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (LEVEL SPECIFIC)");
-            // Todo: Port in UDK lighting for .udk files
-
 
             // Port in the collision-corrected terrain
             if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCLava"))
             {
-                PortInCorrectedTerrain(me1File, le1File, "CCLava.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
-                CorrectTerrainSetup(me1File, le1File, vTestOptions);
-
-                // Correct the DirectionalMaxComponent scalar
-                var terrainComponents = le1File.Exports.Where(x => x.ClassName == "TerrainComponent");
-                foreach (var tc in terrainComponents)
+                // Only port in corrected terrain if we are not doing a build for static lighting.
+                if (!vTestOptions.isBuildForStaticLightingBake)
                 {
-                    var tcBin = ObjectBinary.From<TerrainComponent>(tc);
-                    var lm = tcBin.LightMap as LightMap_2D;
-                    lm.ScaleVector2.X *= vTestOptions.LavaLightmapScalar;
-                    lm.ScaleVector2.Y *= vTestOptions.LavaLightmapScalar;
-                    lm.ScaleVector2.Z *= vTestOptions.LavaLightmapScalar;
-                    tc.WriteBinary(tcBin);
-                }
+                    PortInCorrectedTerrain(me1File, le1File, "CCLava.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
+                    CorrectTerrainSetup(me1File, le1File, vTestOptions);
 
-                CreateSignaledTextureStreaming(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence"), cclavaTextureStreamingMaterials, vTestOptions);
+                    // We don't use the lightmap from UDK as it doesn't work properly for some reason
+                    // Correct the DirectionalMaxComponent scalar
+                    var terrainComponents = le1File.Exports.Where(x => x.ClassName == "TerrainComponent");
+                    foreach (var tc in terrainComponents)
+                    {
+                        var tcBin = ObjectBinary.From<TerrainComponent>(tc);
+                        var lm = tcBin.LightMap as LightMap_2D;
+                        lm.ScaleVector2.X *= vTestOptions.LavaLightmapScalar;
+                        lm.ScaleVector2.Y *= vTestOptions.LavaLightmapScalar;
+                        lm.ScaleVector2.Z *= vTestOptions.LavaLightmapScalar;
+                        tc.WriteBinary(tcBin);
+                    }
+
+                    CreateSignaledTextureStreaming(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence"), cclavaTextureStreamingMaterials, vTestOptions);
+                }
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2AA_00_LAY"))
             {
-                PortInCorrectedTerrain(me1File, le1File, "PRC2AA.Terrain_1", "BIOA_UNC20_00_LAY.pcc", vTestOptions);
-                CorrectTerrainSetup(me1File, le1File, vTestOptions);
+                if (!vTestOptions.isBuildForStaticLightingBake)
+                {
+                    PortInCorrectedTerrain(me1File, le1File, "PRC2AA.Terrain_1", "BIOA_UNC20_00_LAY.pcc", vTestOptions);
+                    CorrectTerrainSetup(me1File, le1File, vTestOptions);
+                }
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCAHERN"))
             {
-                PortInCorrectedTerrain(me1File, le1File, "CCAHERN.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
-                CorrectTerrainSetup(me1File, le1File, vTestOptions);
+                if (!vTestOptions.isBuildForStaticLightingBake)
+                {
+                    PortInCorrectedTerrain(me1File, le1File, "CCAHERN.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
+                    CorrectTerrainSetup(me1File, le1File, vTestOptions);
+                }
+            }
+            else if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCMID_ART"))
+            {
+                // Brighten up the corners that are dead ends
+                string[] exports =
+                [
+                    "TheWorld.PersistentLevel.StaticLightCollectionActor_10.PointLight_24_LC",
+                    "TheWorld.PersistentLevel.StaticLightCollectionActor_10.PointLight_27_LC"
+                ];
+                foreach (var lightIFP in exports)
+                {
+                    var cornerLight = le1File.FindExport(lightIFP);
+                    var props = cornerLight.GetProperties();
+                    props.AddOrReplaceProp(new FloatProperty(0.7f, "Brightness")); // Up from 0.3
+                    props.GetProp<StructProperty>("LightingChannels").Properties.AddOrReplaceProp(new BoolProperty(true, "CompositeDynamic"));
+                    cornerLight.WriteProperties(props);
+                }
+
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCSIM05_DSG"))
             {
@@ -2230,26 +2460,30 @@ namespace CrossGenV.Classes
             }
 
             // Not an else statement as this is level generic
-            if (fName.StartsWith("BIOA_PRC2AA"))
+            if (!vTestOptions.isBuildForStaticLightingBake)
             {
-                // Lights are way overblown for this map. This value is pretty close to the original game
-                foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
+                if (fName.StartsWith("BIOA_PRC2AA"))
                 {
-                    var brightness = pl.GetProperty<FloatProperty>("Brightness")?.Value ?? 1;
-                    pl.WriteProperty(new FloatProperty(brightness * .1f, "Brightness"));
+                    // Lights are way overblown for this map. This value is pretty close to the original game
+                    foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
+                    {
+                        var brightness = pl.GetProperty<FloatProperty>("Brightness")?.Value ?? 1;
+                        pl.WriteProperty(new FloatProperty(brightness * .1f, "Brightness"));
+                    }
                 }
-            }
 
-            if (fName.StartsWith("BIOA_PRC2") && !fName.StartsWith("BIOA_PRC2AA"))
-            {
-                // Lights are way overblown for this map. This value is pretty close to the original game
-                foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
+                if (fName.StartsWith("BIOA_PRC2") && !fName.StartsWith("BIOA_PRC2AA"))
                 {
-                    if (pl.InstancedFullPath == "TheWorld.PersistentLevel.PointLightToggleable_10.PointLightComponent_1341242")
-                        continue; // Pointlight that fixes ahern conversation. Do not change this
+                    // Lights are way overblown for this map. This value is pretty close to the original game
+                    foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
+                    {
+                        if (pl.InstancedFullPath ==
+                            "TheWorld.PersistentLevel.PointLightToggleable_10.PointLightComponent_1341242")
+                            continue; // Pointlight that fixes ahern conversation. Do not change this
 
-                    var brightness = pl.GetProperty<FloatProperty>("Brightness")?.Value ?? 1;
-                    pl.WriteProperty(new FloatProperty(brightness * .4f, "Brightness"));
+                        var brightness = pl.GetProperty<FloatProperty>("Brightness")?.Value ?? 1;
+                        pl.WriteProperty(new FloatProperty(brightness * .4f, "Brightness"));
+                    }
                 }
             }
 
@@ -2371,6 +2605,9 @@ namespace CrossGenV.Classes
 
         private static void CorrectTerrainSetup(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
+            if (vTestOptions.isBuildForStaticLightingBake)
+                return; // Do not make corrections.
+
             // Correct AlphaMaps to match the original
             var mTerrain = me1File.Exports.First(x => x.ClassName == "Terrain");
             var me1Terrain = ObjectBinary.From<Terrain>(mTerrain);
@@ -2379,7 +2616,7 @@ namespace CrossGenV.Classes
 
             var properties = lTerrain.GetProperties();
 
-            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+            var fName = le1File.FileNameNoExtension;
             var alphamaps = new List<AlphaMap>();
 
             if (fName == "BIOA_PRC2_CCLAVA")
@@ -3338,17 +3575,23 @@ namespace CrossGenV.Classes
                 case "BIOA_PRC2_CCSIM03_LAY":
                     {
                         // The door lighting channels needs fixed up.
+                        //08/24/2024 - Disabled lighting changes due to static lighting bake
+                        /*
                         var door = le1File.FindExport(@"TheWorld.PersistentLevel.BioDoor_1.SkeletalMeshComponent_1");
                         var channels = door.GetProperty<StructProperty>("LightingChannels");
                         channels.Properties.AddOrReplaceProp(new BoolProperty(false, "Static"));
                         channels.Properties.AddOrReplaceProp(new BoolProperty(false, "Dynamic"));
                         channels.Properties.AddOrReplaceProp(new BoolProperty(false, "CompositeDynamic"));
-                        door.WriteProperty(channels);
+                        door.WriteProperty(channels); */
+
                     }
                     break;
                 case "BIOA_PRC2_CCSIM_ART":
                     {
                         // Lights near the door need fixed up.
+
+                        //08/24/2024 - Disabled lighting changes due to static lighting bake
+                        /*
                         var doorPL = le1File.FindExport(@"TheWorld.PersistentLevel.StaticLightCollectionActor_11.PointLight_0_LC");
                         var lc = doorPL.GetProperty<StructProperty>("LightColor");
                         lc.GetProp<ByteProperty>("B").Value = 158;
@@ -3361,11 +3604,12 @@ namespace CrossGenV.Classes
                         lc.GetProp<ByteProperty>("B").Value = 215;
                         lc.GetProp<ByteProperty>("G").Value = 203;
                         lc.GetProp<ByteProperty>("R").Value = 195;
-                        doorSL.WriteProperty(lc);
+                        doorSL.WriteProperty(lc); */
                     }
                     break;
                 case "BIOA_PRC2_CCSPACE02_DSG":
                     {
+                        // Fixes for particle system
                         // Port in a new DominantLight
                         var sourceLight = vTestOptions.vTestHelperPackage.FindExport(@"CCSPACE02_DSG.DominantDirectionalLight_1");
                         var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
@@ -3397,7 +3641,7 @@ namespace CrossGenV.Classes
                         var sourceAsset = vTestOptions.vTestHelperPackage.FindExport(@"CROSSGENV.StaticMeshActor_32000");
                         var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
                         EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, sourceAsset, le1File, destLevel, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var mesh);
-                        PathEdUtils.SetLocation(mesh as ExportEntry, 15864, -25928, -5490);
+                        LevelTools.SetLocation(mesh as ExportEntry, 15864, -25928, -5490);
                     }
                     break;
                 case "BIOA_PRC2_CCCAVE":
@@ -3406,7 +3650,7 @@ namespace CrossGenV.Classes
                         var sourceAsset = vTestOptions.vTestHelperPackage.FindExport(@"CROSSGENV.StaticMeshActor_32000");
                         var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
                         EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, sourceAsset, le1File, destLevel, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var mesh);
-                        PathEdUtils.SetLocation(mesh as ExportEntry, -16430, -28799, -2580);
+                        LevelTools.SetLocation(mesh as ExportEntry, -16430, -28799, -2580);
 
                         // Needs a second one to hide the top too
                         var fb2 = EntryCloner.CloneTree(mesh) as ExportEntry;
@@ -3423,8 +3667,8 @@ namespace CrossGenV.Classes
                         //var sourceAsset = vTestOptions.vTestHelperPackage.FindExport(@"CROSSGENV.StaticMeshActor_32000");
                         //var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
                         //EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, sourceAsset, le1File, destLevel, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var mesh);
-                        //PathEdUtils.SetLocation(mesh as ExportEntry, -3750, -1624, -487);
-                        //PathEdUtils.SetDrawScale3D(mesh as ExportEntry, 3, 3, 3);
+                        //LevelTools.SetLocation(mesh as ExportEntry, -3750, -1624, -487);
+                        //LevelTools.SetDrawScale3D(mesh as ExportEntry, 3, 3, 3);
                     }
                     break;
                 case "BIOA_PRC2":
@@ -3436,16 +3680,17 @@ namespace CrossGenV.Classes
                         };
 
                         var sourceAsset = le1File.FindExport(@"TheWorld.PersistentLevel.BlockingVolume_15");
-                        var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
 
+                        // Move trigger streams to make next playable area start streaming in before player regains control
+                        // to prevent blocking load
                         foreach (var sts in sourceTriggerStreams)
                         {
                             var newBlockingVolume = EntryCloner.CloneTree(sourceAsset);
                             //EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneTreeAsChild, sourceAsset, le1File, destLevel, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var newBlockingVolume);
 
                             var tsExport = le1File.FindExport(@"TheWorld.PersistentLevel.BioTriggerStream_" + sts);
-                            var loc = PathEdUtils.GetLocation(tsExport);
-                            PathEdUtils.SetLocation(newBlockingVolume as ExportEntry, loc.X, loc.Y, loc.Z - 256f);
+                            var loc = LevelTools.GetLocation(tsExport);
+                            LevelTools.SetLocation(newBlockingVolume as ExportEntry, loc.X, loc.Y, loc.Z - 256f);
                         }
                     }
                     break;
@@ -3535,6 +3780,8 @@ namespace CrossGenV.Classes
 
         private static void ReduceDirectionalLights(IMEPackage le1File, float multiplier)
         {
+            // Disabled due to static lighting changes
+            return;
             foreach (var exp in le1File.Exports.Where(x => x.ClassName == "DirectionalLightComponent").ToList())
             {
                 var brightness = exp.GetProperty<FloatProperty>("Brightness");
@@ -3591,13 +3838,13 @@ namespace CrossGenV.Classes
             // Northern cheese point
             var northBV = EntryCloner.CloneTree(sourcebv);
             northBV.RemoveProperty("bCollideActors");
-            PathEdUtils.SetLocation(northBV, -38705.57f, -28901.904f, -2350.1252f);
+            LevelTools.SetLocation(northBV, -38705.57f, -28901.904f, -2350.1252f);
             (northBV.GetProperty<ObjectProperty>("BrushComponent").ResolveToEntry(le1File) as ExportEntry).WriteProperty(new BoolProperty(false, "BlockZeroExtent")); // do not block gunfire
             northBV.WriteProperty(ds3d);
 
             // South cheese
             var southBV = EntryCloner.CloneTree(northBV); // already has scaling and guns fire through it
-            PathEdUtils.SetLocation(southBV, -38702.812f, -24870.682f, -2355.5256f);
+            LevelTools.SetLocation(southBV, -38702.812f, -24870.682f, -2355.5256f);
         }
 
 
@@ -3621,9 +3868,9 @@ namespace CrossGenV.Classes
                     stringRefs.Add(new TLKStringRef(338467, "Activar Música"));
                     break;
                 case "IT":
-                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Ustawienia muzyki"));
+                    stringRefs.Add(new TLKStringRef(338466, "Wyłącz muzykę"));
+                    stringRefs.Add(new TLKStringRef(338467, "Włącz muzykę"));
                     break;
                 case "PL":
                 case "PLPC":
@@ -3637,9 +3884,9 @@ namespace CrossGenV.Classes
                     stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
                     break;
                 case "DE":
-                    stringRefs.Add(new TLKStringRef(338465, "Music Setting"));
-                    stringRefs.Add(new TLKStringRef(338466, "Disable Music"));
-                    stringRefs.Add(new TLKStringRef(338467, "Enable Music"));
+                    stringRefs.Add(new TLKStringRef(338465, "Musikeinstellungen"));
+                    stringRefs.Add(new TLKStringRef(338466, "Musik Deaktivieren"));
+                    stringRefs.Add(new TLKStringRef(338467, "Musik Aktivieren"));
                     break;
                 case "JA":
                     stringRefs.Add(new TLKStringRef(338464, "Downloading Data"));
@@ -4129,8 +4376,6 @@ namespace CrossGenV.Classes
         /// Adds a ActivateRemoteEvent kismet object as an output of the specified IFP.
         /// </summary>
         /// <param name="le1File"></param>
-        /// <param name="spawnerDeathInstancedFullPath"></param>
-        /// <param name="enemykilled"></param>
         /// <param name="vTestOptions"></param>
         private static void InstallRemoteEventSignal(IMEPackage le1File, string sourceIFP, string remoteEventName, VTestOptions vTestOptions, string outlinkName = "Out")
         {
@@ -4157,27 +4402,27 @@ namespace CrossGenV.Classes
             {
                 case "BIOA_PRC2_CCTHAI_SND":
                     musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Thai", "MusicID")); // Virmire Ride
-                    PathEdUtils.SetLocation(musicVol, 1040, -28200, -2000);
+                    LevelTools.SetLocation(musicVol, 1040, -28200, -2000);
                     hasIntensity2 = true;
                     break;
                 case "BIOA_PRC2_CCLAVA_SND":
-                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Lava", "MusicID")); // Virmire Ride
-                    PathEdUtils.SetLocation(musicVol, 28420, -26932, -26858);
+                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Lava", "MusicID")); // 
+                    LevelTools.SetLocation(musicVol, 28420, -26932, -26858);
                     hasIntensity2 = true;
                     break;
                 case "BIOA_PRC2_CCCRATE_SND":
-                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Crate", "MusicID")); // Virmire Ride
-                    PathEdUtils.SetLocation(musicVol, 15783, -27067, -5491);
+                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Crate", "MusicID")); // 
+                    LevelTools.SetLocation(musicVol, 15783, -27067, -5491);
                     // No intensity 2 as this map is < 2 minutes in length
                     break;
                 case "BIOA_PRC2_CCCAVE_SND":
-                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Cave", "MusicID")); // Virmire Ride
-                    PathEdUtils.SetLocation(musicVol, -16480, -28456, -2614);
+                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Cave", "MusicID")); // 
+                    LevelTools.SetLocation(musicVol, -16480, -28456, -2614);
                     hasIntensity2 = true;
                     break;
                 case "BIOA_PRC2_CCAHERN_SND":
-                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Ahern", "MusicID")); // Virmire Ride
-                    PathEdUtils.SetLocation(musicVol, -41129, -27013, -2679);
+                    musicVol.WriteProperty(new NameProperty("CrossGen_Mus_Ahern", "MusicID")); // Saren Peniultimate
+                    LevelTools.SetLocation(musicVol, -41129, -27013, -2679);
                     hasIntensity2 = true;
                     break;
             }
@@ -4303,8 +4548,8 @@ namespace CrossGenV.Classes
             KismetHelper.AddObjectToSequence(streamInTextures, sequence);
             KismetHelper.AddObjectToSequence(streamInDelay, sequence);
 
-            streamInDelay.WriteProperty(new FloatProperty(2.5f, "Duration")); // Load screen will be 2.5s
-            streamInTextures.WriteProperty(new FloatProperty(5f, "Seconds")); // Force textures to stream in at full res for a bit over the load screen time
+            streamInDelay.WriteProperty(new FloatProperty(4f, "Duration")); // Load screen will be 4s
+            streamInTextures.WriteProperty(new FloatProperty(8f, "Seconds")); // Force textures to stream in at full res for a bit over the load screen time
             remoteEventStreamIn.WriteProperty(new NameProperty("CROSSGEN_PrepTextures", "EventName")); // This is used to signal other listeners that they should also stream in textures
 
             streamingLocation ??= KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().First(x => x.ClassName == "SeqVar_External" && x.GetProperty<StrProperty>("VariableLabel")?.Value == "Scenario_Start_Location");
@@ -4414,6 +4659,7 @@ namespace CrossGenV.Classes
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, le1DonorTerrain, le1File,
                 le1File.FindExport("TheWorld.PersistentLevel"), true, rop, out var destTerrainEntry);
             var destTerrain = destTerrainEntry as ExportEntry;
+            destTerrain.indexValue = 2; // To match UDK for static lighting
 
             // Port in the precomputed components
             var me1Terrain = me1File.Exports.First(x => x.ClassName == "Terrain");
@@ -4430,7 +4676,7 @@ namespace CrossGenV.Classes
                     destTerrain, true, rop, out var newSubComp);
                 components.Add(new ObjectProperty(newSubComp.UIndex));
                 var portedTC = newSubComp as ExportEntry;
-                if (vTestOptions.portTerrainLightmaps /*&& !le1File.FilePath.Contains("LAVA")*/) // DO NOT PORT LAVA RIGHT NOW AS ITS LIGHTMAP IS BROKEN. ONLY PORT AHERN'S
+                if (vTestOptions.portTerrainLightmaps)
                 {
                     // Install the original lightmaps
                     var me1TC = ObjectBinary.From<TerrainComponent>(me1SubComp);
@@ -4571,6 +4817,8 @@ namespace CrossGenV.Classes
         public static void RebuildPersistentLevelChildren(ExportEntry pl, VTestOptions vTestOptions)
         {
             ExportEntry[] actorsToAdd = pl.FileRef.Exports.Where(exp => exp.Parent == pl && exp.IsA("Actor")).ToArray();
+            //if (pl.FileRef.FileNameNoExtension == "BIOA_PRC2_CCLAVA")
+            //    Debugger.Break();
             Level level = ObjectBinary.From<Level>(pl);
             level.Actors.Clear();
             foreach (var actor in actorsToAdd)
