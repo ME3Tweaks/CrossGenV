@@ -12,6 +12,7 @@ using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Pathing;
 using System.IO;
+using CrossGenV.Classes.Levels;
 using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Misc;
@@ -466,6 +467,7 @@ namespace CrossGenV.Classes
                 case "BIOA_PRC2_CCTHAI_DSG":
                     // Might need Aherns
                     {
+                        VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
                         VTestAudio.SetupMusicIntensity(le1File, upperFName, vTestOptions);
                         VTestAudio.SetupKillStreakVO(le1File, vTestOptions);
                         // Force the pawns that will spawn to have their meshes in memory
@@ -729,6 +731,8 @@ namespace CrossGenV.Classes
             {
                 case "BIOA_PRC2_CCAHERN_DSG":
                     {
+                        VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
+
                         // Rally - This is not a template so it's done manually on this level
                         foreach (var exp in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
                         {
@@ -1149,6 +1153,8 @@ namespace CrossGenV.Classes
                     VTestTerrain.PortInCorrectedTerrain(me1File, le1File, "CCAHERN.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
                     CorrectTerrainSetup(me1File, le1File, vTestOptions);
                 }
+
+                VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCMID_ART"))
             {
