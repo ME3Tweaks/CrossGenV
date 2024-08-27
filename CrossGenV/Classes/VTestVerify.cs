@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LegendaryExplorerCore.Shaders;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
 
 namespace CrossGenV.Classes
@@ -35,8 +36,17 @@ namespace CrossGenV.Classes
 
             // VTestCheckImports(package, vTestOptions);
             VTestCheckTextures(package, vTestOptions);
-
+            VTestCheckMaterials(package, vTestOptions);
             #endregion
+        }
+
+        private static void VTestCheckMaterials(IMEPackage package, VTestOptions vTestOptions)
+        {
+            var brokenMaterials = ShaderCacheManipulator.GetBrokenMaterials(package);
+            foreach (var brokenMaterial in brokenMaterials)
+            {
+                Console.Error.WriteLine($"Error: Broken material detected: {brokenMaterial.InstancedFullPath} in {brokenMaterial.FileRef.FileNameNoExtension}");
+            }
         }
 
         public static void VTestCheckTextures(IMEPackage mePackage, VTestOptions vTestOptions)
