@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Unreal;
 using static Microsoft.IO.RecyclableMemoryStreamManager;
 
 namespace CrossGenV.Classes
@@ -47,14 +48,62 @@ namespace CrossGenV.Classes
 
         private static void GenerateMissionCompletedXPEvent(ExportEntry sequence, float mult, ExportEntry originalNode, VTestOptions options)
         {
-            // Todo: Add mod settings menu control for this before each node fires.
 
+            // Todo: Add mod settings menu control for this before each node fires.
             var grant = SequenceObjectCreator.CreateSequenceObject(sequence, "LEXSeqAct_GrantLevelBasedXPPercent", options.cache);
             KismetHelper.SetComment(grant, "Standard win: 0.5x of a level");
             var multiplier = SequenceObjectCreator.CreateFloat(sequence, 0.5f, options.cache);
             KismetHelper.CreateVariableLink(grant, "LevelPercent", multiplier);
 
             KismetHelper.InsertActionAfter(originalNode, "Out", grant, 0, "Out");
+        }
+
+        public static void AddExtraEnemyTypes(IMEPackage le1File, VTestOptions options)
+        {
+            // Todo: Add gating for this somewhere, maybe in helper sequence
+            var fname = le1File.FileNameNoExtension.ToUpper();
+            switch (fname)
+            {
+                case "BIOA_PRC2_CCTHAI_DSG":
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Thai_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Thai_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SequenceReference_1", options);
+                    break;
+            }
+
+        }
+
+        private static void SetupEnemyTypes(IMEPackage le1File, string hookupIFP, VTestOptions options)
+        {
+            var pawnLoad = le1File.FindExport(hookupIFP);
+            var sequence = KismetHelper.GetParentSequence(pawnLoad);
+
+            // Get all object lists in the sequence that have object types of BioPawnChallengeScaledType objects in them.
+            var spawnLists = KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().Where(x =>
+                    x.ClassName == "SeqVar_ObjectList"
+                    && x.GetProperty<ArrayProperty<ObjectProperty>>("ObjList") is var objList
+                    && objList.Count > 0
+                    && objList[0] != null
+                    && objList[0].Value > 0
+                    && le1File.GetUExport(objList[0].Value) is ExportEntry bpcst
+                    && bpcst.ClassName == "BioPawnChallengeScaledType")
+                .ToList();
+
+            var spawnChanger = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, sequence.InstancedFullPath,
+                "HelperSequences.CrossgenUpdateSpawnlists", options);
+
+            KismetHelper.InsertActionAfter(pawnLoad, "Cache pawns created", spawnChanger, 0, "Cached");
+            KismetHelper.CreateOutputLink(pawnLoad, "Cache pawns deleted", spawnChanger, 1);
+
+            foreach (var sl in spawnLists)
+            {
+                KismetHelper.CreateVariableLink(spawnChanger, "SpawnLists", sl);
+            }
+        }
+
+        public static void AddUsableLockers(IMEPackage le1File, VTestOptions options)
+        {
+
         }
     }
 }

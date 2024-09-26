@@ -211,5 +211,89 @@ namespace CrossGenV.Classes
             KismetHelper.CreateOutputLink(targetEvent, outName, newUiSeq as ExportEntry);
             return newUiSeq as ExportEntry;
         }
+        public static List<ExportEntry> GetSequenceObjectReferences(ExportEntry seq, string sequenceName)
+        {
+            var seqObjs = KismetHelper.GetSequenceObjects(seq).OfType<ExportEntry>().ToList();
+            var seqRefs = seqObjs.Where(x => x.ClassName == "SequenceReference");
+            var references = seqRefs.Where(x =>
+                x.GetProperty<ObjectProperty>("oSequenceReference") is ObjectProperty op && op?.Value != 0 &&
+                seq.FileRef.GetUExport(op.Value) is ExportEntry sequence &&
+                sequence.GetProperty<StrProperty>("ObjName")?.Value == sequenceName).ToList();
+            return references;
+        }
+
+        // We can spawn up to this many additional enemies.
+        private static readonly int MaxEnemyRampCount = 12;
+
+        /// <summary>
+        /// Clones respawners, activating them over time.
+        /// </summary>
+        /// <param name="seq"></param>
+        /// <param name="vTestOptions"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        public static void InstallEnemyCountRamp(ExportEntry startTimerObj, ExportEntry seq, VTestOptions vTestOptions)
+        {
+            var respawners = GetSequenceObjectReferences(seq, "SUR_Respawner");
+
+            List<ExportEntry> newRespawners = new List<ExportEntry>();
+            if (respawners.Any())
+            {
+                int currentEnemyNum = respawners.Count + 1;
+
+                var currentRamp = 0;
+                while (currentRamp < MaxEnemyRampCount)
+                {
+                    var links = KismetHelper.GetVariableLinksOfNode(respawners[0]);
+                    var newRespawner = KismetHelper.CloneObject(respawners[0], cloneChildren: true);
+                    newRespawners.Add(newRespawner);
+                    var enemyNum = SequenceObjectCreator.CreateInt(seq, currentEnemyNum, vTestOptions.cache);
+                    links[2].LinkedNodes[0] = enemyNum; // Repoint to our new enemy number
+
+                    KismetHelper.WriteVariableLinksToNode(newRespawner, links);
+
+
+                    var outLinks = KismetHelper.GetOutputLinksOfNode(respawners[0]);
+                    outLinks[1].Clear(); // Remove 'DoneInitializing'
+                    KismetHelper.WriteOutputLinksToNode(newRespawner, outLinks);
+
+
+
+                    // DoneInitializing -> Activate on itself to start the spawn
+                    KismetHelper.CreateOutputLink(newRespawner, "DoneInitializing", newRespawner, 0);
+
+                    currentEnemyNum++;
+                    currentRamp++;
+                }
+            }
+
+            float startTime = 30f;
+            var currentTime = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "OFFICIAL_TIME", vTestOptions.cache);
+            var gameHandler = GetSequenceObjectReferences(seq, "Check_Capping_Completion");
+
+            ExportEntry previousCompareFloat = null;
+            foreach (var respawner in newRespawners)
+            {
+                var gate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
+                KismetHelper.CreateOutputLink(gate, "Out", respawner, 1); // Gate to Initialize
+                KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close gate
+
+                var time = SequenceObjectCreator.CreateFloat(seq, startTime);
+                var compare = SequenceObjectCreator.CreateCompareFloat(seq, currentTime, time, vTestOptions.cache);
+
+                KismetHelper.CreateOutputLink(compare, "A >= B", gate);
+                if (previousCompareFloat != null)
+                {
+                    // Link to next compare
+                    KismetHelper.CreateOutputLink(previousCompareFloat, "A >= B", compare);
+                }
+                else
+                {
+                    KismetHelper.CreateOutputLink(gameHandler[0], "Update_Guys", compare);
+                }
+
+                previousCompareFloat = compare;
+                startTime += 10;
+            }
+        }
     }
 }

@@ -374,6 +374,9 @@ namespace CrossGenV.Classes
         {
             var upperFName = fName.ToUpper();
 
+            // 09/24/2024 - Add additional enemies logic
+            VTestAdditionalContent.AddExtraEnemyTypes(le1File, vTestOptions);
+
             // Semi-global
             switch (upperFName)
             {
@@ -617,13 +620,18 @@ namespace CrossGenV.Classes
                                 if (surDecayStart != null)
                                 {
                                     // It's survival
+
+                                    // 09/25/2024 - In OT the map started pretty much immediately, in crossgen we give the player a few seconds to prepare for combat
+                                    // We are moving the timer start signaling to after the delay so they don't get free time for survival
+                                    // We remove the events from here; we will fire them after the delay in the parent sequence
+                                    KismetHelper.RemoveOutputLinks(surDecayStart);
+
                                     // Add signal to decay start
                                     var surDecaySignal = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
                                     KismetHelper.AddObjectToSequence(surDecaySignal, exp);
                                     surDecaySignal.WriteProperty(new NameProperty("CROSSGEN_START_SUR_HEALTHGATE_DECAY", "EventName"));
                                     KismetHelper.CreateOutputLink(surDecayStart, "Out", surDecaySignal);
                                 }
-
                             }
                             else if (seqName == "Vampire_Mode_Handler")
                             {
@@ -644,18 +652,26 @@ namespace CrossGenV.Classes
                                 KismetHelper.CreateOutputLink(setBool, "Out", remoteEvent);
                                 remoteEvent.WriteProperty(new NameProperty("StartSimMusic", "EventName"));
                             }
+                            // Todo: Add the others.
+                            else if (seqName is "SUR_Thai_Handler")
+                            {
+                                var startTimerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(exp, "START_TIMER");
+                                var delay = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().FirstOrDefault(x=>x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
+                                KismetHelper.InsertActionAfter(delay, "Finished", startTimerSignal, 0, "Out");
 
+                                VTestKismet.InstallEnemyCountRamp(startTimerSignal, exp, vTestOptions);
+                            }
                             //else if (seqName == "Cap_And_Hold_Point")
-                            //{
-                            //    // Capture
-                            //    var startObj = FindSequenceObjectByPosition(exp, 584, 2200, "BioSeqAct_SetActionState");
-                            //    var newObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", MEGame.LE1, vTestOptions.cache);
-                            //    KismetHelper.AddObjectToSequence(newObj, exp);
-                            //    KismetHelper.CreateOutputLink(startObj, "Out", newObj); // RALLY
-                            //}
+                                //{
+                                //    // Capture
+                                //    var startObj = FindSequenceObjectByPosition(exp, 584, 2200, "BioSeqAct_SetActionState");
+                                //    var newObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", MEGame.LE1, vTestOptions.cache);
+                                //    KismetHelper.AddObjectToSequence(newObj, exp);
+                                //    KismetHelper.CreateOutputLink(startObj, "Out", newObj); // RALLY
+                                //}
 
-                            #region Black Screen Fade In instead of just turning off
-                            if (seqName is "Vampire_Mode_Handler" or "Check_Capping_Completion" or "TA_V3_Gametype_Handler")
+                                #region Black Screen Fade In instead of just turning off
+                                if (seqName is "Vampire_Mode_Handler" or "Check_Capping_Completion" or "TA_V3_Gametype_Handler")
                             {
                                 var sequenceObjects = exp.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects").Select(x => x.ResolveToEntry(le1File) as ExportEntry).ToList();
                                 var fadeFromBlacks = sequenceObjects.Where(x => x.ClassName == "BioSeqAct_BlackScreen").ToList(); // We will route one of these to the other
