@@ -680,7 +680,7 @@ namespace CrossGenV.Classes
                     ImportExportDependencies = true,
                     IsCrossGame = true,
                     TargetGameDonorDB = vTestOptions.objectDB,
-                    RelinkAllowDifferingClassesInRelink = true // Allows swapping Material and MaterialInstanceConstants
+                    RelinkAllowDifferingClassesInRelink = false // Still allows swapping Material and MaterialInstanceConstants / BioSWF and GFxMovieInfo
                 };
                 var report = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, e, destPackage,
                     le1PL, true, rop, out _);
