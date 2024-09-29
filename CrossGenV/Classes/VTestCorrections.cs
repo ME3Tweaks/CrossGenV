@@ -652,8 +652,9 @@ namespace CrossGenV.Classes
                                 KismetHelper.CreateOutputLink(setBool, "Out", remoteEvent);
                                 remoteEvent.WriteProperty(new NameProperty("StartSimMusic", "EventName"));
                             }
-                            // Todo: Add the others.
-                            else if (seqName is "SUR_Thai_Handler")
+
+                            // Enemy ramping - Survival Thai, Cave, Lava (Crate doesn't have one, no point doing it for Ahern's)
+                            else if (seqName is "SUR_Thai_Handler" or "SUR_Cave_Handler" or "SUR_Lava_Handler")
                             {
                                 var startTimerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(exp, "START_TIMER");
                                 var delay = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
