@@ -68,9 +68,23 @@ namespace CrossGenV.Classes
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Thai_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Thai_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SequenceReference_1", options);
+                    // TA
+                    break;
+                case "BIOA_PRC2_CCLAVA_DSG":
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Lava_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Lava_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Lava_Handler.SequenceReference_1", options);
+                    // TA
+                    break;
+                case "BIOA_PRC2_CCCRATE_DSG":
+                    // TA
+                    break;
+                case "BIOA_PRC2_CCCAVE_DSG":
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Cave_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Cave_Handler.SequenceReference_1", options);
+                    SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Cave_Handler.SequenceReference_1", options);
                     break;
             }
-
         }
 
         private static void SetupEnemyTypes(IMEPackage le1File, string hookupIFP, VTestOptions options)
