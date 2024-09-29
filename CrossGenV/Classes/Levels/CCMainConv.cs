@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal;
+using LegendaryExplorerCore.UnrealScript;
+using LegendaryExplorerCore.UnrealScript.Compiling;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -13,6 +15,9 @@ namespace CrossGenV.Classes.Levels
     {
         public static void PostPortingCorrections(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
+            FixFirstSeeShepardCinematic(le1File);
+
+
             // Ahern's post-mission dialogue. This installs the streaming textures event
             var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin");
             var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_RemoteEvent", vTestOptions.cache);
@@ -112,6 +117,32 @@ namespace CrossGenV.Classes.Levels
 
                 KismetHelper.AddObjectsToSequence(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin"), false, ahernWinRE, ahernLossRE, ahernLoss2RE, vidinos1RE, vidinos2RE, ocarenRE, ahernSpecialRE);
             }
+        }
+
+        public static void FixFirstSeeShepardCinematic(IMEPackage le1File)
+        {
+            var fileLib = new FileLib(le1File);
+            var usop = new UnrealScriptOptionsPackage() { Cache = new PackageCache() };
+            var flOk = fileLib.Initialize(usop);
+
+            // Update interp length and fade out timing
+            le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.InterpData_0").WriteProperty(new FloatProperty(12.75f, "InterpLength"));
+            var fadeCurve = @"properties
+{
+    FloatTrack = {
+                  Points = ({InVal = 0.00566500006, OutVal = 1.01869094, ArriveTangent = 0.0, LeaveTangent = 0.0, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 1.84915781, OutVal = 0.0, ArriveTangent = -0.482986927, LeaveTangent = -0.482986927, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 2.11481309, OutVal = 0.0, ArriveTangent = 1.64963126, LeaveTangent = 1.64963126, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 2.47485948, OutVal = 1.03217697, ArriveTangent = 0.0, LeaveTangent = 0.0, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 2.95016456, OutVal = 0.0, ArriveTangent = -0.118679896, LeaveTangent = -0.118679896, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 12.3999996, OutVal = 0.00551004661, ArriveTangent = 0.498885512, LeaveTangent = 0.498885512, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 12.75, OutVal = 0.997771025, ArriveTangent = -0.00430613197, LeaveTangent = -0.00430613197, InterpMode = EInterpCurveMode.CIM_CurveAuto}, 
+                            {InVal = 13.75, OutVal = 0.0, ArriveTangent = 0.0, LeaveTangent = 0.0, InterpMode = EInterpCurveMode.CIM_CurveAuto}
+                           )
+                 }
+}";
+            UnrealScriptCompiler.CompileDefaultProperties(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.InterpData_0.InterpGroupDirector_0.InterpTrackFade_0"), fadeCurve, fileLib, usop);
+
         }
     }
 }
