@@ -43,7 +43,9 @@ namespace CrossGenV.Classes
             for (int i = 0; i < me1TerrainComponents.Count; i++)
             {
                 var me1SubComp = me1TerrainComponents[i].ResolveToEntry(me1File) as ExportEntry;
-                var le1SubComp = le1DonorTerrainComponents[i].ResolveToEntry(le1File) as ExportEntry;
+                var tcomp = le1DonorTerrainComponents[i];
+                var tcompE = vTestOptions.vTestHelperPackage.GetEntry(tcomp.Value);
+                var le1SubComp = le1DonorTerrainComponents[i].ResolveToEntry(vTestOptions.vTestHelperPackage) as ExportEntry;
                 rop.CrossPackageMap.Clear();
                 EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, vTestOptions.vTestHelperPackage.GetUExport(le1SubComp.UIndex), le1File,
                     destTerrain, true, rop, out var newSubComp);
