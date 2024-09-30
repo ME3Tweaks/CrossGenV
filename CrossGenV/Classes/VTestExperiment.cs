@@ -161,16 +161,24 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText("Clearing mod folder");
             // Clear out dest dir
-            foreach (var f in Directory.GetFiles(VTestPaths.VTest_FinalDestDir))
-            {
-                File.Delete(f);
-            }
+            VTestUtility.DeleteFilesAndFoldersRecursively(VTestPaths.VTest_FinalDestDir, deleteDirectoryItself: false);
 
             // Copy in precomputed files
             vTestOptions.SetStatusText("Copying precomputed files");
-            foreach (var f in Directory.GetFiles(VTestPaths.VTest_PrecomputedDir))
+            foreach (var f in Directory.GetFiles(VTestPaths.VTest_PrecomputedDir, "*.*", SearchOption.AllDirectories))
             {
-                File.Copy(f, Path.Combine(VTestPaths.VTest_FinalDestDir, Path.GetFileName(f)));
+                var destDir = VTestPaths.VTest_FinalDestDir;
+
+                // Precomputed copy will flatten source directory
+                var relativePath = Path.GetRelativePath(VTestPaths.VTest_PrecomputedDir, f);
+                if (relativePath.Contains(Path.DirectorySeparatorChar))
+                {
+                    // It's subfolder. We only support one layer deep for CrossgenV
+                    var subDirName = Path.GetDirectoryName(relativePath);
+                    destDir = Path.Combine(destDir, subDirName);
+                    Directory.CreateDirectory(destDir);
+                }
+                File.Copy(f, Path.Combine(destDir, Path.GetFileName(f)), true);
             }
 
             // If we are building an asset cache package we initialize it here
@@ -318,12 +326,12 @@ namespace CrossGenV.Classes
             }
             else
             {
-                //if (levelName.CaseInsensitiveEquals("BIOA_PRC2_CCLAVA"))
+                // if (levelName.CaseInsensitiveEquals("BIOA_PRC2_CCTHAI"))
                 PortVTestLevel(masterMapName, levelName, vTestOptions, levelName is "BIOA_PRC2" or "BIOA_PRC2AA", true);
             }
         }
 
-        
+
 
         /// <summary>
         /// Ports a level file for VTest. Saves package at the end.
@@ -759,8 +767,10 @@ namespace CrossGenV.Classes
             }
 
             //CorrectSequences(package, vTestOptions);
+            var postPortingSW = Stopwatch.StartNew();
             VTestCorrections.PostPortingCorrections(sourcePackage, package, vTestOptions);
-
+            postPortingSW.Stop();
+            Console.WriteLine($"PPC time: {postPortingSW.ElapsedMilliseconds}ms");
             vTestOptions.SetStatusText($"Saving {packName}");
             package.Save();
         }
