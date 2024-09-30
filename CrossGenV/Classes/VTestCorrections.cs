@@ -1951,7 +1951,7 @@ namespace CrossGenV.Classes
 
             // Install fix for refusal of ahern's mission leading right into his normal conversation
             {
-                // State transitions changed so we can still check for the "impressive work" branch further in the conversation
+                // State transitions and bool checks added to set a flag when Ahern brings his mission up a second time
                 entryList[44].Properties.AddOrReplaceProp(new IntProperty(6436, "nStateTransition"));
                 replyList[48].Properties.AddOrReplaceProp(new IntProperty(7658, "nConditionalFunc"));
                 replyList[48].Properties.AddOrReplaceProp(new IntProperty(1, "nConditionalParam"));

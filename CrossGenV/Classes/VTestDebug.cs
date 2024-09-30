@@ -38,7 +38,6 @@ namespace CrossGenV.Classes
                 le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqVar_Float_9").WriteProperty(new FloatProperty(0, "FloatValue")); // Change of not saying something
 
                 // Console events to trigger post-cinematics
-
                 var ahernWinRE = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_Console", vTestOptions.cache);
                 var ahernLossRE = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_Console", vTestOptions.cache);
                 var ahernLoss2RE = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_Console", vTestOptions.cache);
@@ -55,17 +54,25 @@ namespace CrossGenV.Classes
                 ocarenRE.WriteProperty(new NameProperty("Ocaren", "ConsoleEventName"));
                 ahernSpecialRE.WriteProperty(new NameProperty("AhernSpecial", "ConsoleEventName"));
 
+                var ocarenTransition = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_PMExecuteTransition", vTestOptions.cache);
+                ocarenTransition.WriteProperty(new IntProperty(6269, "m_nIndex"));
+
+                var vidinos2Transition = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_PMExecuteTransition", vTestOptions.cache);
+                vidinos2Transition.WriteProperty(new IntProperty(6275, "m_nIndex"));
+
 
                 KismetHelper.CreateOutputLink(ahernLossRE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_19"));
                 KismetHelper.CreateOutputLink(ahernLoss2RE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_13"));
                 KismetHelper.CreateOutputLink(ahernWinRE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_5"));
                 KismetHelper.CreateOutputLink(vidinos1RE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0"));
-                KismetHelper.CreateOutputLink(vidinos2RE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_1"));
-                KismetHelper.CreateOutputLink(ocarenRE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_6"));
+                KismetHelper.CreateOutputLink(vidinos2RE, "Out", vidinos2Transition);
+                KismetHelper.CreateOutputLink(vidinos2Transition, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_1"));
+                KismetHelper.CreateOutputLink(ocarenRE, "Out", ocarenTransition);
+                KismetHelper.CreateOutputLink(ocarenTransition, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_6"));
                 KismetHelper.CreateOutputLink(ahernSpecialRE, "Out", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_BlackScreen_4"));
 
 
-                KismetHelper.AddObjectsToSequence(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin"), false, ahernWinRE, ahernLossRE, ahernLoss2RE, vidinos1RE, vidinos2RE, ocarenRE, ahernSpecialRE);
+                KismetHelper.AddObjectsToSequence(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin"), false, ahernWinRE, ahernLossRE, ahernLoss2RE, vidinos1RE, vidinos2RE, ocarenRE, ahernSpecialRE, ocarenTransition, vidinos2Transition);
             }
         }
     }
