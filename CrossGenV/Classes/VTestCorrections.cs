@@ -1,22 +1,20 @@
-﻿using LegendaryExplorerCore.Packages;
+﻿using CrossGenV.Classes.Levels;
+using LegendaryExplorerCore.GameFilesystem;
+using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
+using LegendaryExplorerCore.Helpers;
+using LegendaryExplorerCore.Kismet;
+using LegendaryExplorerCore.Misc;
+using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
+using LegendaryExplorerCore.Pathing;
+using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
-using LegendaryExplorerCore.Unreal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LegendaryExplorerCore.Kismet;
-using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
-using LegendaryExplorerCore.Pathing;
 using System.IO;
-using CrossGenV.Classes.Levels;
-using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
-using LegendaryExplorerCore.Helpers;
-using LegendaryExplorerCore.Misc;
-using LegendaryExplorerCore.GameFilesystem;
+using System.Linq;
 
 namespace CrossGenV.Classes
 {
@@ -1167,6 +1165,7 @@ namespace CrossGenV.Classes
             FixPinkVisorMaterial(le1File);
             vTestOptions.SetStatusText($"PPC (Unlock Ahern Mission)");
             VTestDebug.DebugUnlockAhernMission(le1File, vTestOptions);
+            VTestDebug.DebugConversationConsoleEvents(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (2DAs)");
             CorrectGethEquipment2DAs(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Audio Lengths)");
@@ -1957,38 +1956,69 @@ namespace CrossGenV.Classes
 
         private static void FixAhernConversation(IMEPackage le1File, VTestOptions vTestOptions)
         {
-            // Ahern's conversation switches the position of Ahern and Competitors depending on which conversation branch you choose
-            // I have no idea why Demiurge did this but it's confusing and bad design.
-            // This conversation is in multiple files so we just check for the IFP, if we find it, we make the corrections.
 
             var ahernConv = le1File.FindExport("prc2_ahern_D.prc2_ahern_dlg");
             if (ahernConv == null)
                 return; // Not in this file
 
-            var entryIndicesToFix = new[] { 59, 61, 66, 64, 71, 53, 58, 55 };
-
             var properties = ahernConv.GetProperties();
 
             var entryList = properties.GetProp<ArrayProperty<StructProperty>>("m_EntryList");
-            foreach (var idx in entryIndicesToFix)
-            {
-                var entry = entryList[idx];
-                var replyList = entry.GetProp<ArrayProperty<StructProperty>>("ReplyListNew");
+            var replyList = properties.GetProp<ArrayProperty<StructProperty>>("m_ReplyList");
 
-                // Heuristic to tell if we need to update this.
-                var stringRef = replyList[2].GetProp<StringRefProperty>("srParaphrase");
-                if (stringRef.Value == 182514) // Competitors
-                    continue; // competitors is already in slot 3 (left middle)
-                else if (stringRef.Value == 182517) // Ahern
+
+            // Ahern's conversation switches the position of Ahern and Competitors depending on which conversation branch you choose
+            // I have no idea why Demiurge did this but it's confusing and bad design.
+            // This conversation is in multiple files so we just check for the IFP, if we find it, we make the corrections.
+            {
+                var entryIndicesToFix = new[] { 59, 61, 66, 64, 71, 53, 58, 55 };
+
+                foreach (var idx in entryIndicesToFix)
                 {
-                    Debug.WriteLine($"Fixing ahern conversation for entry node {idx} in {le1File.FileNameNoExtension}");
-                    var temp = replyList[2];
-                    replyList[2] = replyList[3]; // Move competitors to slot 3 (left) from slot 4 (bottom right)
-                    replyList[3] = temp; // Move ahern to bottom right, slot 4
+                    var entry = entryList[idx];
+                    var replyListNew = entry.GetProp<ArrayProperty<StructProperty>>("ReplyListNew");
+
+                    // Heuristic to tell if we need to update this.
+                    var stringRef = replyListNew[2].GetProp<StringRefProperty>("srParaphrase");
+                    if (stringRef.Value == 182514) // Competitors
+                        continue; // competitors is already in slot 3 (left middle)
+                    else if (stringRef.Value == 182517) // Ahern
+                    {
+                        Debug.WriteLine($"Fixing ahern conversation for entry node {idx} in {le1File.FileNameNoExtension}");
+                        var temp = replyListNew[2];
+                        replyListNew[2] = replyListNew[3]; // Move competitors to slot 3 (left) from slot 4 (bottom right)
+                        replyListNew[3] = temp; // Move ahern to bottom right, slot 4
+                    }
                 }
             }
 
 
+            // Install fix for refusal of ahern's mission leading right into his normal conversation
+            {
+                // State transitions and bool checks added to set a flag when Ahern brings his mission up a second time
+                entryList[44].Properties.AddOrReplaceProp(new IntProperty(6436, "nStateTransition"));
+                replyList[48].Properties.AddOrReplaceProp(new IntProperty(7658, "nConditionalFunc"));
+                replyList[48].Properties.AddOrReplaceProp(new IntProperty(1, "nConditionalParam"));
+                replyList[48].Properties.AddOrReplaceProp(new BoolProperty(false, "bFireConditional"));
+
+                // New conversation end node after this scene. Only triggered if we're on the "impressive work" branch.
+                // Otherwise, if this conversation is repeated, it continues on to Ahern's normal conversation
+                var replyNode = GlobalUnrealObjectInfo.getDefaultStructValue(MEGame.LE1, "BioDialogReplyNode", true, le1File);
+                replyNode.AddOrReplaceProp(new EnumProperty("REPLY_DIALOGEND", "EReplyTypes", MEGame.LE1, "ReplyType"));
+                replyNode.AddOrReplaceProp(new StringRefProperty(183458, "srText"));
+                replyNode.AddOrReplaceProp(new IntProperty(-1, "nConditionalFunc"));
+                replyNode.AddOrReplaceProp(new IntProperty(-1, "nConditionalParam"));
+                replyNode.AddOrReplaceProp(new IntProperty(-1, "nStateTransition"));
+                replyNode.AddOrReplaceProp(new IntProperty(-1, "nStateTransitionParam"));
+                replyNode.AddOrReplaceProp(new IntProperty(-1, "nScriptIndex"));
+                replyNode.AddOrReplaceProp(new IntProperty(1, "nCameraIntimacy"));
+
+                replyList.Add(new StructProperty("BioDialogReplyNode", replyNode));
+                var newCheck = entryList[42].GetProp<ArrayProperty<StructProperty>>("ReplyListNew");
+                newCheck.Add(new StructProperty("BioDialogReplyListDetails", false,
+                    new IntProperty(replyList.Count - 1, "nIndex"),
+                    new StringRefProperty(183458, "srParaphrase")));
+            }
             ahernConv.WriteProperties(properties);
         }
 
