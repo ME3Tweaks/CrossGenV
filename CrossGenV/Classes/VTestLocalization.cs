@@ -58,35 +58,62 @@ namespace CrossGenV.Classes
                     }
                 }
 
+                // Fixes untranslated localization of Polish
+                var plSet = btfs.TlkSets["PL"];
+                var plTlkM = le1File.GetUExport(plSet.Male);
+                var plTlkF = le1File.GetUExport(plSet.Female);
+                ImportLocalization(le1File.FileNameNoExtension, "PL", plTlkM, plTlkF, options);
+
                 btfsExp.WriteBinary(btfs);
             }
 
-            // Fixes polish localizations.
 
 
         }
 
-        private static void ImportLocalization(string packageName, string localization, ExportEntry tlkM, ExportEntry tlkF, VTestOptions options)
+        private static void ImportLocalization(string packageName, string localization, ExportEntry destTlkM, ExportEntry destTlkF, VTestOptions options)
         {
             // Nested in the source dir under the language code.
-            var localizedPath = Path.Combine(VTestPaths.VTest_SourceDir, localization, $"{packageName}.SFM");
+            var locPath = localization;
+            if (localization == "PL")
+            {
+                // Stored under different folder name.
+                locPath = "PLPC";
+            }
+
+            var localizedPath = Path.Combine(VTestPaths.VTest_SourceDir, locPath, $"{packageName}.SFM");
             if (File.Exists(localizedPath))
             {
-                var polishPackage = MEPackageHandler.OpenMEPackage(localizedPath);
-                var locTlkM = polishPackage.FindExport(tlkM.InstancedFullPath);
-                CopyLocalization(locTlkM, tlkM);
+                var localizedPackage = MEPackageHandler.OpenMEPackage(localizedPath);
 
-                var locTlkF = polishPackage.FindExport(tlkF.InstancedFullPath);
-                CopyLocalization(locTlkF, tlkF);
+                var tlkMIFP = destTlkM.InstancedFullPath;
+                if (localization == "PLPC")
+                {
+                    // Pull from PL instead
+                    tlkMIFP = tlkMIFP[..^2];
+                }
+
+                var locTlkM = localizedPackage.FindExport(tlkMIFP);
+                CopyLocalization(locTlkM, destTlkM, options);
+
+                var tlkFIFP = destTlkF.InstancedFullPath;
+                if (localization == "PLPC")
+                {
+                    // Pull from PL instead (source doesn't have PLPC)
+                    tlkFIFP = tlkFIFP[..^2];
+                }
+
+                var locTlkF = localizedPackage.FindExport(tlkFIFP);
+                CopyLocalization(locTlkF, destTlkF, options);
             }
         }
 
-        private static void CopyLocalization(ExportEntry source, ExportEntry dest)
+        private static void CopyLocalization(ExportEntry source, ExportEntry dest, VTestOptions vTestOptions)
         {
             if (source != null && dest != null)
             {
                 // We copy properties as the superclass has different memory path and LEC will think it is different. So we don't do a direct import.
-                Console.WriteLine($"Installing extra localization: {source.InstancedFullPath}");
+                vTestOptions.SetStatusText($"Installing extra localization: {source.InstancedFullPath}");
                 var props = source.GetProperties();
                 var bin = source.GetBinaryData();
                 dest.WritePropertiesAndBinary(props, bin);

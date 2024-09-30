@@ -27,11 +27,6 @@ namespace CrossGenV
 
         static void Main(string[] args)
         {
-            VTestOptions options = new VTestOptions()
-            {
-                SetStatusText = x => Console.WriteLine(x)
-            };
-
             Console.WriteLine("VTest by ME3Tweaks");
 
             // Initialize Legendary Explorer Core
@@ -52,10 +47,10 @@ namespace CrossGenV
                 cache = TieredPackageCache.GetGlobalPackageCache(MEGame.LE1)
             };
 
-            Console.WriteLine("Performing VTest");
+            vTestOptions.SetStatusText("Performing VTest");
             VTestExperiment.RunVTest(vTestOptions);
 
-            Console.WriteLine("VTest run completed");
+            vTestOptions.SetStatusText("VTest run completed");
             if (installAndBootGame)
             {
                 var mmPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\Software\ME3Tweaks", "ExecutableLocation", null);
@@ -65,7 +60,7 @@ namespace CrossGenV
                     var moddesc = Path.Combine(Directory.GetParent(VTestPaths.VTest_DonorsDir).FullName, "moddesc.ini");
                     if (File.Exists(moddesc))
                     {
-                        Console.WriteLine("Installing VTest and running game, check ME3Tweaks Mod Manager");
+                        vTestOptions.SetStatusText("Installing VTest and running game, check ME3Tweaks Mod Manager");
                         ProcessStartInfo psi = new ProcessStartInfo(mmPath, $"--installmod \"{moddesc}\" --bootgame LE1");
                         Process.Start(psi);
                     }

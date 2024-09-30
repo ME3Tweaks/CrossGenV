@@ -27,7 +27,7 @@ namespace CrossGenV.Classes
         /// <param name="dlcName">Name of the DLC for TFC naming.</param>
         /// <param name="rootTextures">if we should externalize root textures (lighting) only or non-root textures (everything else)</param>
         /// <param name="logCategoryBase"></param>
-        public static void MoveTexturesToTFC(string tfcType, string dlcName, bool rootTextures)
+        public static void MoveTexturesToTFC(string tfcType, string dlcName, bool rootTextures, VTestOptions vTestOptions)
         {
             bool ShouldExternalize(bool rootTexture, int idxLink)
             {
@@ -36,14 +36,14 @@ namespace CrossGenV.Classes
 
             var tfcName = $"{tfcType}_{dlcName}";
             var tfcPath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{tfcName}.tfc");
-            Console.WriteLine($"Coalescing textures into {tfcPath}");
+            vTestOptions.SetStatusText($"Coalescing textures into {tfcPath}");
             using var tfcStream = File.Open(tfcPath, FileMode.CreateNew, FileAccess.ReadWrite);
             var guid = Guid.NewGuid();
             tfcStream.WriteGuid(guid);
 
             foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "*.pcc", SearchOption.AllDirectories))
             {
-                Console.WriteLine($"Externalizing textures in {Path.GetFileName(packagePath)}");
+                vTestOptions.SetStatusText($"Externalizing textures in {Path.GetFileName(packagePath)}");
                 var package = MEPackageHandler.OpenMEPackage(packagePath);
 
                 foreach (var tex in package.Exports.Where(x => x.IsTexture() && ShouldExternalize(rootTextures, x.idxLink)))
@@ -68,7 +68,7 @@ namespace CrossGenV.Classes
                         {
                             if (!startedMovingTexture)
                             {
-                                Console.WriteLine($"  Moving texture to external TFC: {tex.InstancedFullPath}");
+                                vTestOptions.SetStatusText($"  Moving texture to external TFC: {tex.InstancedFullPath}");
                             }
                             startedMovingTexture = true;
 
@@ -112,7 +112,7 @@ namespace CrossGenV.Classes
 
                 if (package.IsModified)
                 {
-                    Console.WriteLine("  Saving package");
+                    vTestOptions.SetStatusText("  Saving package");
                     package.Save();
                 }
             }
@@ -121,7 +121,7 @@ namespace CrossGenV.Classes
         /// <summary>
         /// This will probably be moved to LEC at some point for convenience
         /// </summary>
-        public static void CompactTFC(string tfcType, string dlcName)
+        public static void CompactTFC(string tfcType, string dlcName, VTestOptions vTestOptions)
         {
             // Step 2: TFC Compactor
             var staging = Directory.CreateDirectory(Path.Combine(VTestPaths.VTest_FinalDestDir, "Staging")).FullName;
@@ -139,16 +139,16 @@ namespace CrossGenV.Classes
                 TFCType = tfcType,
             };
 
-            Console.WriteLine($"Compacting {tfcType} TFC");
+            vTestOptions.SetStatusText($"Compacting {tfcType} TFC");
             TFCCompactor.CompactTFC(info, x => Console.Error.WriteLine(x), (text, done, total) =>
             {
                 if (text != null)
                 {
-                    Console.WriteLine($"  {text}");
+                    vTestOptions.SetStatusText($"  {text}");
                 }
                 if (total > 0)
                 {
-                    Console.WriteLine($"  Progress: {done}/{total}");
+                    vTestOptions.SetStatusText($"  Progress: {done}/{total}");
                 }
                 else if (done == -1 && total == -1)
                 {

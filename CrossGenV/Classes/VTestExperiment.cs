@@ -199,23 +199,31 @@ namespace CrossGenV.Classes
                 PortFile(levelFiles[0], vTestLevel, vTestOptions); // Master file is first in the list.
                 levelFiles.RemoveAt(0);
 
-                //foreach (var f in levelFiles)
+                // Port LOC files first so that import resolution of localized assets is correct when doing the main files
                 Parallel.ForEach(levelFiles, f =>
                 {
                     // Uncomment to filter for iteration
                     //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
                     //    return;
 
-                    if (f.Contains("_LOC_", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        // Check if we should port this in this session.
-                        if (!f.Contains("_LOC_INT", StringComparison.InvariantCultureIgnoreCase) && !vTestOptions.portAudioLocalizations)
-                        {
-                            return; // Do not port this non-int file.
-                        }
-                    }
+                    if (f.GetUnrealLocalization() == MELocalization.None)
+                        return; // Do not port
+                    
+                    vTestOptions.cache = rootCache.ChainNewCache();
+                    PortFile(f, vTestLevel, vTestOptions);
+                });
 
-                    vTestOptions.cache = vTestOptions.cache.ChainNewCache();
+                // Port non LOC files next, after LOC files have been generated
+                Parallel.ForEach(levelFiles, f =>
+                {
+                    // Uncomment to filter for iteration
+                    //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
+                    //    return;
+
+                    if (f.GetUnrealLocalization() != MELocalization.None)
+                        return; // Do not port
+
+                    vTestOptions.cache = rootCache.ChainNewCache();
                     PortFile(f, vTestLevel, vTestOptions);
                 });
             }
@@ -229,7 +237,7 @@ namespace CrossGenV.Classes
             // make it worth doing non-lighting (also annoying bugs I don't want to fix in TFC Compactor)
             if (!vTestOptions.isBuildForStaticLightingBake)
             {
-                VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true);
+                VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
                 // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
             }
 
@@ -316,7 +324,7 @@ namespace CrossGenV.Classes
         private static void PortFile(string levelFileName, string masterMapName, VTestOptions vTestOptions)
         {
             var levelName = Path.GetFileNameWithoutExtension(levelFileName);
-            //if (!levelName.CaseInsensitiveEquals("BIOA_PRC2_CCLAVA"))
+            //if (!levelFileName.Contains("CCMAIN_CONV", StringComparison.OrdinalIgnoreCase))
             //    return;
 
             if (levelFileName.Contains("_LOC_", StringComparison.InvariantCultureIgnoreCase))
@@ -589,9 +597,13 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText($"RCP CHECK");
 
-            Debug.WriteLine($"RCP CHECK FOR {Path.GetFileNameWithoutExtension(le1File.FilePath)} -------------------------");
+            Debug.WriteLine($"RCP CHECK FOR {le1File.FileNameNoExtension} -------------------------");
+            var sw = Stopwatch.StartNew();
             ReferenceCheckPackage rcp = new ReferenceCheckPackage();
             EntryChecker.CheckReferences(rcp, le1File, LECLocalizationShim.NonLocalizedStringConverter);
+            sw.Stop();
+            Debug.WriteLine($"RCP CHECK TIME {le1File.FileNameNoExtension}: {sw.ElapsedMilliseconds}ms");
+
 
             foreach (var err in rcp.GetBlockingErrors())
             {
@@ -770,7 +782,7 @@ namespace CrossGenV.Classes
             var postPortingSW = Stopwatch.StartNew();
             VTestCorrections.PostPortingCorrections(sourcePackage, package, vTestOptions);
             postPortingSW.Stop();
-            Console.WriteLine($"PPC time: {postPortingSW.ElapsedMilliseconds}ms");
+            vTestOptions.SetStatusText($"PPC time: {postPortingSW.ElapsedMilliseconds}ms");
             vTestOptions.SetStatusText($"Saving {packName}");
             package.Save();
         }
