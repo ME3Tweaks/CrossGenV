@@ -599,10 +599,25 @@ namespace CrossGenV.Classes
                             else if (seqName == "TA_V3_Gametype_Handler")
                             {
                                 // Time Trial
+
+                                // Auto draw weapon (hookup)
                                 var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState"/*, 712, 2256*/);
-                                var newObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                                KismetHelper.AddObjectToSequence(newObj, exp);
-                                KismetHelper.CreateOutputLink(startObj, "Out", newObj); // RALLY
+
+                                // RALLY
+                                var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
+                                KismetHelper.AddObjectToSequence(rallyObj, exp);
+                                KismetHelper.CreateOutputLink(startObj, "Out", rallyObj);
+
+                                // Time to beat notification
+                                var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                                var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                                var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                                KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                                KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
+                                KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
+
                                 VTestKismet.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay", 72, 1736), vTestOptions);
                             }
                             else if (seqName == "Check_Capping_Completion")
@@ -611,10 +626,24 @@ namespace CrossGenV.Classes
                                 // Capture...?
                                 // Both use this same named item because why not
                                 var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState"/*, 584, 2200*/);
-                                var newObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                                KismetHelper.AddObjectToSequence(newObj, exp);
-                                KismetHelper.CreateOutputLink(startObj, "Out", newObj); // RALLY
+                                
+                                // RALLY
+                                var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
+                                KismetHelper.AddObjectToSequence(rallyObj, exp);
+                                KismetHelper.CreateOutputLink(startObj, "Out", rallyObj); // RALLY
                                 VTestKismet.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay"/*, -152, 1768*/), vTestOptions);
+
+
+                                // Time to beat notification
+                                var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                                var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                                var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                                KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                                KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
+                                KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
+
 
                                 var surDecayStart = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_DUISetTextStringRef", 3544, 2472);
                                 if (surDecayStart != null)
@@ -637,9 +666,21 @@ namespace CrossGenV.Classes
                             {
                                 // Hunt
                                 var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState" /*, 1040, 2304*/);
-                                var newObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                                KismetHelper.AddObjectToSequence(newObj, exp);
-                                KismetHelper.CreateOutputLink(startObj, "Out", newObj); // RALLY
+
+                                // RALLY
+                                var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
+                                KismetHelper.AddObjectToSequence(rallyObj, exp);
+                                KismetHelper.CreateOutputLink(startObj, "Out", rallyObj); // RALLY
+
+                                // Score to beat notification
+                                var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                                var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                                var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                                KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
+                                KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                                KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
+                                KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
 
                                 VTestKismet.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay", 304, 1952), vTestOptions);
                             }
@@ -1132,6 +1173,8 @@ namespace CrossGenV.Classes
             VTestAudio.FixAudioLengths(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Planters)");
             VTestCorrections.FixPlanters(le1File, vTestOptions);
+            vTestOptions.SetStatusText($"PPC (Localizations)");
+            VTestLocalization.FixLocalizations(le1File, vTestOptions);
             // Disabled in static build
             //vTestOptions.SetStatusText($"PPC (Lighting)");
             //FixLighting(le1File, vTestOptions);
@@ -1173,7 +1216,7 @@ namespace CrossGenV.Classes
                 // 09/26/2024 - Install mod settings menu (via DropTheSquid)
                 VTestKismet.InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence", "HelperSequences.SimulatorSettingsLogic", vTestOptions);
                 var artPlacable = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.SimulatorSettingsLogic.BioSeqEvt_ArtPlaceableUsed_0");
-                artPlacable.WriteProperty(new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioInert_3"),"Originator"));
+                artPlacable.WriteProperty(new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioInert_3"), "Originator"));
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2AA_00_LAY"))
             {
@@ -1716,7 +1759,7 @@ namespace CrossGenV.Classes
                     var expressionGuid = CommonStructs.GetGuid(vp.GetProp<StructProperty>("ExpressionGUID"));
                     if (VTestMaterial.expressionGuidMap.TryGetValue(expressionGuid, out var newGuid) && VTestMaterial.parameterNameMap.TryGetValue(parameterName, out var newParameterName))
                     {
-                        Debug.WriteLine($"Updating VP MIC {exp.InstancedFullPath}");
+                        // Debug.WriteLine($"Updating VP MIC {exp.InstancedFullPath}");
                         vp.GetProp<NameProperty>("ParameterName").Value = newParameterName;
                         vp.Properties.AddOrReplaceProp(CommonStructs.GuidProp(newGuid, "ExpressionGUID"));
                     }
@@ -1734,7 +1777,7 @@ namespace CrossGenV.Classes
                     var expressionGuid = CommonStructs.GetGuid(tp.GetProp<StructProperty>("ExpressionGUID"));
                     if (VTestMaterial.expressionGuidMap.TryGetValue(expressionGuid, out var newGuid) && VTestMaterial.parameterNameMap.TryGetValue(parameterName, out var newParameterName))
                     {
-                        Debug.WriteLine($"Updating TP MIC {exp.InstancedFullPath}");
+                        // Debug.WriteLine($"Updating TP MIC {exp.InstancedFullPath}");
                         tp.GetProp<NameProperty>("ParameterName").Value = newParameterName;
                         tp.Properties.AddOrReplaceProp(CommonStructs.GuidProp(newGuid, "ExpressionGUID"));
                     }
