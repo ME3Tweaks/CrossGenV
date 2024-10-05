@@ -87,6 +87,11 @@ namespace CrossGenV.Classes
         public bool resynthesizePackages = false;
 
         /// <summary>
+        /// If we should multithread level build
+        /// </summary>
+        public bool parallelizeLevelBuild = true;
+
+        /// <summary>
         /// The cache that is passed through to sub operations.
         /// </summary>
         public TieredPackageCache cache { get; set; }
