@@ -939,6 +939,13 @@ namespace CrossGenV.Classes
                 EntryPruner.TrashEntries(sourcePackage, [originalIA]);
             }
 
+            if (sourcePackageName == "BIOA_PRC2_CCTHAI")
+            {
+                // Forces different donor
+                var matFixObject01 = sourcePackage.FindExport("BIOA_JUG40_S.jug40_Object01");
+                matFixObject01.ObjectName = "jug40_Object01_Crossgen";
+            }
+
             // Strip static mesh light maps since they don't work crossgen. Strip them from
             // the source so they don't port
             foreach (var exp in sourcePackage.Exports.ToList())
