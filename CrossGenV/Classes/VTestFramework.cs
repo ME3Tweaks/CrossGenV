@@ -293,16 +293,38 @@ throw new Exception("This must be fixed for release!");
 
         private static void FixupFindObjects(IMEPackage package, VTestOptions options)
         {
-            foreach (var ofbt in package.Exports.Where(x => x.ClassName is "BioSeqVar_ObjectFindByTag" or "BioSeqVar_ObjectListFindByTag"))
+            foreach (var ofbt in package.Exports.Where(x => x.ClassName is "BioSeqVar_ObjectFindByTag" or "BioSeqVar_ObjectListFindByTag" or "BioEvtSysTrackGesture"))
             {
-                var tagToFind = ofbt.GetProperty<StrProperty>("m_sObjectTagToFind");
-                if (tagToFind == null)
-                    continue;
-
-                if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
+                switch (ofbt.ClassName)
                 {
-                    tagToFind.Value = newValue;
-                    ofbt.WriteProperty(tagToFind);
+                    case "BioSeqVar_ObjectFindByTag":
+                    case "BioSeqVar_ObjectListFindByTag":
+                    {
+                        var tagToFind = ofbt.GetProperty<StrProperty>("m_sObjectTagToFind");
+                        if (tagToFind == null)
+                            continue;
+
+                        if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
+                        {
+                            tagToFind.Value = newValue;
+                            ofbt.WriteProperty(tagToFind);
+                        }
+
+                        break;
+                    }
+                    case "BioEvtSysTrackGesture":
+                    {
+                        var tagToFind = ofbt.GetProperty<StrProperty>("sActorTag");
+                        if (tagToFind == null)
+                            continue;
+
+                        if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
+                        {
+                            tagToFind.Value = newValue;
+                            ofbt.WriteProperty(tagToFind);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -370,7 +392,7 @@ throw new Exception("This must be fixed for release!");
         /// <param name="package"></param>
         private static void FrameworkPackage(IMEPackage package, FrameworkPawn pawn, VTestOptions options)
         {
-            // PreCorrectPackage(package);
+            PreCorrectPackage(package);
             ExportEntry hookup = null;
             if (pawn.HookupIFP != null)
             {
@@ -435,11 +457,13 @@ throw new Exception("This must be fixed for release!");
         {
             if (package.FileNameNoExtension == "BIOA_PRC2_CCSIM04_DSG")
             {
-                // Remove some unused Demiurge stuff
-                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_ModifyPropertyArtPlaceable_0"), true);
-                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.SeqVar_Object_10"), true);
-                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.SeqVar_Bool_0"), true);
-
+                // This breaks frameworking for ahern
+                // Since this package has multiple frameworks we need to precorrect it only once.
+                var levelLoaded = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_0");
+                if (levelLoaded != null)
+                {
+                    KismetHelper.RemoveFromSequence(levelLoaded, true);
+                }
             }
         }
 
@@ -465,11 +489,16 @@ throw new Exception("This must be fixed for release!");
                 setLoc.WriteProperty(pawn.Location);
             }
 
+            setLoc.WriteProperty(new BoolProperty(true, "bSetRotation"));
             if (pawn.Rotation != null)
             {
                 pawn.Rotation.Name = "RotationValue";
-                setLoc.WriteProperty(new BoolProperty(true, "bSetRotation"));
                 setLoc.WriteProperty(pawn.Rotation);
+            }
+            else
+            {
+                // Force rotate back to zero
+                setLoc.WriteProperty(CommonStructs.RotatorProp(0,0,0, "RotationValue"));
             }
 
             var modifyPawn =
