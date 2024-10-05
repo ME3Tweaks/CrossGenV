@@ -31,6 +31,12 @@ namespace CrossGenV.Classes
         // Flag to indicate if the amount of enemies should increase as time goes on
         public const int CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT = 7564;
 
+        // Flag to indicate if music should be enabled
+        public const int CROSSGEN_PMB_INDEX_MUSIC = 7657;
+
+        // Conversation flag set if it is Ahern's second (or subsequent) try to ask you to do his mission
+        public const int CROSSGEN_PMB_INDEX_REFUSEDAHERNMISSION_SECONDTRY = 7658;
+
 
         // INTEGERS ==============================================
         // The following are unused integers at below the vanilla range cap

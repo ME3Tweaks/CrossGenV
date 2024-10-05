@@ -203,7 +203,7 @@ namespace CrossGenV.Classes
                 levelFiles.RemoveAt(0);
 
                 // Port LOC files first so that import resolution of localized assets is correct when doing the main files
-                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = 6 }, f =>
+                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1 )}, f =>
                 {
                     // Uncomment to filter for iteration
                     //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
@@ -217,7 +217,7 @@ namespace CrossGenV.Classes
                 });
 
                 // Port non LOC files next, after LOC files have been generated
-                Parallel.ForEach(levelFiles, f =>
+                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1) }, f =>
                 {
                     // Uncomment to filter for iteration
                     //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
