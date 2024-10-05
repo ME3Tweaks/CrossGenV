@@ -223,17 +223,18 @@ namespace CrossGenV.Classes
         }
 
         // We can spawn up to this many additional enemies.
-        private static readonly int MaxEnemyRampCount = 12;
+        private static readonly int MaxEnemyRampCount = 10;
 
         /// <summary>
-        /// Clones respawners, activating them over time.
+        /// SURVIVAL ONLY - Clones respawners, activating them over time if the option is on. Also increases talent and weapon mod chances.
         /// </summary>
         /// <param name="seq"></param>
         /// <param name="vTestOptions"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public static void InstallEnemyCountRamp(ExportEntry startTimerObj, ExportEntry seq, VTestOptions vTestOptions)
+        public static void InstallSurvivalRamping(ExportEntry startTimerObj, ExportEntry seq, VTestOptions vTestOptions)
         {
             var respawners = GetSequenceObjectReferences(seq, "SUR_Respawner");
+
 
             List<ExportEntry> newRespawners = new List<ExportEntry>();
             if (respawners.Any())
@@ -244,7 +245,7 @@ namespace CrossGenV.Classes
                 while (currentRamp < MaxEnemyRampCount)
                 {
                     var links = KismetHelper.GetVariableLinksOfNode(respawners[0]);
-                    var newRespawner = KismetHelper.CloneObject(respawners[0], cloneChildren: true);
+                    var newRespawner = KismetHelper.CloneObject(respawners[0], seq, cloneChildren: true);
                     newRespawners.Add(newRespawner);
                     var enemyNum = SequenceObjectCreator.CreateInt(seq, currentEnemyNum, vTestOptions.cache);
                     links[2].LinkedNodes[0] = enemyNum; // Repoint to our new enemy number
@@ -266,16 +267,65 @@ namespace CrossGenV.Classes
                 }
             }
 
-            float startTime = 30f;
+            // Todo: Make this dynamic for different levels that have different survival times
+            float startTime = 35f;
             var currentTime = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "OFFICIAL_TIME", vTestOptions.cache);
             var gameHandler = GetSequenceObjectReferences(seq, "Check_Capping_Completion");
 
+            // Subdivide into ramp chunks
+            // We +1 to ensure it's never zero, as well as not having a guaranteed 100% all the time.
+            var chanceInc = SequenceObjectCreator.CreateFloat(seq, 1.0f / (MaxEnemyRampCount + 1), vTestOptions.cache);
+            KismetHelper.SetComment(chanceInc, "Chance increment");
+
+            var countInc = SequenceObjectCreator.CreateInt(seq, 1, vTestOptions.cache);
+
+
+            var modChance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_WEAPONMOD_CHANCE", vTestOptions.cache);
+            var talentChance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_TALENT_CHANCE", vTestOptions.cache);
+
+            // MAX IS TWO
+            var modCount = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_WEAPONMODS_COUNT", vTestOptions.cache);
+            var talentCount = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_TALENTS_COUNT", vTestOptions.cache);
+
+            var addFloatMC = SequenceObjectCreator.CreateAddFloat(seq, modChance, chanceInc, modChance);
+            KismetHelper.SetComment(addFloatMC, "Increase chance of getting a weapon mod");
+            var addFloatTC = SequenceObjectCreator.CreateAddFloat(seq, talentChance, chanceInc, talentChance);
+            KismetHelper.SetComment(addFloatTC, "Increase chance of getting a talent");
+            var addIntMC = SequenceObjectCreator.CreateAddInt(seq, modCount, countInc, modCount);
+            KismetHelper.SetComment(addIntMC, "Increase max amount of additional weapon mods allowed");
+            var addIntTC = SequenceObjectCreator.CreateAddInt(seq, talentCount, countInc, talentCount);
+            KismetHelper.SetComment(addIntTC, "Increase max amount of additional talents allowed");
+
+            // Log for debugging
+            var logWMChance = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Chance **");
+            var logWMCount = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Count **");
+            var logTChance = SequenceObjectCreator.CreateLog(seq, "** Talent Chance **");
+            var logTCount = SequenceObjectCreator.CreateLog(seq, "** Talent Count **");
+
+            HookupLog(logWMChance, "Weapon Mod Chance: ", floatVal: modChance);
+            HookupLog(logTChance, "Talent Chance: ", floatVal: talentChance);
+            HookupLog(logWMCount, "Weapon Mod Chance: ", intVal: modCount);
+            HookupLog(logTCount, "Talent Count: ", intVal: talentCount);
+
+            KismetHelper.CreateOutputLink(addFloatMC, "Out", logWMChance);
+            KismetHelper.CreateOutputLink(addFloatTC, "Out", logTChance);
+            KismetHelper.CreateOutputLink(addIntMC, "Out", logWMCount);
+            KismetHelper.CreateOutputLink(addIntTC, "Out", logTCount);
+
+
             ExportEntry previousCompareFloat = null;
+
+            int third = (int)Math.Ceiling(MaxEnemyRampCount / 3.0f);
+            int current = 0;
             foreach (var respawner in newRespawners)
             {
+                current++;
                 var gate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
-                KismetHelper.CreateOutputLink(gate, "Out", respawner, 1); // Gate to Initialize
+                var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+                KismetHelper.CreateOutputLink(gate, "Out", pmCheck, 0); // Gate to Initialize
                 KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close gate
+
+                KismetHelper.CreateOutputLink(pmCheck, "True", respawner, 1); // PMCheck to Initialize
 
                 var time = SequenceObjectCreator.CreateFloat(seq, startTime);
                 var compare = SequenceObjectCreator.CreateCompareFloat(seq, currentTime, time, vTestOptions.cache);
@@ -291,9 +341,131 @@ namespace CrossGenV.Classes
                     KismetHelper.CreateOutputLink(gameHandler[0], "Update_Guys", compare);
                 }
 
+                // Weapon, Talent chances increase every ramp
+                KismetHelper.CreateOutputLink(gate, "Out", addFloatMC);
+                KismetHelper.CreateOutputLink(gate, "Out", addFloatTC);
+
+                // Increment counts on 1/3 and 2/3 of full ramp
+                if (current % third == 0 && current != MaxEnemyRampCount)
+                {
+                    KismetHelper.CreateOutputLink(gate, "Out", addIntMC);
+                }
+                // Offset ramp by 1 for talents to start
+                if ((current + 1) % third == 0 && current != MaxEnemyRampCount)
+                {
+                    KismetHelper.CreateOutputLink(gate, "Out", addIntTC);
+                }
+
                 previousCompareFloat = compare;
-                startTime += 10;
+                startTime += 13; // How many seconds between enemy ramping
             }
+        }
+
+        private static void HookupLog(ExportEntry logObj, string message, ExportEntry floatVal = null, ExportEntry intVal = null, PackageCache cache = null)
+        {
+            var seq = KismetHelper.GetParentSequence(logObj);
+            var str = SequenceObjectCreator.CreateString(seq, message, cache);
+            KismetHelper.CreateVariableLink(logObj, "String", str);
+            if (floatVal != null)
+            {
+                KismetHelper.CreateVariableLink(logObj, "Float", floatVal);
+            }
+            if (intVal != null)
+            {
+                KismetHelper.CreateVariableLink(logObj, "Int", intVal);
+            }
+        }
+
+
+        public static void InstallTalentRamping(ExportEntry hookup, string outName, VTestOptions options)
+        {
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var currentPawn = FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
+            if (currentPawn == null)
+            {
+
+            }
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS, options.cache);
+            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddWeaponMods", options.cache);
+            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
+
+            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_WEAPONMOD_CHANCE", options.cache);
+            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_WEAPONMODS_COUNT", options.cache);
+
+            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(addTalents, "ModCount", count);
+            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
+
+            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
+        }
+
+        public static void InstallPowerRamping(ExportEntry hookup, string outName, VTestOptions options)
+        {
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var currentPawn = FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
+            if (currentPawn == null)
+            {
+
+            }
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS, options.cache);
+            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddTalents", options.cache);
+            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
+
+            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_TALENT_CHANCE", options.cache);
+            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_TALENTS_COUNT", options.cache);
+
+            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(addTalents, "TalentCount", count);
+            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
+
+            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
+        }
+
+        public static void AddGlobalVariables(IMEPackage le1File, VTestOptions options)
+        {
+            var entries = new List<ExportEntry>();
+            var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+
+            // Ramping variables
+            var wmChance = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
+            wmChance.WriteProperty(new NameProperty("CG_RAMP_WEAPONMOD_CHANCE", "VarName"));
+            var tChance = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
+            tChance.WriteProperty(new NameProperty("CG_RAMP_TALENT_CHANCE", "VarName"));
+
+            var wmCount = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
+            wmCount.WriteProperty(new NameProperty("CG_RAMP_WEAPONMODS_COUNT", "VarName"));
+            var tCount = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
+            tCount.WriteProperty(new NameProperty("CG_RAMP_TALENTS_COUNT", "VarName"));
+
+            var resetRamping = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "CG_RESET_RAMPING");
+            var zeroFloat = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
+            var zeroInt = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
+            entries.Add(SequenceObjectCreator.CreateSetFloat(seq, wmChance, zeroFloat, options.cache));
+            entries.Add(SequenceObjectCreator.CreateSetFloat(seq, tChance, zeroFloat, options.cache));
+            entries.Add(SequenceObjectCreator.CreateSetInt(seq, wmCount, zeroInt, options.cache));
+            entries.Add(SequenceObjectCreator.CreateSetInt(seq, tCount, zeroInt, options.cache));
+
+            ExportEntry previous = resetRamping;
+            foreach (var entry in entries)
+            {
+                KismetHelper.CreateOutputLink(previous, "Out", entry);
+                previous = entry;
+            }
+        }
+
+        /// <summary>
+        /// Ports a sequence object from VTestHelper package into the target sequence
+        /// </summary>
+        /// <param name="seq"></param>
+        /// <param name="helperIFP"></param>
+        /// <param name="vTestOptions"></param>
+        /// <returns></returns>
+        public static ExportEntry AddHelperObjectToSequence(ExportEntry seq, string helperIFP, VTestOptions vTestOptions)
+        {
+            var helperObj = vTestOptions.vTestHelperPackage.FindExport(helperIFP);
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, helperObj, seq.FileRef, seq, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var newObj);
+            KismetHelper.AddObjectToSequence(newObj as ExportEntry, seq);
+            return newObj as ExportEntry;
         }
     }
 }
