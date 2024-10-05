@@ -191,6 +191,9 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText("Running VTest");
 
+            // VTest - Compile AI classes
+            vTestOptions.vTestAIPackage = VTestAI.GenerateAIClassPackage(vTestOptions);
+
             // VTest File Loop ---------------------------------------
             var rootCache = vTestOptions.cache;
             foreach (var vTestLevel in vTestOptions.vTestLevels)
@@ -200,7 +203,7 @@ namespace CrossGenV.Classes
                 levelFiles.RemoveAt(0);
 
                 // Port LOC files first so that import resolution of localized assets is correct when doing the main files
-                Parallel.ForEach(levelFiles, f =>
+                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = 6 }, f =>
                 {
                     // Uncomment to filter for iteration
                     //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
@@ -208,7 +211,7 @@ namespace CrossGenV.Classes
 
                     if (f.GetUnrealLocalization() == MELocalization.None)
                         return; // Do not port
-                    
+
                     vTestOptions.cache = rootCache.ChainNewCache();
                     PortFile(f, vTestLevel, vTestOptions);
                 });
@@ -233,13 +236,18 @@ namespace CrossGenV.Classes
             // TLKS ARE DONE POST ONLY
             VTestTLK.PostUpdateTLKs(vTestOptions);
 
+            // 10/02/2024 - Framework all NPCs
+            VTestFramework.FrameworkNPCs(vTestOptions);
+
+            // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
+            // save them in the package.
             // 08/23/2024 - Externalize lightmap textures. There are not enough new textures to
             // make it worth doing non-lighting (also annoying bugs I don't want to fix in TFC Compactor)
-            if (!vTestOptions.isBuildForStaticLightingBake)
-            {
-                VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
-                // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
-            }
+            //if (!vTestOptions.isBuildForStaticLightingBake)
+            //{
+            //    VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
+            //    // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
+            //}
 
             // 08/23/2024 - Add package resynthesis for cleaner output
             if (vTestOptions.resynthesizePackages)
@@ -327,14 +335,14 @@ namespace CrossGenV.Classes
             //if (!levelFileName.Contains("CCMAIN_CONV", StringComparison.OrdinalIgnoreCase))
             //    return;
 
-            if (levelFileName.Contains("_LOC_", StringComparison.InvariantCultureIgnoreCase))
+            if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
             {
-                //if (levelFileName.Contains("ccsim", StringComparison.InvariantCultureIgnoreCase))
+                //if (levelFileName.Contains("ccsim", StringComparison.OrdinalIgnoreCase))
                 PortLOCFile(levelFileName, vTestOptions);
             }
             else
             {
-                // if (levelName.CaseInsensitiveEquals("BIOA_PRC2_CCTHAI"))
+                //if (levelFileName.Contains("ccsim", StringComparison.OrdinalIgnoreCase))
                 PortVTestLevel(masterMapName, levelName, vTestOptions, levelName is "BIOA_PRC2" or "BIOA_PRC2AA", true);
             }
         }
@@ -381,13 +389,6 @@ namespace CrossGenV.Classes
             CorrectFileForLEXMapFileDefaults(me1File, le1File, vTestOptions);
             PrePortingCorrections(me1File, vTestOptions);
 
-            //if (levelName == "BIOA_PRC2_CCMAIN_CONV")
-            //{
-            //    me1File.Save(@"C:\Users\Mgame\Desktop\conv.sfm");
-            //}
-
-            // Once we are confident in porting we will just take the actor list from PersistentLevel
-            // For now just port these
             var itemsToPort = new List<ExportEntry>();
 
             var me1PL = me1File.FindExport(@"TheWorld.PersistentLevel");
@@ -595,7 +596,7 @@ namespace CrossGenV.Classes
                     break;
             }
 
-            vTestOptions.SetStatusText($"RCP CHECK");
+            vTestOptions.SetStatusText($"RCP CHECK for {le1File.FileNameNoExtension}");
 
             Debug.WriteLine($"RCP CHECK FOR {le1File.FileNameNoExtension} -------------------------");
             var sw = Stopwatch.StartNew();
@@ -751,15 +752,17 @@ namespace CrossGenV.Classes
 
             var rop = new RelinkerOptionsPackage()
             {
-                Cache = vTestOptions.cache,
+                Cache = vTestOptions.cache.ChainNewCache(),
                 TargetGameDonorDB = vTestOptions.objectDB,
                 PortExportsAsImportsWhenPossible = true,
                 GenerateImportsForGlobalFiles = true,
             };
 
+            Stopwatch sw = Stopwatch.StartNew();
             var results = EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, objReferencer,
                 package, null, true, rop, out var newEntry);
 
+            var step1 = sw.ElapsedMilliseconds;
 
             foreach (var e in sourcePackage.Exports.Where(x => x.ClassName == "BioMorphFace"))
             {
@@ -767,7 +770,7 @@ namespace CrossGenV.Classes
                 {
                     IsCrossGame = true,
                     ImportExportDependencies = true,
-                    Cache = vTestOptions.cache,
+                    Cache = vTestOptions.cache.ChainNewCache(),
                     TargetGameDonorDB = vTestOptions.objectDB
                 };
                 var link = e.Parent != null ? package.FindEntry(e.ParentFullPath) : null;
@@ -777,6 +780,12 @@ namespace CrossGenV.Classes
                     //Debugger.Break();
                 }
             }
+
+            sw.Stop();
+            var step2 = sw.ElapsedMilliseconds;
+
+            vTestOptions.SetStatusText($"LOC Porting times for {package.FileNameNoExtension}: {step1}ms ObjectReferencer, {step2}ms BioMorphFace");
+
 
             //CorrectSequences(package, vTestOptions);
             var postPortingSW = Stopwatch.StartNew();
