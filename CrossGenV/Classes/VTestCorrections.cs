@@ -469,6 +469,8 @@ namespace CrossGenV.Classes
                     // Might need Aherns
                     {
                         VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
+                        VTestCCLevels.ResetRamping(le1File, vTestOptions);
+
                         VTestAudio.SetupMusicIntensity(le1File, upperFName, vTestOptions);
                         VTestAudio.SetupKillStreakVO(le1File, vTestOptions);
                         // Force the pawns that will spawn to have their meshes in memory
@@ -533,7 +535,7 @@ namespace CrossGenV.Classes
                                     // ASSAULT AI BRANCH
                                     var assaultAiClass = EntryImporter.EnsureClassIsInFile(le1File, "BioAI_Assault", new RelinkerOptionsPackage() { Cache = vTestOptions.cache });
                                     changeAiAssault.WriteProperty(new ObjectProperty(assaultAiClass, "ControllerClass"));
-                                    KismetHelper.SetComment(chargeAiLog, "CROSSGEN: Engaging player with BioAI_Assault");
+                                    KismetHelper.SetComment(assaultAiLog, "CROSSGEN: Relaxing player engagement with BioAI_Assault");
 
                                     // ASSAULT CHANCE - 1 in 4 chance
                                     aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
@@ -553,7 +555,7 @@ namespace CrossGenV.Classes
                                     KismetHelper.CreateVariableLink(changeAiCharge, "Pawn", currentPawn);
                                     KismetHelper.CreateVariableLink(chargeAiLog, "Object", currentPawn);
 
-                                    // Connect sequence objects - CHARGE BRANCH
+                                    // Connect sequence objects - ASSAULT BRANCH
                                     KismetHelper.CreateOutputLink(aiChoiceComp, "A >= B", changeAiAssault);
                                     KismetHelper.CreateOutputLink(changeAiAssault, "Out", assaultAiLog);
                                     KismetHelper.CreateVariableLink(changeAiAssault, "Pawn", currentPawn);
@@ -573,6 +575,10 @@ namespace CrossGenV.Classes
                                     KismetHelper.CreateVariableLink(setWeaponAttributes, "Phasic Factor", phasicFactor);
 
                                     exp.WriteProperty(new StrProperty("Spawn_Single_Guy_SUR", "ObjName"));
+
+                                    //09/30/2024 - Add difficulty ramping options
+                                    VTestKismet.InstallTalentRamping(crustAttach, "Done", vTestOptions);
+                                    VTestKismet.InstallPowerRamping(crustAttach, "Done", vTestOptions);
                                 }
                             }
 
@@ -624,7 +630,7 @@ namespace CrossGenV.Classes
                                 // Capture...?
                                 // Both use this same named item because why not
                                 var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState"/*, 584, 2200*/);
-                                
+
                                 // RALLY
                                 var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
                                 KismetHelper.AddObjectToSequence(rallyObj, exp);
@@ -699,7 +705,7 @@ namespace CrossGenV.Classes
                                 var delay = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
                                 KismetHelper.InsertActionAfter(delay, "Finished", startTimerSignal, 0, "Out");
 
-                                VTestKismet.InstallEnemyCountRamp(startTimerSignal, exp, vTestOptions);
+                                VTestKismet.InstallSurvivalRamping(startTimerSignal, exp, vTestOptions);
                             }
                             //else if (seqName == "Cap_And_Hold_Point")
                             //{
@@ -801,6 +807,7 @@ namespace CrossGenV.Classes
                 case "BIOA_PRC2_CCAHERN_DSG":
                     {
                         VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
+                        VTestCCLevels.ResetRamping(le1File, vTestOptions);
 
                         // Rally - This is not a template so it's done manually on this level
                         foreach (var exp in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
@@ -1028,6 +1035,8 @@ namespace CrossGenV.Classes
                             var loc = LevelTools.GetLocation(tsExport);
                             LevelTools.SetLocation(newBlockingVolume as ExportEntry, loc.X, loc.Y, loc.Z - 256f);
                         }
+
+                        VTestKismet.AddGlobalVariables(le1File, vTestOptions);
                     }
                     break;
             }
@@ -1126,12 +1135,36 @@ namespace CrossGenV.Classes
             }
         }
 
+        /// <summary>
+        /// Makes the area around ochren not have different loaded levels as player will cross boundary quite often
+        /// </summary>
+        /// <param name="bioa_prc2"></param>
+        public static void FixLoadingLagNearOchren(IMEPackage bioa_prc2, VTestOptions options)
+        {
+            var nearOchren = bioa_prc2.FindExport("TheWorld.PersistentLevel.BioTriggerStream_4");
+
+            var streamingStates = nearOchren.GetProperty<ArrayProperty<StructProperty>>("StreamingStates");
+            var visible = streamingStates[0];
+            var loadChunks = visible.GetProp<ArrayProperty<NameProperty>>("LoadChunkNames");
+            loadChunks.Clear(); // We're just going to reorder the whole thing
+            loadChunks.Add(new NameProperty("BIOA_PRC2_CCMid"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccmid01"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccmid02"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccmid03"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccmid04"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccmid04"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccspace02"));
+            loadChunks.Add(new NameProperty("bioa_prc2_ccsim05_dsg"));
+
+            nearOchren.WriteProperty(streamingStates);
+        }
+
         public static void PostPortingCorrections(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
         {
             // Corrections to run AFTER porting is done
 
             // Copy over the AdditionalPackagesToCook
-            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath);
+            var fName = Path.GetFileNameWithoutExtension(le1File.FilePath); 
             if (fName.CaseInsensitiveEquals("BIOA_PRC2") || fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
             {
 
@@ -1232,8 +1265,6 @@ namespace CrossGenV.Classes
                     VTestTerrain.PortInCorrectedTerrain(me1File, le1File, "CCAHERN.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
                     CorrectTerrainSetup(me1File, le1File, vTestOptions);
                 }
-
-                VTestCCLevels.PreventSavingOnSimLoad(le1File, vTestOptions);
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2_CCMID_ART"))
             {
@@ -1351,7 +1382,13 @@ namespace CrossGenV.Classes
                 // The original logic is removed in the ModdedSource file
                 #endregion
 
-                VTestUtility.AddModLevelExtensions(le1File, "BIOA_PRC2");
+                #region Fix the loading lag spikes near Ochren
+                VTestCorrections.FixLoadingLagNearOchren(le1File, vTestOptions);
+                #endregion
+
+                // 10/05/2024 - Remove mod level extensions. No mods ever used these according to the Nexus File DB
+                // Devs can use sideloader framework instead these days.
+                // VTestUtility.AddModLevelExtensions(le1File, "BIOA_PRC2");
             }
             else if (fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
             {
