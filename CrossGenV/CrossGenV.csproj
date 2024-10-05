@@ -6,6 +6,11 @@
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
+	<PropertyGroup>
+		<!--ServerGC is faster-->
+		<ServerGarbageCollection>true</ServerGarbageCollection>
+	</PropertyGroup>
+
   <ItemGroup>
     <None Remove="Embedded\le1db.lzma" />
     <None Remove="Embedded\LE1EmptyLevel.pcc" />
