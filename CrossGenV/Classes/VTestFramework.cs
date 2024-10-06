@@ -4,16 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using LegendaryExplorerCore.Gammtek.Extensions;
-using LegendaryExplorerCore.Gammtek.Extensions.Collections.Generic;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Misc;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
-using LegendaryExplorerCore.Pathing;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
-using static LegendaryExplorerCore.Packages.CompressionHelper;
-using static Microsoft.IO.RecyclableMemoryStreamManager;
 
 namespace CrossGenV.Classes
 {
@@ -53,6 +49,16 @@ namespace CrossGenV.Classes
         /// Comment to attach to the handshake in Kismet
         /// </summary>
         public string Comment { get; set; }
+
+        /// <summary>
+        /// When this package becomes visible, it will have a level loaded event that sets up the pawn
+        /// </summary>
+        public string PackageToSignalOnVisibility { get; set; }
+
+        /// <summary>
+        /// If the visibility of the package should also set the pawn to active.
+        /// </summary>
+        public bool SetActiveOnVisibility { get; set; }
     }
 
     class FrameworkSignal
@@ -72,9 +78,46 @@ namespace CrossGenV.Classes
     public static class VTestFramework
     {
         /// <summary>
+        /// Installs a level loaded event in the package that sets the pawn location up. This shouldn't require the handshake system due to how the levels load in order.
+        /// </summary>
+        /// <param name="package"></param>
+        /// <param name="pawn"></param>
+        /// <param name="options"></param>
+        public static void InstallPawnLocationSignal(IMEPackage package, FrameworkPawn pawn, bool setActive, VTestOptions options)
+        {
+            var mainSeq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(mainSeq, options.cache);
+            var pawnRef = SequenceObjectCreator.CreateFindObject(mainSeq, $"NPC_{pawn.NPCName}", false, options.cache);
+            var setLoc = SequenceObjectCreator.CreateSetLocation(mainSeq, pawnRef, cache: options.cache);
+            var sActive = SequenceObjectCreator.CreateSetActive(mainSeq, pawnRef, SequenceObjectCreator.CreateBool(mainSeq, true, options.cache), cache: options.cache);
+            if (pawn.Location != null)
+            {
+                pawn.Location.Name = "LocationValue";
+                setLoc.WriteProperty(new BoolProperty(true, "bSetLocation"));
+                setLoc.WriteProperty(pawn.Location);
+            }
+
+            setLoc.WriteProperty(new BoolProperty(true, "bSetRotation"));
+            if (pawn.Rotation != null)
+            {
+                pawn.Rotation.Name = "RotationValue";
+                setLoc.WriteProperty(pawn.Rotation);
+            }
+            else
+            {
+                // Force rotate back to zero
+                setLoc.WriteProperty(CommonStructs.RotatorProp(0, 0, 0, "RotationValue"));
+            }
+
+            KismetHelper.CreateVariableLink(setLoc, "Target", pawnRef);
+            KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", setLoc);
+            KismetHelper.CreateOutputLink(setLoc, "Out", sActive);
+        }
+
+        /// <summary>
         /// Packages that need tags updated in the find object
         /// </summary>
-        private static readonly string[] PackagesToUpdateFindObjects = 
+        private static readonly string[] PackagesToUpdateFindObjects =
         [
             "BIOA_PRC2_CCLOBBY",
             "BIOA_PRC2_CCMAIN_CONV",
@@ -87,32 +130,6 @@ namespace CrossGenV.Classes
             "BIOA_PRC2_CCCave_DSG",
             "BIOA_PRC2_CCThai_DSG",
         ];
-
-        private static readonly FrameworkSignal[] NeededSetupSignals =
-        [
-            new () {PackageFile = "BIOA_PRC2_CCLOBBY", EventName = "GuardpostRivalVidinos", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1"},
-            new () {PackageFile = "BIOA_PRC2_CCLOBBY", EventName = "GuardpostVegasTurianGuard3", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1"}
-        ];
-        /// <summary>
-        /// Triggers pawns to move around to their needed locations via RemoteEvent triggers
-        /// </summary>
-        /// <param name="options"></param>
-        public static void AddPawnSetupSignaling(VTestOptions options)
-        {
-            foreach (var setupSignal in NeededSetupSignals)
-            {
-                options.SetStatusText($"Adding framework signal {setupSignal.EventName} in {setupSignal.PackageFile}");
-                var packagePAth = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{setupSignal.PackageFile}.pcc");
-                var package = MEPackageHandler.OpenMEPackage(packagePAth);
-
-                var hookup = package.FindExport(setupSignal.HookupIFP);
-                var sequence = KismetHelper.GetParentSequence(hookup);
-                var are = SequenceObjectCreator.CreateActivateRemoteEvent(sequence, setupSignal.EventName, options.cache);
-
-                KismetHelper.InsertActionAfter(hookup, setupSignal.OutLinkName, are, 0, "Out");
-                package.Save();
-            }
-        }
 
         private static readonly CaseInsensitiveDictionary<string> FindObjectByTagFixes = new()
         {
@@ -159,40 +176,46 @@ namespace CrossGenV.Classes
                 HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"
             },
             // Guardpost - Vidinos
-            new() { 
-                LevelSource = "BIOA_PRC2_CCMAIN_CONV", 
-                BioPawnName = "BioPawn_1", 
+            new() {
+                LevelSource = "BIOA_PRC2_CCMAIN_CONV",
+                BioPawnName = "BioPawn_1",
                 NPCName = "RivalVidinos", 
                 // HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1", 
-                RemoteEventNamePrefix = "Guardpost"
+                RemoteEventNamePrefix = "Guardpost",
+                PackageToSignalOnVisibility = "BIOA_PRC2_CCLOBBY",
+                SetActiveOnVisibility = true
             },
             // Guardpost - Person across from Vidinos
-            new() { LevelSource = "BIOA_PRC2_CCMAIN_CONV",
+            new() { 
+                LevelSource = "BIOA_PRC2_CCMAIN_CONV",
                 BioPawnName = "BioPawn_2", NPCName = "VegasTurianGuard3",
                 RemoteEventNamePrefix = "Guardpost",
-                Comment = "Entry: Guard across from Vidinos"
+                Comment = "Entry: Guard across from Vidinos",
+                PackageToSignalOnVisibility = "BIOA_PRC2_CCLOBBY",
+                SetActiveOnVisibility = true
             },
-            
-            new() { 
-                LevelSource = "BIOA_PRC2_CCSIM04_DSG", 
-                BioPawnName = "BioPawn_7", 
-                NPCName = "Ahern", 
-                GenerateBioNPC = false, 
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_BlackScreen_1", 
+
+            new() {
+                LevelSource = "BIOA_PRC2_CCSIM04_DSG",
+                BioPawnName = "BioPawn_7",
+                NPCName = "Ahern",
+                GenerateBioNPC = false,
+                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_BlackScreen_1",
                 Comment="Ahern: My Special Mission Introduction"
+                // We don't signal visibility here
             },
 
             // Ahern - Observation Deck next to Ochren
             new()
             {
                 LevelSource = "BIOA_PRC2_CCMAIN_CONV",
-                BioPawnName = "BioPawn_3", 
+                BioPawnName = "BioPawn_3",
                 NPCName = "Ahern",
                 GenerateBioNPC = false,
                 // RemoteEventNamePrefix = "AhernPostMissionQuip",
                 HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqEvent_RemoteEvent_0",
-                Comment="Ahern: Post mission quip"
-
+                Comment="Ahern: Post mission quip",
+                PackageToSignalOnVisibility = "BIOA_PRC2_CCSIM04_DSG"
             },
             // Ahern - Standard?
             new() {
@@ -200,7 +223,9 @@ namespace CrossGenV.Classes
                 BioPawnName = "BioPawn_4",
                 NPCName = "Ahern",
                 HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2",
-                Comment = "Ahern: Main location"
+                Comment = "Ahern: Main location",
+                PackageToSignalOnVisibility = "BIOA_PRC2_CCMID",
+                SetActiveOnVisibility = true
             },
             // Vidinos - Near Ocaren
             new()
@@ -210,17 +235,18 @@ namespace CrossGenV.Classes
                 NPCName = "RivalVidinos",
                 GenerateBioNPC = false,
                 HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.SeqEvent_SequenceActivated_0",
-                Comment = "Vidinos: Post mission cutscenes"
+                Comment = "Vidinos: Post mission cutscenes",
+                PackageToSignalOnVisibility = "BIOA_PRC2_CCSIM04_DSG"
             },
             // Bryant guy that we're supposed to care about for some reason
             new()
             {
-                LevelSource = "BIOA_PRC2_CCMAIN_CONV", BioPawnName = "BioPawn_8", NPCName = "RivalBryant",
+                LevelSource = "BIOA_PRC2_CCMAIN_CONV", 
+                BioPawnName = "BioPawn_8", 
+                NPCName = "RivalBryant",
                 GenerateBioNPC = false,
                 HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"
             },
-
-
         ];
 
         public static void FrameworkNPCs(VTestOptions options)
@@ -272,7 +298,23 @@ throw new Exception("This must be fixed for release!");
                 package.Save();
             }
 
-            // Step 3: Fix up the existing find object by tags
+            // Step 3: Modify packages and generate framework changes
+            options.SetStatusText("Setting up level visibility triggers");
+            foreach (var npc in NPCsToFramework.Where(x=>x.PackageToSignalOnVisibility != null))
+            {
+                options.SetStatusText($"  {npc.NPCName} in {npc.PackageToSignalOnVisibility}");
+
+                var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.PackageToSignalOnVisibility}.pcc");
+                var package = MEPackageHandler.OpenMEPackage(sourcePath);
+
+                InstallPawnLocationSignal(package, npc, npc.SetActiveOnVisibility, options);
+
+                package.Save();
+            }
+
+            // Step 4: Fix up the existing find object by tags
+            options.SetStatusText($"Fixing Tags");
+
             foreach (var pName in PackagesToUpdateFindObjects)
             {
                 options.SetStatusText($"  Fixing up ObjectFindByTag in {pName}");
@@ -299,32 +341,32 @@ throw new Exception("This must be fixed for release!");
                 {
                     case "BioSeqVar_ObjectFindByTag":
                     case "BioSeqVar_ObjectListFindByTag":
-                    {
-                        var tagToFind = ofbt.GetProperty<StrProperty>("m_sObjectTagToFind");
-                        if (tagToFind == null)
-                            continue;
-
-                        if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
                         {
-                            tagToFind.Value = newValue;
-                            ofbt.WriteProperty(tagToFind);
-                        }
+                            var tagToFind = ofbt.GetProperty<StrProperty>("m_sObjectTagToFind");
+                            if (tagToFind == null)
+                                continue;
 
-                        break;
-                    }
+                            if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
+                            {
+                                tagToFind.Value = newValue;
+                                ofbt.WriteProperty(tagToFind);
+                            }
+
+                            break;
+                        }
                     case "BioEvtSysTrackGesture":
-                    {
-                        var tagToFind = ofbt.GetProperty<StrProperty>("sActorTag");
-                        if (tagToFind == null)
-                            continue;
-
-                        if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
                         {
-                            tagToFind.Value = newValue;
-                            ofbt.WriteProperty(tagToFind);
+                            var tagToFind = ofbt.GetProperty<StrProperty>("sActorTag");
+                            if (tagToFind == null)
+                                continue;
+
+                            if (FindObjectByTagFixes.TryGetValue(tagToFind.Value, out var newValue))
+                            {
+                                tagToFind.Value = newValue;
+                                ofbt.WriteProperty(tagToFind);
+                            }
+                            break;
                         }
-                        break;
-                    }
                 }
             }
         }
@@ -498,7 +540,7 @@ throw new Exception("This must be fixed for release!");
             else
             {
                 // Force rotate back to zero
-                setLoc.WriteProperty(CommonStructs.RotatorProp(0,0,0, "RotationValue"));
+                setLoc.WriteProperty(CommonStructs.RotatorProp(0, 0, 0, "RotationValue"));
             }
 
             var modifyPawn =
