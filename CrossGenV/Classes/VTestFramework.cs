@@ -35,10 +35,10 @@ namespace CrossGenV.Classes
         /// </summary>
         public string BioPawnName { get; set; }
 
-        /// <summary>
-        /// Where to hookup the handshake logic
-        /// </summary>
-        public string HookupIFP { get; set; }
+        ///// <summary>
+        ///// Where to hookup the handshake logic
+        ///// </summary>
+        //public string HookupIFP { get; set; }
 
         /// <summary>
         /// If we aren't using HookupIFP, we trigger on remote event. This is the prefix to the NPCName that will signal the incoming remote event.
@@ -59,13 +59,30 @@ namespace CrossGenV.Classes
         /// If the visibility of the package should also set the pawn to active.
         /// </summary>
         public bool SetActiveOnVisibility { get; set; }
+
+
+        /// <summary>
+        /// Where to install handshakes - ensuring the pawn is loaded and ready for use
+        /// </summary>
+        public SequenceHookup[] Handshakes { get; set; } = [];
+
+        /// <summary>
+        /// Definitions of where to fire a signal to teleport the frameworked actor to the specified position. This will trigger handshake to make them active at that location.
+        /// </summary>
+        public SequenceHookup[] TeleportSignals { get; set; } = [];
     }
 
-    class FrameworkSignal
+    public class SequenceHookup
     {
+        /// <summary>
+        /// What file the hookup is in.
+        /// </summary>
         public string PackageFile { get; set; }
+
+        /// <summary>
+        /// Where to install the hookup.
+        /// </summary>
         public string HookupIFP { get; set; }
-        public string EventName { get; set; }
         /// <summary>
         /// Name of the outlink to use on hookup
         /// </summary>
@@ -135,9 +152,11 @@ namespace CrossGenV.Classes
         {
             {"BIOA_PRC2_TUR_Guard01", "NPC_VegasTurianGuard3"},
             {"prc2_tur_jerk_entry", "NPC_RivalVidinos"},
+            {"prc2_tur_jerk", "NPC_RivalVidinos"},
             {"prc2_ochren", "NPC_Ochren"},
             {"PRC2_TUR_OldWarrior", "NPC_Dahga"},
             {"PRC2_HUM_Ahern", "NPC_Ahern"},
+            {"prc2_hmmyoungster", "NPC_RivalBryant"},
         };
 
         public static readonly FrameworkPawn[] NPCsToFramework =
@@ -145,35 +164,199 @@ namespace CrossGenV.Classes
             // We might as well just framework everyone.
 
             // Two turian guards that salute you on entry
-            new() { LevelSource = "BIOA_PRC2_CCLOBBY", BioPawnName = "BioPawn_0", NPCName = "VegasTurianGuard1", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1", Comment="Entry: Saluting guard"},
-            new() { LevelSource = "BIOA_PRC2_CCLOBBY", BioPawnName = "BioPawn_10", NPCName = "VegasTurianGuard2", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1", Comment="Entry: Saluting guard"},
+            new() {
+                LevelSource = "BIOA_PRC2_CCLOBBY",
+                BioPawnName = "BioPawn_0",
+                NPCName = "VegasTurianGuard1",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1"
+                    }
+                ],
+                Comment="Entry: Saluting guard"
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCLOBBY",
+                BioPawnName = "BioPawn_10",
+                NPCName = "VegasTurianGuard2",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1"
+                    }
+                ],
+                Comment="Entry: Saluting guard"
+            },
 
             // Mid Room Crew
-            new() { LevelSource = "BIOA_PRC2_CCMID", BioPawnName = "BioPawn_3", NPCName = "VegasHumanCrew1", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"},
-            new() { LevelSource = "BIOA_PRC2_CCMID", BioPawnName = "BioPawn_5", NPCName = "VegasHumanCrew2", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0" },
-            new() { LevelSource = "BIOA_PRC2_CCMID", BioPawnName = "BioPawn_6", NPCName = "VegasHumanCrew3", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0" },
-            new() { LevelSource = "BIOA_PRC2_CCMID", BioPawnName = "BioPawn_7", NPCName = "VegasHumanCrew4", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0" },
+            new() {
+                LevelSource = "BIOA_PRC2_CCMID",
+                BioPawnName = "BioPawn_3",
+                NPCName = "VegasHumanCrew1",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"
+                    }
+                ],
+                Comment = "Human Male: Standing at console"
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCMID",
+                BioPawnName = "BioPawn_5",
+                NPCName = "VegasHumanCrew2",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"
+                    }
+                ],
+                Comment = "Human Female: Leftmost cockpit console"
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCMID",
+                BioPawnName = "BioPawn_6",
+                NPCName = "VegasHumanCrew3",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"
+                    }
+                ],
+                Comment = "Human Female: Left cockpit row, right side (position 2)"
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCMID",
+                BioPawnName = "BioPawn_7",
+                NPCName = "VegasHumanCrew4",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"
+                    }
+                ],
+                Comment = "Human male: Right cockpit row, left side (position 3)"
+            },
 
             // Competitors in the room at the tables
             // These are the actual names that appear on the scoreboard
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_0", NPCName = "RivalProchor", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"},
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_1", NPCName = "RivalMinket", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2" },
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_2", NPCName = "RivalBryant", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_2"},
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_3", NPCName = "RivalCSell1", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2" },
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_5", NPCName = "RivalSophomin", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2" },
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_7", NPCName = "RivalCSell2", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2" }, // Looks like tag was never updated.
-            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_8", NPCName = "RivalChior", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"},
-
-            // Krogan doofus
-            new() { LevelSource = "BIOA_PRC2_CCSIM02_DSG", BioPawnName = "BioPawn_3", NPCName = "RivalBurrum", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_0", Comment="Krogran Frat Boy"},
-
-            new() { LevelSource = "BIOA_PRC2_CCSIM04_DSG", BioPawnName = "BioPawn_11", NPCName = "Ochren", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0", Comment="Salarian Joker" },
-
             new() {
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_0",
+                NPCName = "RivalProchor",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"
+                    }
+                ]
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_1",
+                NPCName = "RivalMinket",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"
+                    }
+                ]
+            },
+            // Standard Bryant
+            new() {
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_2",
+                NPCName = "RivalBryant",
+                RemoteEventNamePrefix = "Console",
+                Handshakes = [
+                    // Determining visibility
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"
+                    },
+                ],
+                TeleportSignals = [
+                    // Post vidinos conversation, signal this
+                    new ()
+                    {
+                        PackageFile = "BIOA_PRC2_CCMAIN_CONV",
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.BioSeqAct_ModifyPropertyPawn_0"
+                    }
+                ]
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_3",
+                NPCName = "RivalCSell1",
+                Handshakes = [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"
+                    }
+                ]
+            },
+            new() { LevelSource = "BIOA_PRC2_CCSIM01_DSG", BioPawnName = "BioPawn_5", NPCName = "RivalSophomin",
+                Handshakes =
+                [
+                    new ()
+                    {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"
+                    }
+                ]
+            },
+            new() {
+                // Looks like tag was never updated on this pawn
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_7",
+                NPCName = "RivalCSell2",
+                Handshakes = [
+                    new () {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"
+                    }
+                ]
+            },
+            new() {
+                LevelSource = "BIOA_PRC2_CCSIM01_DSG",
+                BioPawnName = "BioPawn_8",
+                NPCName = "RivalChior",
+                Handshakes = [
+                    new () { HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_2"}
+                ]
+            },
+
+            // Burrum - 'Krogan Frat Boy'
+            new() { LevelSource = "BIOA_PRC2_CCSIM02_DSG",
+                BioPawnName = "BioPawn_3",
+                NPCName = "RivalBurrum",
+                Handshakes = [
+                    new () {
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_0"
+                    }
+                ],
+                Comment="Krogran Frat Boy"
+            },
+            
+            // Ochren
+            new () {
+                LevelSource = "BIOA_PRC2_CCSIM04_DSG",
+                BioPawnName = "BioPawn_11",
+                NPCName = "Ochren",
+                Handshakes = [
+                    new () { HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Prefabs.SeqEvent_LevelLoaded_0"}
+                ],
+                Comment = "Salarian Joker"
+            },
+
+            // Dahga
+            new()
+            {
                 LevelSource = "BIOA_PRC2_CCMAIN_CONV",
                 BioPawnName = "BioPawn_0",
                 NPCName = "Dahga",
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"
+                Handshakes = [
+                    new () { HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"}
+                ]
             },
             // Guardpost - Vidinos
             new() {
@@ -183,10 +366,18 @@ namespace CrossGenV.Classes
                 // HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_1", 
                 RemoteEventNamePrefix = "Guardpost",
                 PackageToSignalOnVisibility = "BIOA_PRC2_CCLOBBY",
-                SetActiveOnVisibility = true
+                SetActiveOnVisibility = true,
+                TeleportSignals = [
+                    new ()
+                    {
+                        // Post Vidinos conversation, teleport back to home
+                        PackageFile = "BIOA_PRC2_CCMAIN_CONV",
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.BioSeqAct_ModifyPropertyPawn_0",
+                    }
+                ]
             },
             // Guardpost - Person across from Vidinos
-            new() { 
+            new() {
                 LevelSource = "BIOA_PRC2_CCMAIN_CONV",
                 BioPawnName = "BioPawn_2", NPCName = "VegasTurianGuard3",
                 RemoteEventNamePrefix = "Guardpost",
@@ -200,8 +391,13 @@ namespace CrossGenV.Classes
                 BioPawnName = "BioPawn_7",
                 NPCName = "Ahern",
                 GenerateBioNPC = false,
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_BlackScreen_1",
-                Comment="Ahern: My Special Mission Introduction"
+                Comment="Ahern: My Special Mission Introduction",
+                RemoteEventNamePrefix = "MySpecialMission",
+                TeleportSignals = [
+                    // May consider this as it may let textures warm up, but this is before ochren talks.
+                    // TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_PMExecuteTransition_15
+                    new() { PackageFile = "BIOA_PRC2_CCMAIN_CONV", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.Play_Ahern_Offers_Final_Mission_0.SeqEvent_SequenceActivated_0"}
+                    ]
                 // We don't signal visibility here
             },
 
@@ -213,19 +409,48 @@ namespace CrossGenV.Classes
                 NPCName = "Ahern",
                 GenerateBioNPC = false,
                 // RemoteEventNamePrefix = "AhernPostMissionQuip",
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqEvent_RemoteEvent_0",
+                // HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_18",
                 Comment="Ahern: Post mission quip",
-                PackageToSignalOnVisibility = "BIOA_PRC2_CCSIM04_DSG"
+                RemoteEventNamePrefix = "PostMissionQuip",
+                TeleportSignals = [
+                    new()
+                    {
+                        // Success
+                        PackageFile = "BIOA_PRC2_CCMAIN_CONV",
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_13"
+                    },
+                    new()
+                    {
+                        // Failure - fires after delay cause maybe some other level loaded is hiding ahern
+                        PackageFile = "BIOA_PRC2_CCMAIN_CONV",
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_Delay_2",
+                        OutLinkName = "Finished"
+                        //HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_19"
+                    }
+                ]
+                // We use remote event for visibility
             },
-            // Ahern - Standard?
+            // Ahern - Standard post
             new() {
                 LevelSource = "BIOA_PRC2_CCMAIN_CONV",
                 BioPawnName = "BioPawn_4",
                 NPCName = "Ahern",
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2",
                 Comment = "Ahern: Main location",
+                // LEVEL VISIBILITY ==================
+                // When CCMid becomes visible, always teleport Ahern to his post
                 PackageToSignalOnVisibility = "BIOA_PRC2_CCMID",
-                SetActiveOnVisibility = true
+                SetActiveOnVisibility = true,
+
+                // HANDSHAKES ========================
+                Handshakes = [
+                    // new (){ HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"}
+                ],
+                // TELEPORT SIGNALING ================
+                RemoteEventNamePrefix = "Standard",
+                TeleportSignals = [
+                    // End of impressive work conversation (unlock ahern mission) -> teleport out of that location
+                    new() { PackageFile = "BIOA_PRC2_CCMAIN_CONV", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.Play_Ahern_Offers_Final_Mission_0.SeqAct_Toggle_1"}
+                ]
             },
             // Vidinos - Near Ocaren
             new()
@@ -234,18 +459,33 @@ namespace CrossGenV.Classes
                 BioPawnName = "BioPawn_5",
                 NPCName = "RivalVidinos",
                 GenerateBioNPC = false,
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.SeqEvent_SequenceActivated_0",
+                Handshakes= [
+                    new() { HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.SeqEvent_SequenceActivated_0"}
+                ],
                 Comment = "Vidinos: Post mission cutscenes",
-                PackageToSignalOnVisibility = "BIOA_PRC2_CCSIM04_DSG"
             },
-            // Bryant guy that we're supposed to care about for some reason
+            // Bryant - Cutscene with Vidinos
             new()
             {
-                LevelSource = "BIOA_PRC2_CCMAIN_CONV", 
-                BioPawnName = "BioPawn_8", 
+                LevelSource = "BIOA_PRC2_CCMAIN_CONV",
+                BioPawnName = "BioPawn_8",
                 NPCName = "RivalBryant",
                 GenerateBioNPC = false,
-                HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.SeqAct_Log_2"
+                RemoteEventNamePrefix = "Cutscene",
+                Handshakes =
+                [
+                    new ()
+                    {
+                        // Start of Vidinos conversation
+                        PackageFile = "BIOA_PRC2_CCMAIN_CONV",
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.SeqEvent_SequenceActivated_0",
+                    },
+                    new ()
+                    {
+
+                    }
+                ],
+                Comment = "Bryant: Post-mission cutscene"
             },
         ];
 
@@ -286,31 +526,54 @@ throw new Exception("This must be fixed for release!");
 
             // Step 2: Modify packages and generate framework changes
             options.SetStatusText("Stripping hardcoded NPCs");
-            foreach (var npc in NPCsToFramework)
+            IMEPackage frameworkingPackage = null;
+            foreach (var npc in NPCsToFramework.OrderBy(x => x.LevelSource))
             {
                 options.SetStatusText($"  {npc.NPCName} from {npc.LevelSource}");
 
-                var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.LevelSource}.pcc");
-                var package = MEPackageHandler.OpenMEPackage(sourcePath);
+                var currentPackageFname = frameworkingPackage?.FileNameNoExtension;
+                if (currentPackageFname != npc.LevelSource)
+                {
+                    // Package is changing
 
-                FrameworkPackage(package, npc, options);
+                    // Save current package, if any
+                    frameworkingPackage?.Save();
 
-                package.Save();
+                    // Load new package
+                    var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.LevelSource}.pcc");
+                    frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
+                }
+
+                FrameworkPackage(frameworkingPackage, npc, options);
             }
+
+            // Final save for step 2
+            frameworkingPackage?.Save();
 
             // Step 3: Modify packages and generate framework changes
             options.SetStatusText("Setting up level visibility triggers");
-            foreach (var npc in NPCsToFramework.Where(x=>x.PackageToSignalOnVisibility != null))
+            foreach (var npc in NPCsToFramework.Where(x => x.PackageToSignalOnVisibility != null).OrderBy(x => x.PackageToSignalOnVisibility))
             {
                 options.SetStatusText($"  {npc.NPCName} in {npc.PackageToSignalOnVisibility}");
 
-                var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.PackageToSignalOnVisibility}.pcc");
-                var package = MEPackageHandler.OpenMEPackage(sourcePath);
+                var currentPackageFname = frameworkingPackage?.FileNameNoExtension;
+                if (currentPackageFname != npc.PackageToSignalOnVisibility)
+                {
+                    // Package is changing
 
-                InstallPawnLocationSignal(package, npc, npc.SetActiveOnVisibility, options);
+                    // Save current package, if any
+                    frameworkingPackage?.Save();
 
-                package.Save();
+                    // Load new package
+                    var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.PackageToSignalOnVisibility}.pcc");
+                    frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
+                }
+
+                InstallPawnLocationSignal(frameworkingPackage, npc, npc.SetActiveOnVisibility, options);
             }
+
+            // Final save for step 3
+            frameworkingPackage?.Save();
 
             // Step 4: Fix up the existing find object by tags
             options.SetStatusText($"Fixing Tags");
@@ -323,14 +586,76 @@ throw new Exception("This must be fixed for release!");
                 var package = MEPackageHandler.OpenMEPackage(sourcePath);
 
                 FixupFindObjects(package, options);
-
+                FixupConversationSpeakers(package, options);
                 package.Save();
+            }
+
+            // Step 5: Install remote event activators to teleport things around where necessary
+            frameworkingPackage = null;
+            foreach (var npc in NPCsToFramework.Where(x => x.TeleportSignals != null && x.TeleportSignals.Length > 0))
+            {
+                options.SetStatusText($"Installing signals for {npc.NPCName}");
+
+                foreach (var signal in npc.TeleportSignals)
+                {
+                    var currentPackageFname = frameworkingPackage?.FileNameNoExtension;
+                    if (currentPackageFname != signal.PackageFile)
+                    {
+                        // Package is changing
+
+                        // Save current package, if any
+                        frameworkingPackage?.Save();
+
+                        // Load new package
+                        var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{signal.PackageFile}.pcc");
+                        frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
+                    }
+
+                    InstallRemoteEventSignal(npc, signal, frameworkingPackage, options);
+                }
+
+                frameworkingPackage?.Save();
             }
 
 
             // Final step: Update trigger streams
             options.SetStatusText("Updating trigger streams");
             UpdateTriggerStreams(options);
+        }
+
+        private static void FixupConversationSpeakers(IMEPackage package, VTestOptions options)
+        {
+            foreach (var exp in package.Exports.Where(x => x.ClassName == "BioConversation"))
+            {
+                var speakerList = exp.GetProperty<ArrayProperty<StructProperty>>("m_SpeakerList");
+                if (speakerList == null)
+                    continue;
+                foreach (var speaker in speakerList)
+                {
+                    var tag = speaker.GetProp<NameProperty>("sSpeakerTag").Value;
+                    if (FindObjectByTagFixes.TryGetValue(tag, out var newTag))
+                    {
+                        speaker.Properties.AddOrReplaceProp(new NameProperty(newTag, "sSpeakerTag"));
+                    }
+                }
+                exp.WriteProperty(speakerList);
+            }
+        }
+
+        /// <summary>
+        /// Installs an ActiveRemoteEvent after the hookup to set the pawn up for use
+        /// </summary>
+        /// <param name="npc"></param>
+        /// <param name="signal"></param>
+        /// <param name="frameworkingPackage"></param>
+        /// <param name="options"></param>
+        private static void InstallRemoteEventSignal(FrameworkPawn npc, SequenceHookup signal, IMEPackage frameworkingPackage, VTestOptions options)
+        {
+            var reName = $"{npc.RemoteEventNamePrefix}{npc.NPCName}";
+            var hookup = frameworkingPackage.FindExport(signal.HookupIFP);
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var re = SequenceObjectCreator.CreateActivateRemoteEvent(seq, reName, options.cache);
+            KismetHelper.InsertActionAfter(hookup, signal.OutLinkName, re, 0, "Out");
         }
 
         private static void FixupFindObjects(IMEPackage package, VTestOptions options)
@@ -435,26 +760,8 @@ throw new Exception("This must be fixed for release!");
         private static void FrameworkPackage(IMEPackage package, FrameworkPawn pawn, VTestOptions options)
         {
             PreCorrectPackage(package);
-            ExportEntry hookup = null;
-            if (pawn.HookupIFP != null)
-            {
-                // Hook directly up to where we say
-                hookup = package.FindExport(pawn.HookupIFP);
-            }
-            else
-            {
-                // Generate a remote event listener
-                // Somewhere else in vtest will have to signal this.
-                var mainseq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
-                hookup = SequenceObjectCreator.CreateSeqEventRemoteActivated(mainseq, $"{pawn.RemoteEventNamePrefix}{pawn.NPCName}", options.cache);
-            }
 
-            if (hookup == null)
-                Debugger.Break();
-
-            var seq = KismetHelper.GetParentSequence(hookup);
-            ExportEntry pawnRef = null;
-
+            // Convert references
             var originalPawn = package.FindExport($"TheWorld.PersistentLevel.{pawn.BioPawnName}");
             var referencingEntries = originalPawn.GetEntriesThatReferenceThisOne();
 
@@ -482,13 +789,44 @@ throw new Exception("This must be fixed for release!");
                 }
             }
 
-            // MITM the handshake
-            var handshake = GenerateHandshakeSequence(seq, pawn, options);
-            KismetHelper.InsertActionAfter(hookup, "Out", handshake, 0, "Ready");
+            // Install handshakes
+            InstallHandshakes(package, pawn, options);
+
 
             // Remove the actor we have now moved to another package
-            hookup.FileRef.RemoveFromLevelActors(originalPawn);
+            package.RemoveFromLevelActors(originalPawn);
             EntryPruner.TrashEntriesAndDescendants([originalPawn]);
+        }
+
+        private static void InstallHandshakes(IMEPackage package, FrameworkPawn pawn, VTestOptions options)
+        {
+
+            if (pawn.RemoteEventNamePrefix != null)
+            {
+                // Generate a remote event listener
+                // Somewhere else in vtest will have to signal this.
+                var mainseq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+                var hookup = SequenceObjectCreator.CreateSeqEventRemoteActivated(mainseq, $"{pawn.RemoteEventNamePrefix}{pawn.NPCName}", options.cache);
+
+                // Install standalone
+                var handshakeSeq = GenerateHandshakeSequence(mainseq, pawn, options);
+                KismetHelper.InsertActionAfter(hookup, "Out", handshakeSeq, 0, "Ready");
+                KismetHelper.RemoveOutputLinks(handshakeSeq, true); // Completely remove
+            }
+
+            // Install all handshake MITM nodes
+            foreach (var handshake in pawn.Handshakes)
+            {
+                ExportEntry hookup = package.FindExport(handshake.HookupIFP);
+                if (hookup == null)
+                    Debugger.Break();
+
+                var seq = KismetHelper.GetParentSequence(hookup);
+
+                // MITM the handshake
+                var handshakeSeq = GenerateHandshakeSequence(seq, pawn, options);
+                KismetHelper.InsertActionAfter(hookup, handshake.OutLinkName, handshakeSeq, 0, "Ready");
+            }
         }
 
         /// <summary>
@@ -497,6 +835,24 @@ throw new Exception("This must be fixed for release!");
         /// <param name="package"></param>
         private static void PreCorrectPackage(IMEPackage package)
         {
+            if (package.FileNameNoExtension == "BIOA_PRC2_CCSIM01_DSG")
+            {
+                // Change ordering of Bryant's gun being removed
+                var levelLoaded = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.SeqEvent_LevelLoaded_2");
+                if (levelLoaded != null)
+                {
+                    KismetHelper.RemoveFromSequence(levelLoaded, true);
+                }
+
+                // This moves it after level loaded / handshake and fires only when the pawn is actually being activated
+                var modifyActivate = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_ModifyPropertyPawn_3");
+                var setWeapon = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_SetWeapon_0");
+                var pmCheckState = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_PMCheckState_6");
+                KismetHelper.ChangeOutputLink(modifyActivate, 0, 0, setWeapon.UIndex);
+                KismetHelper.CreateOutputLink(setWeapon, "Success", pmCheckState);
+                KismetHelper.CreateOutputLink(setWeapon, "Failed", pmCheckState);
+
+            }
             if (package.FileNameNoExtension == "BIOA_PRC2_CCSIM04_DSG")
             {
                 // This breaks frameworking for ahern
@@ -506,6 +862,17 @@ throw new Exception("This must be fixed for release!");
                 {
                     KismetHelper.RemoveFromSequence(levelLoaded, true);
                 }
+
+                return;
+            }
+
+            if (package.FileNameNoExtension == "BIOA_PRC2_CCMAIN_CONV")
+            {
+                // Level Loaded hides Ahern
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.SeqEvent_LevelLoaded_0"), true);
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.BioSeqAct_ModifyPropertyPawn_4"), true);
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.SeqVar_Bool_4"), true);
+
             }
         }
 
@@ -577,7 +944,16 @@ throw new Exception("This must be fixed for release!");
         /// <param name="options"></param>
         private static void ConvertHardReferenceToSoft(ExportEntry node, string tagToFind, VTestOptions options)
         {
-            node.ObjectName = new NameReference("BioSeqVar_ObjectFindByTag", node.ObjectName.Number);
+            var num = node.ObjectName.Number;
+            var name = new NameReference("BioSeqVar_ObjectFindByTag", num);
+            var baseIFP = node.ParentInstancedFullPath;
+
+            while (node.FileRef.FindExport($"{baseIFP}.{name.Instanced}") != null)
+            {
+                name = new NameReference("BioSeqVar_ObjectFindByTag", num++);
+            }
+
+            node.ObjectName = name;
             node.Class = EntryImporter.EnsureClassIsInFile(node.FileRef, "BioSeqVar_ObjectFindByTag",
                 new RelinkerOptionsPackage() { Cache = options.cache });
             node.RemoveProperty("ObjValue");

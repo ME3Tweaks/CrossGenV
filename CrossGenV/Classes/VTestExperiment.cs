@@ -608,12 +608,12 @@ namespace CrossGenV.Classes
 
             foreach (var err in rcp.GetBlockingErrors())
             {
-                Debug.WriteLine($"RCP: [ERROR] {err.Entry.InstancedFullPath} {err.Message}");
+                vTestOptions.SetStatusText($"RCP: [ERROR] {err.Entry.InstancedFullPath} {err.Message}");
             }
 
             foreach (var err in rcp.GetSignificantIssues())
             {
-                Debug.WriteLine($"RCP: [WARN] {err.Entry.InstancedFullPath} {err.Message}");
+                vTestOptions.SetStatusText($"RCP: [WARN] {err.Entry.InstancedFullPath} {err.Message}");
             }
         }
 

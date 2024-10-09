@@ -45,7 +45,7 @@ namespace CrossGenV.Classes
             var brokenMaterials = ShaderCacheManipulator.GetBrokenMaterials(package);
             foreach (var brokenMaterial in brokenMaterials)
             {
-                Console.Error.WriteLine($"Error: Broken material detected: {brokenMaterial.InstancedFullPath} in {brokenMaterial.FileRef.FileNameNoExtension}");
+                vTestOptions.SetStatusText($"Error: Broken material detected: {brokenMaterial.InstancedFullPath} in {brokenMaterial.FileRef.FileNameNoExtension}");
             }
         }
 
@@ -66,14 +66,14 @@ namespace CrossGenV.Classes
                         // cubemaps will have null texture group. we don't want to update these
                         if (texinfo.Mips[0].SizeX > maxDimension || texinfo.Mips[0].SizeY > maxDimension)
                         {
-                            Debug.WriteLine($@"FOUND UNUSABLE EMPTY MIP: {exp.InstancedFullPath} IN {Path.GetFileNameWithoutExtension(mePackage.FilePath)}");
+                            vTestOptions.SetStatusText($@"FOUND UNUSABLE EMPTY MIP: {exp.InstancedFullPath} IN {Path.GetFileNameWithoutExtension(mePackage.FilePath)}");
                         }
                     }
                 }
 
                 if (exp.Parent != null && exp.Parent.ClassName != "TextureCube" && texinfo.Mips.Count(x => x.IsLocallyStored) > 6)
                 {
-                    Debug.WriteLine($"Externally storable texture: {exp.InstancedFullPath}");
+                    vTestOptions.SetStatusText($"Externally storable texture: {exp.InstancedFullPath}");
                 }
             }
         }
