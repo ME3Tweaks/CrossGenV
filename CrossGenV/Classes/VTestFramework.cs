@@ -480,10 +480,6 @@ namespace CrossGenV.Classes
                         PackageFile = "BIOA_PRC2_CCMAIN_CONV",
                         HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.SeqEvent_SequenceActivated_0",
                     },
-                    new ()
-                    {
-
-                    }
                 ],
                 Comment = "Bryant: Post-mission cutscene"
             },
