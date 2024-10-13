@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LegendaryExplorerCore.Kismet;
+﻿using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal;
-using static Microsoft.IO.RecyclableMemoryStreamManager;
+using System.Linq;
 
 namespace CrossGenV.Classes
 {
@@ -48,14 +43,16 @@ namespace CrossGenV.Classes
 
         private static void GenerateMissionCompletedXPEvent(ExportEntry sequence, float mult, ExportEntry originalNode, VTestOptions options)
         {
+            var settings = SequenceObjectCreator.CreatePMCheckState(sequence, VTestPlot.CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE, options.cache);
+            KismetHelper.InsertActionAfter(originalNode, "Out", settings, 0, "False");
 
-            // Todo: Add mod settings menu control for this before each node fires.
             var grant = SequenceObjectCreator.CreateSequenceObject(sequence, "LEXSeqAct_GrantLevelBasedXPPercent", options.cache);
             KismetHelper.SetComment(grant, "Standard win: 0.5x of a level");
             var multiplier = SequenceObjectCreator.CreateFloat(sequence, 0.5f, options.cache);
             KismetHelper.CreateVariableLink(grant, "LevelPercent", multiplier);
 
-            KismetHelper.InsertActionAfter(originalNode, "Out", grant, 0, "Out");
+            KismetHelper.CreateOutputLink(settings, "True", grant);
+            KismetHelper.CreateOutputLink(grant, "Out", KismetHelper.GetOutputLinksOfNode(settings)[1][0].LinkedOp as ExportEntry);
         }
 
         public static void AddExtraEnemyTypes(IMEPackage le1File, VTestOptions options)

@@ -14,7 +14,6 @@ namespace CrossGenV.Classes
         // Crossgen plot indices are within the PRC2 range so they should not conflict with other mods unless they tried to do the same thing, for whatever reason.
 
         // The following are the remaining available bools
-        public const int CROSSGEN_PMB_INDEX_UNUSED1 = 7576;
         public const int CROSSGEN_PMB_INDEX_UNUSED2 = 7577;
         public const int CROSSGEN_PMB_INDEX_UNUSED3 = 7630;
         public const int CROSSGEN_PMB_INDEX_UNUSED4 = 7647;
@@ -36,6 +35,9 @@ namespace CrossGenV.Classes
 
         // Conversation flag set if it is Ahern's second (or subsequent) try to ask you to do his mission
         public const int CROSSGEN_PMB_INDEX_REFUSEDAHERNMISSION_SECONDTRY = 7658;
+
+        // Flag to indicate if mission completion exp should be rewarded
+        public const int CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE = 7576;
 
 
         // INTEGERS ==============================================
