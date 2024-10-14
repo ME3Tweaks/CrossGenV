@@ -537,6 +537,13 @@ throw new Exception("This must be fixed for release!");
 
                     // Load new package
                     var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.LevelSource}.pcc");
+#if DEBUG
+                    if (!File.Exists(sourcePath))
+                    {
+                        options.SetStatusText($"Skipping missing file: {npc.LevelSource}");
+                        continue;
+                    }
+#endif
                     frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
                 }
 
@@ -562,6 +569,13 @@ throw new Exception("This must be fixed for release!");
 
                     // Load new package
                     var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{npc.PackageToSignalOnVisibility}.pcc");
+#if DEBUG
+                    if (!File.Exists(sourcePath))
+                    {
+                        options.SetStatusText($"Skipping missing file: {npc.LevelSource}");
+                        continue;
+                    }
+#endif
                     frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
                 }
 
@@ -579,6 +593,13 @@ throw new Exception("This must be fixed for release!");
                 options.SetStatusText($"  Fixing up ObjectFindByTag in {pName}");
 
                 var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{pName}.pcc");
+#if DEBUG
+                if (!File.Exists(sourcePath))
+                {
+                    options.SetStatusText($"Skipping missing file: {pName}");
+                    continue;
+                }
+#endif
                 var package = MEPackageHandler.OpenMEPackage(sourcePath);
 
                 FixupFindObjects(package, options);
@@ -604,6 +625,13 @@ throw new Exception("This must be fixed for release!");
 
                         // Load new package
                         var sourcePath = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{signal.PackageFile}.pcc");
+#if DEBUG
+                        if (!File.Exists(sourcePath))
+                        {
+                            options.SetStatusText($"Skipping missing file: {signal.PackageFile}");
+                            continue;
+                        }
+#endif
                         frameworkingPackage = MEPackageHandler.OpenMEPackage(sourcePath);
                     }
 
