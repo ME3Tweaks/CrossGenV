@@ -161,7 +161,7 @@ namespace CrossGenV.Classes
         /// <param name="sourceSequenceOpIFP"></param>
         /// <param name="vTestSequenceIFP"></param>
         /// <param name="vTestOptions"></param>
-        public static void InstallVTestHelperSequenceViaOut(IMEPackage le1File, string sourceSequenceOpIFP, string vTestSequenceIFP, bool runOnceOnly, VTestOptions vTestOptions, out ExportEntry gate)
+        public static void InstallVTestHelperSequenceViaOut(IMEPackage le1File, string sourceSequenceOpIFP, string vTestSequenceIFP, bool runOnceOnly, VTestOptions vTestOptions, out ExportEntry gate, bool addInline = false)
         {
             gate = null;
             var sourceItemToOutFrom = le1File.FindExport(sourceSequenceOpIFP);
@@ -169,6 +169,12 @@ namespace CrossGenV.Classes
             var donorSequence = vTestOptions.vTestHelperPackage.FindExport(vTestSequenceIFP);
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, donorSequence, le1File, parentSequence, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var newUiSeq);
             KismetHelper.AddObjectToSequence(newUiSeq as ExportEntry, parentSequence);
+
+            if (addInline)
+            {
+                KismetHelper.CreateOutputLink(newUiSeq as ExportEntry, "Out", KismetHelper.GetOutputLinksOfNode(sourceItemToOutFrom)[0][0].LinkedOp as ExportEntry);
+                KismetHelper.RemoveOutputLinks(sourceItemToOutFrom);
+            }
 
             if (runOnceOnly)
             {
@@ -262,7 +268,7 @@ namespace CrossGenV.Classes
             {
 
             }
-            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS, options.cache);
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, options.cache);
             var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddWeaponMods", options.cache);
             KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
 
@@ -284,7 +290,7 @@ namespace CrossGenV.Classes
             {
 
             }
-            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS, options.cache);
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, options.cache);
             var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddTalents", options.cache);
             KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
 

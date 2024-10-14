@@ -43,7 +43,7 @@ namespace CrossGenV.Classes
 
         private static void GenerateMissionCompletedXPEvent(ExportEntry sequence, float mult, ExportEntry originalNode, VTestOptions options)
         {
-            var settings = SequenceObjectCreator.CreatePMCheckState(sequence, VTestPlot.CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE, options.cache);
+            var settings = SequenceObjectCreator.CreatePMCheckState(sequence, VTestPlot.CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE_ENABLED, options.cache);
             KismetHelper.InsertActionAfter(originalNode, "Out", settings, 0, "False");
 
             var grant = SequenceObjectCreator.CreateSequenceObject(sequence, "LEXSeqAct_GrantLevelBasedXPPercent", options.cache);
