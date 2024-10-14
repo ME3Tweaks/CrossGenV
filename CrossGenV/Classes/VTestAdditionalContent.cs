@@ -144,5 +144,50 @@ namespace CrossGenV.Classes
         {
 
         }
+
+
+        public static void InstallTalentRamping(ExportEntry hookup, string outName, VTestOptions options)
+        {
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
+            if (currentPawn == null)
+            {
+
+            }
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, options.cache);
+            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddWeaponMods", options.cache);
+            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
+
+            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_WEAPONMOD_CHANCE", options.cache);
+            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_WEAPONMODS_COUNT", options.cache);
+
+            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(addTalents, "ModCount", count);
+            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
+
+            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
+        }
+
+        public static void InstallPowerRamping(ExportEntry hookup, string outName, VTestOptions options)
+        {
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
+            if (currentPawn == null)
+            {
+
+            }
+            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, options.cache);
+            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddTalents", options.cache);
+            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
+
+            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_TALENT_CHANCE", options.cache);
+            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_TALENTS_COUNT", options.cache);
+
+            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(addTalents, "TalentCount", count);
+            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
+
+            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
+        }
     }
 }

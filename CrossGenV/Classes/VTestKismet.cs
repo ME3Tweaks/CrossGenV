@@ -94,37 +94,6 @@ namespace CrossGenV.Classes
         }
 
         /// <summary>
-        /// Changes sequencing a bit to install a force-load of mips plus a delay
-        /// </summary>
-        /// <param name="findSequenceObjectByClassAndPosition"></param>
-        public static void FixSimMapTextureLoading(ExportEntry startDelay, VTestOptions vTestOptions, ExportEntry streamingLocation = null)
-        {
-            var sequence = KismetHelper.GetParentSequence(startDelay);
-            var stopLoadingMovie = FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_StopLoadingMovie");
-            KismetHelper.RemoveOutputLinks(startDelay);
-
-            var streamInTextures = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_StreamInTextures", vTestOptions.cache);
-            var streamInDelay = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_Delay", vTestOptions.cache);
-            var remoteEventStreamIn = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
-
-            KismetHelper.AddObjectToSequence(remoteEventStreamIn, sequence);
-            KismetHelper.AddObjectToSequence(streamInTextures, sequence);
-            KismetHelper.AddObjectToSequence(streamInDelay, sequence);
-
-            streamInDelay.WriteProperty(new FloatProperty(4f, "Duration")); // Load screen will be 4s
-            streamInTextures.WriteProperty(new FloatProperty(8f, "Seconds")); // Force textures to stream in at full res for a bit over the load screen time
-            remoteEventStreamIn.WriteProperty(new NameProperty("CROSSGEN_PrepTextures", "EventName")); // This is used to signal other listeners that they should also stream in textures
-
-            streamingLocation ??= KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().First(x => x.ClassName == "SeqVar_External" && x.GetProperty<StrProperty>("VariableLabel")?.Value == "Scenario_Start_Location");
-            KismetHelper.CreateVariableLink(streamInTextures, "Location", streamingLocation);
-
-            KismetHelper.CreateOutputLink(startDelay, "Finished", remoteEventStreamIn); // Initial 1 frame delay to event signal
-            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInTextures); // Event Signal to StreamInTextures
-            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInDelay); // Event Signal to Loading Screen Delay
-            KismetHelper.CreateOutputLink(streamInDelay, "Finished", stopLoadingMovie); // Loading Screen Delay to Stop Loading Movie
-        }
-
-        /// <summary>
         /// Sets up sequencing to stream in the listed materials for 5 seconds in the specified stream
         /// </summary>
         /// <param name="sequence"></param>
@@ -256,83 +225,6 @@ namespace CrossGenV.Classes
             if (intVal != null)
             {
                 KismetHelper.CreateVariableLink(logObj, "Int", intVal);
-            }
-        }
-
-
-        public static void InstallTalentRamping(ExportEntry hookup, string outName, VTestOptions options)
-        {
-            var seq = KismetHelper.GetParentSequence(hookup);
-            var currentPawn = FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
-            if (currentPawn == null)
-            {
-
-            }
-            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, options.cache);
-            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddWeaponMods", options.cache);
-            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
-
-            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_WEAPONMOD_CHANCE", options.cache);
-            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_WEAPONMODS_COUNT", options.cache);
-
-            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
-            KismetHelper.CreateVariableLink(addTalents, "ModCount", count);
-            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
-
-            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
-        }
-
-        public static void InstallPowerRamping(ExportEntry hookup, string outName, VTestOptions options)
-        {
-            var seq = KismetHelper.GetParentSequence(hookup);
-            var currentPawn = FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
-            if (currentPawn == null)
-            {
-
-            }
-            var pmCheckState = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, options.cache);
-            var addTalents = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_AddTalents", options.cache);
-            KismetHelper.CreateOutputLink(pmCheckState, "True", addTalents);
-
-            var chance = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "CG_RAMP_TALENT_CHANCE", options.cache);
-            var count = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Int", "CG_RAMP_TALENTS_COUNT", options.cache);
-
-            KismetHelper.CreateVariableLink(addTalents, "Pawn", currentPawn);
-            KismetHelper.CreateVariableLink(addTalents, "TalentCount", count);
-            KismetHelper.CreateVariableLink(addTalents, "Chance", chance);
-
-            KismetHelper.CreateOutputLink(hookup, outName, pmCheckState);
-        }
-
-        public static void AddGlobalVariables(IMEPackage le1File, VTestOptions options)
-        {
-            var entries = new List<ExportEntry>();
-            var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
-
-            // Ramping variables
-            var wmChance = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
-            wmChance.WriteProperty(new NameProperty("CG_RAMP_WEAPONMOD_CHANCE", "VarName"));
-            var tChance = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
-            tChance.WriteProperty(new NameProperty("CG_RAMP_TALENT_CHANCE", "VarName"));
-
-            var wmCount = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
-            wmCount.WriteProperty(new NameProperty("CG_RAMP_WEAPONMODS_COUNT", "VarName"));
-            var tCount = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
-            tCount.WriteProperty(new NameProperty("CG_RAMP_TALENTS_COUNT", "VarName"));
-
-            var resetRamping = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "CG_RESET_RAMPING");
-            var zeroFloat = SequenceObjectCreator.CreateFloat(seq, 0, options.cache);
-            var zeroInt = SequenceObjectCreator.CreateInt(seq, 0, options.cache);
-            entries.Add(SequenceObjectCreator.CreateSetFloat(seq, wmChance, zeroFloat, options.cache));
-            entries.Add(SequenceObjectCreator.CreateSetFloat(seq, tChance, zeroFloat, options.cache));
-            entries.Add(SequenceObjectCreator.CreateSetInt(seq, wmCount, zeroInt, options.cache));
-            entries.Add(SequenceObjectCreator.CreateSetInt(seq, tCount, zeroInt, options.cache));
-
-            ExportEntry previous = resetRamping;
-            foreach (var entry in entries)
-            {
-                KismetHelper.CreateOutputLink(previous, "Out", entry);
-                previous = entry;
             }
         }
 

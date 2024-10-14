@@ -389,7 +389,7 @@ namespace CrossGenV.Classes
                 me1File.replaceName(bgsaiBaseIdx, "SFXStrategicAI");
 
             CorrectFileForLEXMapFileDefaults(me1File, le1File, vTestOptions);
-            PrePortingCorrections(me1File, vTestOptions);
+            VTestPreCorrections.PrePortingCorrections(me1File, le1File, vTestOptions);
 
             var itemsToPort = new List<ExportEntry>();
 
@@ -541,7 +541,7 @@ namespace CrossGenV.Classes
             //}
 
             // This must come after dynamic lighting as we correct a few dynamic lightings
-            VTestCorrections.PostPortingCorrections(me1File, le1File, vTestOptions);
+            VTestPostCorrections.PostPortingCorrections(me1File, le1File, vTestOptions);
 
             if (vTestOptions.debugBuild)
             {
@@ -737,8 +737,7 @@ namespace CrossGenV.Classes
             MEPackageHandler.CreateAndSavePackage(destPackagePath, MEGame.LE1);
             using var package = MEPackageHandler.OpenMEPackage(destPackagePath);
             using var sourcePackage = MEPackageHandler.OpenMEPackage(sourceFile);
-
-            PrePortingCorrections(sourcePackage, vTestOptions);
+            VTestPreCorrections.PrePortingCorrections(sourcePackage, package, vTestOptions);
 
             var bcBaseIdx = sourcePackage.findName("BIOC_Base");
             if (bcBaseIdx >= 0)
@@ -791,7 +790,7 @@ namespace CrossGenV.Classes
 
             //CorrectSequences(package, vTestOptions);
             var postPortingSW = Stopwatch.StartNew();
-            VTestCorrections.PostPortingCorrections(sourcePackage, package, vTestOptions);
+            VTestPostCorrections.PostPortingCorrections(sourcePackage, package, vTestOptions);
             postPortingSW.Stop();
             vTestOptions.SetStatusText($"PPC time: {postPortingSW.ElapsedMilliseconds}ms");
             vTestOptions.SetStatusText($"Saving {packName}");
@@ -827,298 +826,7 @@ namespace CrossGenV.Classes
             Pcc.PackageGuid = packguid;
             Pcc.Save();
         }
-        #endregion
 
-        #region Correction methods
-        internal static IEntry GetImportArchetype(IMEPackage package, string packageFile, string ifp)
-        {
-            IEntry result = package.FindExport($"{packageFile}.{ifp}");
-            if (result != null)
-                return result;
-
-            var file = $"{packageFile}.{(package.Game is MEGame.ME1 or MEGame.UDK ? "u" : "pcc")}";
-            var fullPath = Path.Combine(MEDirectories.GetCookedPath(package.Game), file);
-            using var lookupPackage = MEPackageHandler.UnsafePartialLoad(fullPath, x => false);
-            var entry = lookupPackage.FindExport(ifp) as IEntry;
-            if (entry == null)
-                Debugger.Break();
-
-            Stack<IEntry> children = new Stack<IEntry>();
-            children.Push(entry); // Must port at least the found IFP.
-            while (entry.Parent != null && package.FindEntry(entry.ParentInstancedFullPath) == null)
-            {
-                children.Push(entry.Parent);
-                entry = entry.Parent;
-            }
-
-            // Create imports from top down.
-            var packageExport = (IEntry)ExportCreator.CreatePackageExport(package, packageFile);
-
-            // This doesn't work if the part of the parents already exist.
-            var attachParent = packageExport;
-            foreach (var item in children)
-            {
-                ImportEntry imp = new ImportEntry(item as ExportEntry, packageExport.UIndex, package);
-                imp.idxLink = attachParent.UIndex;
-                package.AddImport(imp);
-                attachParent = imp;
-                result = imp;
-            }
-
-            return result;
-        }
-
-
-        /// <summary>
-        /// Creates a static mesh actor from an SMC (that is not under collection - e.g. interpactor)
-        /// </summary>
-        /// <param name="smc"></param>
-        /// <returns></returns>
-        public static ExportEntry CreateSMAFromSMC(ExportEntry smc)
-        {
-            var level = smc.FileRef.GetLevel();
-            var sma = ExportCreator.CreateExport(smc.FileRef, "StaticMeshActor", "StaticMeshActor", level, createWithStack: true);
-
-            PropertyCollection props = new PropertyCollection();
-            props.AddOrReplaceProp(new ObjectProperty(smc, "StaticMeshComponent"));
-            props.AddOrReplaceProp(new ObjectProperty(smc, "CollisionComponent"));
-            props.AddOrReplaceProp(new BoolProperty(true, "bCollideActors"));
-            sma.WriteProperties(props);
-
-            var parent = smc.Parent as ExportEntry;
-
-            var loc = parent.GetProperty<StructProperty>("Location");
-            if (loc != null) sma.WriteProperty(loc);
-
-            var rot = parent.GetProperty<StructProperty>("Rotation");
-            if (rot != null) sma.WriteProperty(rot);
-
-            smc.Archetype = GetImportArchetype(smc.FileRef, "Engine", "Default__StaticMeshActor.StaticMeshComponent0");
-            var lightingChannels = smc.GetProperty<StructProperty>("LightingChannels")?.Properties ?? new PropertyCollection();
-            lightingChannels.AddOrReplaceProp(new BoolProperty(true, "bInitialized"));
-            lightingChannels.AddOrReplaceProp(new BoolProperty(true, "Static")); // Add static
-            smc.WriteProperty(new StructProperty("LightingChannelContainer", lightingChannels, "LightingChannels"));
-            smc.RemoveProperty("bUsePrecomputedShadows"); // Required for static lighting
-            smc.Parent = sma; // Move under SMA
-
-            return sma;
-        }
-
-        public static void PrePortingCorrections(IMEPackage sourcePackage, VTestOptions vTestOptions)
-        {
-            // FILE SPECIFIC
-            var sourcePackageName = Path.GetFileNameWithoutExtension(sourcePackage.FilePath).ToUpper();
-            if (sourcePackageName == "BIOA_PRC2_CCSIM03_LAY")
-            {
-                // garage door
-                sourcePackage.FindExport("TheWorld.PersistentLevel.BioDoor_1.SkeletalMeshComponent_1").RemoveProperty("Materials"); // The materials changed in LE so using the original set is wrong. Remove this property to prevent porting donors for it
-            }
-
-            // Todo: Remove this if lightmap is OK.
-            if (sourcePackageName == "BIOA_PRC2_CCLAVA")
-            {
-                // 08/22/2024
-                // Ensure we don't remove lightmaps for terrain component by
-                // cloning the textures and updating the references, since
-                // static lighting generator will delete them due to them being shared with static meshes
-
-                //foreach (var tc in sourcePackage.Exports.Where(x => x.ClassName == "TerrainComponent").ToList())
-                //{
-                //    var bin = ObjectBinary.From<TerrainComponent>(tc);
-                //    KeepLightmapTextures(bin.LightMap, sourcePackage);
-                //    tc.WriteBinary(bin);
-                //}
-
-                // 08/25/2024 - Fan blade needs changed to static mesh as it does not receive lighting otherwise
-                // Tried to make it spin but it just is black no matter what I do
-                var fanBladeSMC = sourcePackage.FindExport("TheWorld.PersistentLevel.InterpActor_11.StaticMeshComponent_914");
-                var originalIA = fanBladeSMC.Parent;
-                var fanBladeSMA = CreateSMAFromSMC(fanBladeSMC);
-                sourcePackage.AddToLevelActorsIfNotThere(fanBladeSMA);
-                var rot = fanBladeSMA.GetProperty<StructProperty>("Rotation");
-                rot.GetProp<IntProperty>("Roll").Value = 15474; // 85 degrees
-                fanBladeSMA.WriteProperty(rot);
-                EntryPruner.TrashEntries(sourcePackage, [originalIA]);
-            }
-
-            if (sourcePackageName == "BIOA_PRC2_CCTHAI")
-            {
-                // Forces different donor
-                var matFixObject01 = sourcePackage.FindExport("BIOA_JUG40_S.jug40_Object01");
-                matFixObject01.ObjectName = "jug40_Object01_Crossgen";
-            }
-
-            // Strip static mesh light maps since they don't work crossgen. Strip them from
-            // the source so they don't port
-            foreach (var exp in sourcePackage.Exports.ToList())
-            {
-                PruneUnusedProperties(exp);
-                #region Remove Light and Shadow Maps
-                if (exp.ClassName == "StaticMeshComponent")
-                {
-                    //if Non-Collection Static add LE Bool
-                    if (exp.Parent.ClassName == "StaticMeshActor")
-                    {
-                        var props = exp.GetProperties();
-                        props.AddOrReplaceProp(new BoolProperty(true, "bIsOwnerAStaticMeshActor"));
-                        exp.WriteProperties(props);
-                    }
-
-                    if (vTestOptions == null || vTestOptions.useDynamicLighting || vTestOptions.stripShadowMaps)
-                    {
-                        if (vTestOptions != null && vTestOptions.allowTryingPortedMeshLightMap && !sourcePackageName.StartsWith("BIOA_PRC2AA")) // BIOA_PRC2AA doesn't seem to work with lightmaps
-                        {
-                            var sm = exp.GetProperty<ObjectProperty>("StaticMesh"); // name might need changed?
-                            if (sm != null)
-                            {
-                                if (sourcePackage.TryGetEntry(sm.Value, out var smEntry))
-                                {
-                                    // Disabled due to static lighting build
-                                    //if (ShouldPortLightmaps(smEntry))
-                                    //{
-                                    //    continue; // Do not port
-                                    //}
-                                }
-                            }
-                        }
-
-                        var b = ObjectBinary.From<StaticMeshComponent>(exp);
-                        foreach (var lod in b.LODData)
-                        {
-                            // Clear light and shadowmaps
-                            if (vTestOptions == null || vTestOptions.stripShadowMaps || vTestOptions.useDynamicLighting)
-                            {
-                                lod.ShadowMaps = [0];
-                            }
-
-                            if (vTestOptions == null || vTestOptions.useDynamicLighting)
-                            {
-                                lod.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None };
-                            }
-                        }
-
-                        exp.WriteBinary(b);
-                    }
-                }
-                #endregion
-                //// These are precomputed and stored in VTestHelper.pcc 
-                //else if (exp.ClassName == "Terrain")
-                //{
-                //    exp.RemoveProperty("TerrainComponents"); // Don't port the components; we will port them ourselves in post
-                //}
-                else if (exp.ClassName == "BioTriggerStream")
-                {
-                    VTestCorrections.PreCorrectBioTriggerStream(exp);
-                }
-                else if (exp.ClassName == "BioWorldInfo")
-                {
-                    // Remove streaminglevels that don't do anything
-                    //PreCorrectBioWorldInfoStreamingLevels(exp);
-                }
-                else if (exp.ClassName == "MaterialInstanceConstant")
-                {
-                    VTestCorrections.PreCorrectMaterialInstanceConstant(exp);
-                }
-                else if (exp.ClassName == "ModelComponent")
-                {
-                    var mcb = ObjectBinary.From<ModelComponent>(exp);
-                    if (vTestOptions.useDynamicLighting)
-                    {
-                        foreach (var elem in mcb.Elements)
-                        {
-                            elem.ShadowMaps = [0]; // We want no shadowmaps
-                            elem.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None }; // Strip the lightmaps
-                        }
-                    }
-                    else
-                    {
-                        //foreach (var elem in mcb.Elements)
-                        //{
-                        //    KeepLightmapTextures(elem.LightMap, sourcePackage);
-                        //}
-                    }
-
-                    exp.WriteBinary(mcb);
-
-                }
-                else if (exp.ClassName == "Sequence" && exp.GetProperty<StrProperty>("ObjName")?.Value == "PRC2_KillTriggerVolume")
-                {
-                    // Done before porting to prevent Trash from appearing in target
-                    VTestCorrections.PreCorrectKillTriggerVolume(exp, vTestOptions);
-                }
-                else if (exp.IsA("LightComponent"))
-                {
-                    // 08/24/2024 - Enable all lights
-                    exp.RemoveProperty("bEnabled");
-                }
-
-                // KNOWN BAD NAMES
-                // Rename duplicate texture/material objects to be unique to avoid some issues with tooling
-                if (exp.ClassName == "Texture2D")
-                {
-                    if (exp.InstancedFullPath == "BIOA_JUG80_T.JUG80_SAIL")
-                    {
-                        // Rename to match crossgen
-                        exp.ObjectName = "JUG80_SAIL_CROSSGENFIX";
-                    }
-                    else if (exp.InstancedFullPath == "BIOA_ICE60_T.checker")
-                    {
-                        // Rename to match crossgen
-                        exp.ObjectName = "BIOA_ICE60_T.checker_CROSSGENFIX";
-                    }
-                }
-            }
-        }
-
-        private static void PruneUnusedProperties(ExportEntry exp)
-        {
-            // Lots of components are not used or don't exist and can't be imported in LE1
-            // Get rid of them here
-            PropertyCollection props = exp.GetProperties();
-
-            // Might be better to enumerate all object properties and trim out ones that reference
-            // known non-existent things
-            if (exp.IsA("LightComponent"))
-            {
-                props.RemoveNamedProperty("PreviewInnerCone");
-                props.RemoveNamedProperty("PreviewOuterCone");
-                props.RemoveNamedProperty("PreviewLightRadius");
-            }
-
-            if (exp.IsA("NavigationPoint"))
-            {
-                props.RemoveNamedProperty("GoodSprite");
-                props.RemoveNamedProperty("BadSprite");
-            }
-
-            if (exp.IsA("BioArtPlaceable"))
-            {
-                props.RemoveNamedProperty("CoverMesh"); // Property exists but is never set
-            }
-
-            if (exp.IsA("SoundNodeAttenuation"))
-            {
-                props.RemoveNamedProperty("LPFMinRadius");
-                props.RemoveNamedProperty("LPFMaxRadius");
-            }
-
-            if (exp.IsA("BioAPCoverMeshComponent"))
-            {
-                exp.Archetype = null; // Remove the archetype. This is on BioDoor's and does nothing in practice, in ME1 there is nothing to copy from the archetype
-            }
-
-            if (exp.IsA("BioSquadCombat"))
-            {
-                props.RemoveNamedProperty("m_oSprite");
-            }
-
-            if (exp.IsA("CameraActor"))
-            {
-                props.RemoveNamedProperty("MeshComp"); // some actors have a camera mesh that was probably used to better visualize in-editor
-            }
-
-            exp.WriteProperties(props);
-        }
         #endregion
     }
 }

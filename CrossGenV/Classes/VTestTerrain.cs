@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LegendaryExplorerCore.Helpers;
 
 namespace CrossGenV.Classes
 {
@@ -118,6 +119,164 @@ namespace CrossGenV.Classes
 
             // Update the main terrain with our data, without touching anything about materials or layers
             VTestSupport.ImportUDKTerrainData(sourceTerrain, destTerrain, false);
+        }
+
+        public static void CorrectTerrainSetup(IMEPackage me1File, IMEPackage le1File, VTestOptions vTestOptions)
+        {
+            if (vTestOptions.isBuildForStaticLightingBake)
+                return; // Do not make corrections.
+
+            // Correct AlphaMaps to match the original
+            var mTerrain = me1File.Exports.First(x => x.ClassName == "Terrain");
+            var me1Terrain = ObjectBinary.From<Terrain>(mTerrain);
+            var lTerrain = le1File.Exports.First(x => x.ClassName == "Terrain");
+            var le1Terrain = ObjectBinary.From<Terrain>(lTerrain);
+
+            var properties = lTerrain.GetProperties();
+
+            var fName = le1File.FileNameNoExtension;
+            var alphamaps = new List<AlphaMap>();
+
+            if (fName == "BIOA_PRC2_CCLAVA")
+            {
+                // 5 maps (vs 4 in the source)
+                alphamaps.Add(me1Terrain.AlphaMaps[0]); // Default
+                alphamaps.Add(me1Terrain.AlphaMaps[1]); // RiverOverride
+                alphamaps.Add(new AlphaMap() { Data = new byte[me1Terrain.Heights.Length] }); // Water Rock Override (NOT USED)
+                alphamaps.Add(me1Terrain.AlphaMaps[2]); // Rock02 Override (?)
+                alphamaps.Add(new AlphaMap() { Data = new byte[me1Terrain.Heights.Length] }); // BLANK (NOT USED)
+
+                CorrectTerrainMaterialsAndSlopes(mTerrain, lTerrain, false, vTestOptions); // Needs changes to avoid patches
+            }
+            else if (fName == "BIOA_PRC2AA_00_LAY")
+            {
+
+                // THERE ARE NO ALPHAMAPS
+                CorrectTerrainMaterialsAndSlopes(mTerrain, lTerrain, true, vTestOptions); // Needs changes to avoid patches
+            }
+            else if (fName == "BIOA_PRC2_CCAHERN")
+            {
+                // The only layer used is Rock02. The other terrain layer is not used
+                // We must correct the AlphaMapIndexes
+                alphamaps.Add(me1Terrain.AlphaMaps[0]);
+                var layers = properties.GetProp<ArrayProperty<StructProperty>>("Layers");
+                for (int i = 0; i < layers.Count; i++)
+                {
+                    var layer = layers[i];
+                    if (i == 3)
+                    {
+                        // ROCK02
+                        layer.Properties.AddOrReplaceProp(new IntProperty(0, "AlphaMapIndex"));
+                    }
+                    else
+                    {
+                        layer.Properties.AddOrReplaceProp(new IntProperty(-1, "AlphaMapIndex"));
+                    }
+                }
+            }
+
+            le1Terrain.AlphaMaps = alphamaps.ToArray();
+            lTerrain.WritePropertiesAndBinary(properties, le1Terrain);
+        }
+
+        private static void CorrectTerrainMaterialsAndSlopes(ExportEntry mTerrain, ExportEntry lTerrain, bool prc2aa, VTestOptions vTestOptions)
+        {
+            var le1File = lTerrain.FileRef;
+            var me1File = mTerrain.FileRef;
+
+            var mLayers = mTerrain.GetProperty<ArrayProperty<StructProperty>>("Layers");
+            var lLayers = lTerrain.GetProperty<ArrayProperty<StructProperty>>("Layers");
+
+
+            foreach (var lLayer in lLayers)
+            {
+                // Find matching mLayer
+                var lSetup = lLayer.GetProp<ObjectProperty>("Setup").ResolveToEntry(le1File) as ExportEntry;
+                ExportEntry mSetup = null;
+                foreach (var mSetupStruct in mLayers)
+                {
+                    var mSetupTmp = mSetupStruct.GetProp<ObjectProperty>("Setup").ResolveToEntry(me1File) as ExportEntry;
+                    if (mSetupTmp != null && mSetupTmp.InstancedFullPath == lSetup.InstancedFullPath)
+                    {
+                        mSetup = mSetupTmp;
+                        break;
+                    }
+                }
+
+                if (mSetup == null)
+                    continue; // Don't update this
+
+                var mMaterials = mSetup.GetProperty<ArrayProperty<StructProperty>>("Materials");
+                var lMaterials = lSetup.GetProperty<ArrayProperty<StructProperty>>("Materials");
+
+                if (prc2aa && mMaterials.Count == lMaterials.Count)
+                {
+                    // ONLY PRC2AA WILL RUN THIS CODE
+                    for (int i = 0; i < mMaterials.Count; i++)
+                    {
+                        var mMat = mMaterials[i];
+                        var lMat = lMaterials[i];
+
+                        foreach (var prop in mMat.Properties)
+                        {
+                            if (prop is ObjectProperty)
+                                continue; // Do not change
+
+                            lMat.Properties.AddOrReplaceProp(prop);
+                        }
+                    }
+                }
+
+                // CORRECTIONS
+                var setupName = mSetup.ObjectName.Name;
+                switch (setupName)
+                {
+                    case "UNC20_TLSetup_lessDispl": // PRC2AA_00_LAY
+                        {
+                            // Memory Unique
+                            var cgv = le1File.FindExport("CROSSGENV");
+                            if (cgv == null)
+                            {
+                                cgv = ExportCreator.CreatePackageExport(lTerrain.FileRef, "CROSSGENV", null);
+                                cgv.indexValue = 0;
+                            }
+
+                            lSetup.Parent = cgv;
+                            lSetup.ObjectName = "CROSSGENV_PRC2AA_TerrainLayerSetup";
+
+                            // Slope Changes
+                            lMaterials[0].GetProp<StructProperty>("MinSlope").GetProp<FloatProperty>("Base").Value = 2; // 90 degrees never
+                            lMaterials[1].GetProp<StructProperty>("MinSlope").GetProp<FloatProperty>("Base").Value = 0; // 0 degrees always
+                        }
+
+                        break;
+                    case "lav60_RIVER01_terrain_setup": // PRC2_CCLAVA
+                        {
+                            if (!vTestOptions.isBuildForStaticLightingBake)
+                            {
+                                // Memory Unique
+                                var cgv = le1File.FindExport("CROSSGENV");
+                                if (cgv == null)
+                                {
+                                    cgv = ExportCreator.CreatePackageExport(lTerrain.FileRef, "CROSSGENV", null);
+                                    cgv.indexValue = 0;
+                                }
+
+                                lSetup.Parent = cgv;
+                                lSetup.ObjectName = "CROSSGENV_PRC2_CCLAVA_TerrainLayerSetup";
+
+                                // No idea why this fixes it tbh but it does
+                                lMaterials[0].GetProp<FloatProperty>("Alpha").Value = 0;
+                                lMaterials[1].GetProp<FloatProperty>("Alpha").Value = 0;
+                            }
+                        }
+                        break;
+                }
+
+
+                lSetup.WriteProperty(lMaterials);
+
+            }
         }
     }
 }
