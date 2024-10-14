@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using CrossGenV.Classes.Modes;
 
 namespace CrossGenV.Classes
 {
@@ -478,6 +479,7 @@ namespace CrossGenV.Classes
 
                         var assetsToReference = le1File.Exports.Where(x => assetsToEnsureReferencedInSim.Contains(x.InstancedFullPath)).ToArray();
                         VTestUtility.AddWorldReferencedObjects(le1File, assetsToReference);
+                        VTestCapture.AddCaptureEngagementSequencing(le1File, vTestOptions);
 
                         foreach (var exp in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
                         {
@@ -698,14 +700,18 @@ namespace CrossGenV.Classes
                                 remoteEvent.WriteProperty(new NameProperty("StartSimMusic", "EventName"));
                             }
 
-                            // Enemy ramping - Survival Thai, Cave, Lava (Crate doesn't have one, no point doing it for Ahern's)
+                            // SURVIVAL RAMPING - Survival Thai, Cave, Lava (Crate doesn't have one, no point doing it for Ahern's)
                             else if (seqName is "SUR_Thai_Handler" or "SUR_Cave_Handler" or "SUR_Lava_Handler")
                             {
                                 var startTimerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(exp, "START_TIMER");
                                 var delay = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
                                 KismetHelper.InsertActionAfter(delay, "Finished", startTimerSignal, 0, "Out");
 
-                                VTestKismet.InstallSurvivalRamping(startTimerSignal, exp, vTestOptions);
+                                VTestSurvival.InstallSurvivalRamping(startTimerSignal, exp, vTestOptions);
+                            }
+                            else if (seqName is "CAH_Cave_Handler" or "CAH_Thai_Handler" or "CAH_Lava_Handler")
+                            {
+                                VTestCapture.InstallCaptureRamping(exp, vTestOptions);
                             }
                             //else if (seqName == "Cap_And_Hold_Point")
                             //{
