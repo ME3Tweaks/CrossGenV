@@ -252,11 +252,14 @@ namespace CrossGenV.Classes
             // 08/23/2024 - Add package resynthesis for cleaner output
             if (vTestOptions.resynthesizePackages)
             {
-                foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir)
+                foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.RepresentsPackageFilePath()))
                              .Where(x => x.RepresentsPackageFilePath()))
                 {
                     var package = MEPackageHandler.OpenMEPackage(packagePath);
-                    PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache);
+                    vTestOptions.SetStatusText($"Resynthesizing package {package.FileNameNoExtension}");
+
+                    var newPackage = PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache);
+                    newPackage.Save();
                 }
             }
 
