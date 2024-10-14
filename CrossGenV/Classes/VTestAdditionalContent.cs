@@ -65,16 +65,16 @@ namespace CrossGenV.Classes
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Thai_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Thai_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SequenceReference_1", options);
-                    // TA
+                    SetupEnemyTypesTA(le1File, "TheWorld.PersistentLevel.Main_Sequence.TA_Thai_Handler.SequenceReference_1", options);
                     break;
                 case "BIOA_PRC2_CCLAVA_DSG":
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Lava_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.VAM_Lava_Handler.SequenceReference_1", options);
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.CAH_Lava_Handler.SequenceReference_1", options);
-                    // TA
+                    SetupEnemyTypesTA(le1File, "TheWorld.PersistentLevel.Main_Sequence.TA_Lava_Handler.SequenceReference_1", options);
                     break;
                 case "BIOA_PRC2_CCCRATE_DSG":
-                    // TA
+                    SetupEnemyTypesTA(le1File, "TheWorld.PersistentLevel.Main_Sequence.TA_Crate_Handler.SequenceReference_1", options);
                     break;
                 case "BIOA_PRC2_CCCAVE_DSG":
                     SetupEnemyTypes(le1File, "TheWorld.PersistentLevel.Main_Sequence.SUR_Cave_Handler.SequenceReference_1", options);
@@ -109,6 +109,34 @@ namespace CrossGenV.Classes
             foreach (var sl in spawnLists)
             {
                 KismetHelper.CreateVariableLink(spawnChanger, "SpawnLists", sl);
+            }
+        }
+
+        private static void SetupEnemyTypesTA(IMEPackage le1File, string hookupIFP, VTestOptions options)
+        {
+            // ObjectList -> Object
+            // Different 
+            var pawnLoad = le1File.FindExport(hookupIFP);
+            var sequence = KismetHelper.GetParentSequence(pawnLoad);
+
+            // Get all object lists in the sequence that have object types of BioPawnChallengeScaledType objects in them.
+            var spawnBPCST = KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().Where(x =>
+                    x.ClassName == "SeqVar_Object"
+                    && x.GetProperty<ObjectProperty>("ObjValue") is var objValue
+                    && objValue.Value > 0
+                    && le1File.GetUExport(objValue.Value) is ExportEntry bpcst
+                    && bpcst.ClassName == "BioPawnChallengeScaledType")
+                .ToList();
+
+            var spawnChanger = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, sequence.InstancedFullPath,
+                "HelperSequences.CrossgenUpdateSpawnsTA", options);
+
+            KismetHelper.InsertActionAfter(pawnLoad, "Cache pawns created", spawnChanger, 0, "Cached");
+            KismetHelper.CreateOutputLink(pawnLoad, "Cache pawns deleted", spawnChanger, 1);
+
+            foreach (var sl in spawnBPCST)
+            {
+                KismetHelper.CreateVariableLink(spawnChanger, "Spawns", sl);
             }
         }
 
