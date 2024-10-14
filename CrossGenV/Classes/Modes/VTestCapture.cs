@@ -205,8 +205,8 @@ namespace CrossGenV.Classes.Modes
             // INCREMENTING GATES
             var cappingCompletion = VTestKismet.GetSequenceObjectReferences(seq, "Check_Capping_Completion").FirstOrDefault();
 
-            var pmCheckTalents = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
-            var pmCheckMods = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+            var pmCheckTalents = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+            var pmCheckMods = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
 
             KismetHelper.SetComment(pmCheckTalents, "Crossgen: Talent ramping enabled?");
             KismetHelper.SetComment(pmCheckMods, "Crossgen: Weapon mod ramping enabled?");
@@ -284,7 +284,7 @@ namespace CrossGenV.Classes.Modes
         private static void InstallRespawnerActivations(ExportEntry seq, List<ExportEntry> newRespawners, VTestOptions vTestOptions)
         {
             var cappingCompletion = VTestKismet.GetSequenceObjectReferences(seq, "Check_Capping_Completion").FirstOrDefault();
-            var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT, vTestOptions.cache); // Gate behind ramping setting
+            var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, vTestOptions.cache); // Gate behind ramping setting
             KismetHelper.SetComment(pmCheck, "Crossgen: Spawn ramping enabled?");
 
             KismetHelper.CreateOutputLink(cappingCompletion, "Keep_Trying_Champo", pmCheck);

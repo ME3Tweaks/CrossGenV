@@ -206,7 +206,7 @@ namespace CrossGenV.Classes
                 Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1 )}, f =>
                 {
                     // Uncomment to filter for iteration
-                    //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
+                    //if (!f.Contains("thai", StringComparison.OrdinalIgnoreCase))
                     //    return;
 
                     if (f.GetUnrealLocalization() == MELocalization.None)
@@ -220,7 +220,7 @@ namespace CrossGenV.Classes
                 Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1) }, f =>
                 {
                     // Uncomment to filter for iteration
-                    //if (!f.Contains("lobby02_lay", StringComparison.OrdinalIgnoreCase))
+                    //if (!f.Contains("thai_dsg", StringComparison.OrdinalIgnoreCase))
                     //    return;
 
                     if (f.GetUnrealLocalization() != MELocalization.None)
@@ -253,7 +253,6 @@ namespace CrossGenV.Classes
             if (vTestOptions.resynthesizePackages)
             {
                 foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.RepresentsPackageFilePath()))
-                             .Where(x => x.RepresentsPackageFilePath()))
                 {
                     var package = MEPackageHandler.OpenMEPackage(packagePath);
                     vTestOptions.SetStatusText($"Resynthesizing package {package.FileNameNoExtension}");

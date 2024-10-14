@@ -28,8 +28,8 @@ namespace CrossGenV.Classes
         // Flag to indicate if mission completion exp should be rewarded
         public const int CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE_ENABLED = 7576;
 
-        // Flag to indicate if the amount of enemies should increase as time goes on. default = false = spawn count on
-        public const int CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_DISABLED = 7564;
+        // Flag to indicate if the amount of enemies should increase as time goes on
+        public const int CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED = 7564;
 
         // Flag to indicate if enemies should gain talents as time goes on
         public const int CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED = 7557;

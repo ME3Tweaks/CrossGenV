@@ -107,7 +107,7 @@ namespace CrossGenV.Classes.Modes
             {
                 current++;
                 var gate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
-                var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+                var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
                 KismetHelper.CreateOutputLink(gate, "Out", pmCheck, 0); // Gate to Initialize
                 KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close gate
 
