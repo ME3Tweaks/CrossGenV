@@ -87,6 +87,11 @@ namespace CrossGenV.Classes
         /// Name of the outlink to use on hookup
         /// </summary>
         public string OutLinkName { get; set; } = "Out";
+
+        /// <summary>
+        /// If a one frame delay should be added
+        /// </summary>
+        public bool TwoFrameDelay { get; set; }
     }
 
     /// <summary>
@@ -417,15 +422,15 @@ namespace CrossGenV.Classes
                     {
                         // Success
                         PackageFile = "BIOA_PRC2_CCMAIN_CONV",
-                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_13"
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_13",
+                        TwoFrameDelay = true,
                     },
                     new()
                     {
                         // Failure - fires after delay cause maybe some other level loaded is hiding ahern
                         PackageFile = "BIOA_PRC2_CCMAIN_CONV",
-                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_Delay_2",
-                        OutLinkName = "Finished"
-                        //HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_19"
+                        HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_19",
+                        TwoFrameDelay = true,
                     }
                 ]
                 // We use remote event for visibility
@@ -449,7 +454,9 @@ namespace CrossGenV.Classes
                 RemoteEventNamePrefix = "Standard",
                 TeleportSignals = [
                     // End of impressive work conversation (unlock ahern mission) -> teleport out of that location
-                    new() { PackageFile = "BIOA_PRC2_CCMAIN_CONV", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.Play_Ahern_Offers_Final_Mission_0.SeqAct_Toggle_1"}
+                    new() { PackageFile = "BIOA_PRC2_CCMAIN_CONV", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.Play_Ahern_Offers_Final_Mission_0.SeqAct_Toggle_1"},
+                    // End of match end cine
+                    new () { PackageFile = "BIOA_PRC2_CCMAIN_CONV", HookupIFP = "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_ToggleInput_1"}
                 ]
             },
             // Vidinos - Near Ocaren
@@ -680,6 +687,13 @@ throw new Exception("This must be fixed for release!");
             var seq = KismetHelper.GetParentSequence(hookup);
             var re = SequenceObjectCreator.CreateActivateRemoteEvent(seq, reName, options.cache);
             KismetHelper.InsertActionAfter(hookup, signal.OutLinkName, re, 0, "Out");
+
+            if (signal.TwoFrameDelay)
+            {
+                // Insert a two frame delay to allow kismet to finish execution before continuing. doing a 0.001f didn't seem to be enough.
+                var delay = SequenceObjectCreator.CreateDelay(seq, 0.32f, options.cache);
+                KismetHelper.InsertActionAfter(re, "Out", delay, 0, "Finished");
+            }
         }
 
         private static void FixupFindObjects(IMEPackage package, VTestOptions options)
