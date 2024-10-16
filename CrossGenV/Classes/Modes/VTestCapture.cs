@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
@@ -13,7 +14,8 @@ namespace CrossGenV.Classes.Modes
     {
         public static void AddCaptureEngagementSequencing(IMEPackage le1Package, VTestOptions options)
         {
-            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "BioAI_Charge", new RelinkerOptionsPackage() { Cache = options.cache });
+            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "BioAI_Charge",
+                new RelinkerOptionsPackage() { Cache = options.cache });
             foreach (var seq in le1Package.Exports.Where(x =>
                          x.ClassName == "Sequence").ToList())
             {
@@ -36,12 +38,13 @@ namespace CrossGenV.Classes.Modes
             switch (packageName)
             {
                 case "BIOA_PRR2_CCTHAI_DSG":
-                    {
-                        // Disconnect the logic for disabling enemies on capture start as we have changed it
+                {
+                    // Disconnect the logic for disabling enemies on capture start as we have changed it
                         var deactivateDefenders = le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SeqAct_Gate_6");
-                        KismetHelper.RemoveFromSequence(deactivateDefenders, true);
-                        break;
-                    }
+                        le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SeqAct_Gate_6");
+                    KismetHelper.RemoveFromSequence(deactivateDefenders, true);
+                    break;
+                }
             }
         }
 
@@ -74,10 +77,16 @@ namespace CrossGenV.Classes.Modes
             var captureDisengage = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "CaptureDisengage", options.cache);
             var randEngageSw = SequenceObjectCreator.CreateRandSwitch(seq, 2, options.cache);
             KismetHelper.SetComment(randEngageSw, "Force target to player");
-            var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceCombatTarget", options.cache);
+
+            var unlockTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_UnLockTarget", options.cache);
+            var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_LockTarget", options.cache);
+
+            KismetHelper.CreateVariableLink(unlockTarget, "Pawn", currentEnemy);
+
+            //var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceCombatTarget", options.cache);
             KismetHelper.CreateVariableLink(setTarget, "Pawn", currentEnemy);
             KismetHelper.CreateVariableLink(setTarget, "Target", player);
-            KismetHelper.CreateVariableLink(setTarget, "LockTarget", SequenceObjectCreator.CreateBool(seq, true, options.cache));
+            // KismetHelper.CreateVariableLink(setTarget, "LockTarget", SequenceObjectCreator.CreateBool(seq, true, options.cache));
 
             var currentState = SequenceObjectCreator.CreateBool(seq, false, options.cache);
             var trueState = SequenceObjectCreator.CreateBool(seq, true, options.cache);
@@ -104,7 +113,10 @@ namespace CrossGenV.Classes.Modes
             // AI Targets Player
             KismetHelper.CreateOutputLink(changeAiOnSignal, "Out", randEngageSw);
             KismetHelper.CreateOutputLink(changeAiOnSpawn, "Out", randEngageSw);
-            KismetHelper.CreateOutputLink(randEngageSw, "Link 1", setTarget);
+            KismetHelper.CreateOutputLink(randEngageSw, "Link 1", unlockTarget);
+            KismetHelper.CreateOutputLink(randEngageSw, "Link 2", unlockTarget); // TEST: 100%
+
+            KismetHelper.CreateOutputLink(unlockTarget, "Success", setTarget);
 
 
             // Engage
@@ -134,8 +146,8 @@ namespace CrossGenV.Classes.Modes
 #endif
         }
 
-        // Capture only supports 3 additional enemies since the final point won't matter
-        private static readonly int MaxEnemyRampCount = 3;
+        // Capture supports up to 3 waves as there are max 4 spawn points and only the 4th one will matter
+        private static readonly int MaxEnemyRampCount = 6; // 1 + 2 + 3
 
         /// <summary>
         /// CAPTURE ONLY - Clones respawners, activating one at a time on capture completion if the option is turned on.
@@ -281,9 +293,28 @@ namespace CrossGenV.Classes.Modes
             return newRespawners;
         }
 
+        private static void InstallCaptureRespawnDivisor(ExportEntry cappingCompletion, VTestOptions vTestOptions)
+        {
+            var seq = KismetHelper.GetParentSequence(cappingCompletion);
+
+            List<ExportEntry> respawnTimes = new List<ExportEntry>();
+            respawnTimes.Add(SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "Path_Guy_Respawn_Time", vTestOptions.cache));
+            respawnTimes.Add(SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "Defender_Respawn_Time", vTestOptions.cache));
+
+            foreach (var rt in respawnTimes)
+            {
+                var divide = SequenceObjectCreator.CreateDivideFloat(seq, rt, SequenceObjectCreator.CreateFloat(seq, 2f, vTestOptions.cache), rt, cache: vTestOptions.cache);
+                KismetHelper.CreateOutputLink(cappingCompletion, "Keep_Trying_Champo", divide);
+                KismetHelper.SetComment(divide, "Divide respawn time in half to make enemies populate faster");
+            }
+        }
+
         private static void InstallRespawnerActivations(ExportEntry seq, List<ExportEntry> newRespawners, VTestOptions vTestOptions)
         {
             var cappingCompletion = VTestKismet.GetSequenceObjectReferences(seq, "Check_Capping_Completion").FirstOrDefault();
+
+            InstallCaptureRespawnDivisor(cappingCompletion, vTestOptions);
+
             var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, vTestOptions.cache); // Gate behind ramping setting
             KismetHelper.SetComment(pmCheck, "Crossgen: Spawn ramping enabled?");
 
@@ -292,27 +323,31 @@ namespace CrossGenV.Classes.Modes
             ExportEntry lastGate = pmCheck;
             string lastOutlink = "True";
 
-            var idx = 1;
-            foreach (var respawner in newRespawners)
+            var amountInWave = 1;
+            var linkThroughIndex = 0;
+            for (int i = 0; i < newRespawners.Count; i += amountInWave - 1) // -1 to account for the +1 we do at the end
             {
+                Debug.WriteLine($"Wave: {amountInWave}");
                 var gateBool = SequenceObjectCreator.CreateBool(seq, false, vTestOptions.cache);
                 var checkBool = SequenceObjectCreator.CreateCompareBool(seq, gateBool, vTestOptions.cache);
-                KismetHelper.SetComment(checkBool, $"Has been activated (Enemy {idx})?");
+                KismetHelper.SetComment(checkBool, $"Has been activated (Ramping wave {amountInWave})?");
                 var setBool = SequenceObjectCreator.CreateSetBool(seq, gateBool, SequenceObjectCreator.CreateBool(seq, true, vTestOptions.cache), vTestOptions.cache);
-                KismetHelper.SetComment(checkBool, $"Set has been activated true (Enemy {idx})?");
+                KismetHelper.SetComment(setBool, $"Set has been activated true (Ramping wave {amountInWave})");
 
                 KismetHelper.CreateOutputLink(lastGate, lastOutlink, checkBool); // Link last into ours
                 KismetHelper.CreateOutputLink(checkBool, "False", setBool); // Link logic up for this activation
-                KismetHelper.CreateOutputLink(setBool, "Out", respawner, 1); // Link logic up for this activation
-                KismetHelper.CreateOutputLink(cappingCompletion, "Completed", respawner, 2); // Deactivate on completion
 
+                for (var numDone = 0; numDone < amountInWave; numDone++)
+                {
+                    var respawner = newRespawners[numDone + i];
+                    KismetHelper.CreateOutputLink(setBool, "Out", respawner, 1); // Link logic up for this activation
+                    KismetHelper.CreateOutputLink(cappingCompletion, "Completed", respawner, 2); // Deactivate on completion
+                }
 
                 lastGate = checkBool;
                 lastOutlink = "True";
-                idx++;
+                amountInWave++;
             }
-
-
         }
     }
 }
