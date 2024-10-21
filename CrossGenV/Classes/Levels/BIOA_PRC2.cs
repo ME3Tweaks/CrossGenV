@@ -26,7 +26,7 @@ namespace CrossGenV.Classes.Levels
             VTestUtility.AddWorldReferencedObjects(le1File, le1File.FindExport("DVDStreamingAudioData.PC.snd_prc1_music")); // This must stay in memory for the music 2DA to work for PRC1 audio
 
             FixGethPulseGunVFX();
-            
+
             FixBlockingLevelLoads();
 
             // Level Load Blocking Texture Streaming
@@ -60,6 +60,31 @@ namespace CrossGenV.Classes.Levels
             }
 
             AddGlobalVariables();
+
+            // 10/17/2024 - Disallow player running until simulator starts to prevent them getting to POIs before gamemode begins
+            DisableRunUntilMatchStart();
+
+            // 10/19/2024 - Install AI classes into persistent level so we can reference them as imports
+            VTestAI.GenerateAIClasses(le1File, vTestOptions);
+
+            // Inventory package, as we will be importing out of this package.
+            VTestExperiment.InventoryPackage(le1File, vTestOptions);
+        }
+
+
+        private void DisableRunUntilMatchStart()
+        {
+            var ple = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Play_Loading_Effect");
+            var disallowRun = SequenceObjectCreator.CreateSeqEventRemoteActivated(ple, "DisallowRunning", vTestOptions.cache);
+            var allowRun = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Play_Loading_Effect.SeqEvent_RemoteEvent_0");// Play_Loading_Effect triggers, sim starts
+            var delay = SequenceObjectCreator.CreateDelay(ple, 3.5f, vTestOptions.cache);
+            var seq = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence.Play_Loading_Effect", "HelperSequences.PlayerStormController", vTestOptions);
+
+            // There's a delay in the loading VFX so we must add a delay
+
+            KismetHelper.CreateOutputLink(allowRun, "Out", delay, 0);
+            KismetHelper.CreateOutputLink(delay, "Finished", seq, 0);
+            KismetHelper.CreateOutputLink(disallowRun, "Out", seq, 1);
         }
 
         private void FixGethPulseGunVFX()
