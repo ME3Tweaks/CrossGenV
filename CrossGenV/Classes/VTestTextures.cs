@@ -8,17 +8,40 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
+using LegendaryExplorerCore.Kismet;
 
 namespace CrossGenV.Classes
 {
     /// <summary>
-    /// Handles externalization of textures for CrossGenV
+    /// Handles textures for CrossGenV
     /// </summary>
     public static class VTestTextures
     {
+        /// <summary>
+        /// Forces textures to stream in around the player for 10 seconds
+        /// </summary>
+        public static void InstallPrepTextures(IMEPackage package, VTestOptions vTestOptions)
+        {
+            var mainSeq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            if (mainSeq == null)
+                return; // Not a level
+            var remoteEvent = SequenceObjectCreator.CreateSeqEventRemoteActivated(mainSeq, "CROSSGEN_PrepTextures");
+            var player = SequenceObjectCreator.CreatePlayerObject(mainSeq, true, vTestOptions.cache);
+            var sin = SequenceObjectCreator.CreateStreamInTextures(mainSeq, location: player, cache: vTestOptions.cache); // We use the player location actor. We want to stream in location not mesh.
+            // No way to set distance factor, so guess this will have to do...
+
+            sin.WriteProperty(new IntProperty(10, "Seconds"));
+
+            List<IEntry> materialsInLevel = new List<IEntry>();
+            materialsInLevel.AddRange(package.Exports.Where(x => !x.IsDefaultObject && x.IsA("MaterialInterface")));
+            materialsInLevel.AddRange(package.Imports.Where(x => !x.ObjectNameString.StartsWith("Default__") && x.IsA("MaterialInterface")));
+
+            sin.WriteProperty(new ArrayProperty<ObjectProperty>(materialsInLevel.Select(x=>new ObjectProperty(x)), "ForceMaterials"));
+
+            KismetHelper.CreateOutputLink(remoteEvent, "Out", sin);
+        }
+
 
         /// <summary>
         /// Moves textures that can be TFC stored out of a package and into a TFC for performance. This creates a new TFC file, it will wipe out existing!!
