@@ -32,8 +32,15 @@ namespace CrossGenV.Classes.Levels
                 "BIOA_PRC2_CCTHAI_DSG" => MakeLevel<BIOA_PRC2_CC_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCTHAI_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
 
+                "BIOA_PRC2_CCAIRLOCK" => MakeLevel<BIOA_PRC2_CCAirlock>(me1Package, le1Package, options),
+
+
                 "BIOA_PRC2_CCMAIN_CONV" => MakeLevel<BIOA_PRC2_CCMAIN_CONV>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCMID_ART" => MakeLevel<BIOA_PRC2_CCMID_ART>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCMID01_LAY" => MakeLevel<BIOA_PRC2_CCMID01_LAY>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCMID02_LAY" => MakeLevel<BIOA_PRC2_CCMID02_LAY>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCMID04_LAY" => MakeLevel<BIOA_PRC2_CCMID04_LAY>(me1Package, le1Package, options),
+
                 "BIOA_PRC2_CCSCOREBOARD_DSG" => MakeLevel<BIOA_PRC2_CCScoreboard_DSG>(me1Package, le1Package, options),
 
                 "BIOA_PRC2_CCSIM" => MakeLevel<BIOA_PRC2_CCSIM>(me1Package, le1Package, options),
