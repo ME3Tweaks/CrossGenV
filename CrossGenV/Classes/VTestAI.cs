@@ -11,13 +11,9 @@ namespace CrossGenV.Classes
     /// </summary>
     public static class VTestAI
     {
-        private static object syncObj = new object();
-
-
-        public static IMEPackage GenerateAIClassPackage(VTestOptions options)
+        public static IMEPackage GenerateAIClasses(IMEPackage package, VTestOptions options)
         {
             options.SetStatusText("Compiling CrossgenAI classes");
-            var package = MEPackageHandler.CreateAndOpenPackage(Path.Combine(VTestPaths.VTest_FinalDestDir,@"CrossgenAI.pcc"), MEGame.LE1);
             var cggc = ExportCreator.CreatePackageExport(package, "Crossgen_GameContent", cache: options.cache);
 
             var classesToSub = LE1UnrealObjectInfo.ObjectInfo.Classes.Where(x => x.Value.IsA("BioAiController", MEGame.LE1));
