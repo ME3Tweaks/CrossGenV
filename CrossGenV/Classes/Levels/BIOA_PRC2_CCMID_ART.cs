@@ -9,6 +9,11 @@ namespace CrossGenV.Classes.Levels
         public IMEPackage le1File { get; init; }
         public VTestOptions vTestOptions { get; init; }
 
+        public void PrePortingCorrection()
+        {
+            VTestPreCorrections.SetupForWindowMaterialDonor(me1File);
+        }
+
         public void PostPortingCorrection()
         {
             // Brighten up the corners that are dead ends
@@ -26,6 +31,8 @@ namespace CrossGenV.Classes.Levels
                 props.GetProp<StructProperty>("LightingChannels").Properties.AddOrReplaceProp(new BoolProperty(true, "CompositeDynamic"));
                 cornerLight.WriteProperties(props);
             }
+
+            VTestPostCorrections.AddCustomShader(le1File, "BIOA_PRC2_S.BIOA_PRC2_PortWindow_CROSSGEN");
         }
     }
 }
