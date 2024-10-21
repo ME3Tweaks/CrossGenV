@@ -20,6 +20,17 @@ namespace CrossGenV.Classes
     /// </summary>
     public static class VTestPreCorrections
     {
+        /// <summary>
+        /// 10/20/2024 - NaNuke made donor for windows to return distortion effect
+        /// </summary>
+        public static void SetupForWindowMaterialDonor(IMEPackage me1Package)
+        {
+            // 10/20/2024 - NaNuke made shader for windows
+            // Changen ame so it picks up different material donor
+            var portWindow = me1Package.FindExport("BIOA_PRC2_S.BIOA_PRC2_PortWindow");
+            portWindow.ObjectName = "BIOA_PRC2_PortWindow_CROSSGEN";
+        }
+
         public static void PrePortingCorrections(IMEPackage me1Package, IMEPackage le1Package, VTestOptions vTestOptions)
         {
             // 10/14/24 - All level specific corrections have been moved to their own classes in the Levels folder.
