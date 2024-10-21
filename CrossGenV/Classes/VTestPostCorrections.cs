@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using LegendaryExplorerCore.Kismet;
 
 namespace CrossGenV.Classes
 {
@@ -76,10 +77,16 @@ namespace CrossGenV.Classes
             vTestOptions.SetStatusText($"PPC (Ahern Conversation)");
             FixAhernConversation(le1File, vTestOptions);
 
+            // 10/19/2024 - Stream in all materials when map load signal occurs
+            vTestOptions.SetStatusText($"PPC (StreamInTextures)");
+            VTestTextures.InstallPrepTextures(le1File, vTestOptions);
+
             // Disabled 08/18/2024 - Do not use assets for optimization as we now rebake lighting
             //vTestOptions.SetStatusText($"PPC (Optimization)");
             //PortME1OptimizationAssets(me1File, le1File, vTestOptions);
 
+            // 10/19/2024 - Remove incompatible properties on sequence objects as it prevents script compiler from working
+            CorrectSequenceOpProperties(le1File, vTestOptions);
 
             vTestOptions.SetStatusText($"PPC (LEVEL SPECIFIC)");
             // Global lighting changes
@@ -140,6 +147,70 @@ namespace CrossGenV.Classes
                 LevelTools.RebuildPersistentLevelChildren(level);
             }
             //CorrectTriggerStreamsMaybe(me1File, le1File);
+        }
+
+        private static void CorrectSequenceOpProperties(IMEPackage package, VTestOptions options)
+        {
+            bool prunedTransient = false;
+
+            foreach (var instancedDefaults in package.Exports.Where(x => x.IsA("SequenceOp")))
+            {
+                // This gets class defaults as well as instances of the class, but not the class itself, which is exactly what we want.
+
+                var props = instancedDefaults.GetProperties();
+
+                var inputLinks = props.GetProp<ArrayProperty<StructProperty>>("InputLinks")?.Properties;
+                var variableLinks = props.GetProp<ArrayProperty<StructProperty>>("VariableLinks");
+                var outputLinks = props.GetProp<ArrayProperty<StructProperty>>("OutputLinks");
+                var eventLinks = props.GetProp<ArrayProperty<StructProperty>>("EventLinks");
+
+                bool pruned = false;
+                if (inputLinks != null)
+                {
+                    foreach (var link in inputLinks)
+                    {
+                        link.Properties = EntryPruner.RemoveIncompatibleProperties(package, link.Properties, "SeqOpInputLink", MEGame.LE1, ref prunedTransient);
+                        pruned |= prunedTransient;
+                    }
+                }
+
+                if (variableLinks != null)
+                {
+                    foreach (var link in variableLinks)
+                    {
+                        link.Properties = EntryPruner.RemoveIncompatibleProperties(package, link.Properties, "SeqVarLink", MEGame.LE1, ref prunedTransient);
+                        pruned |= prunedTransient;
+                    }
+                }
+
+                if (outputLinks != null)
+                {
+                    foreach (var link in outputLinks)
+                    {
+                        link.Properties = EntryPruner.RemoveIncompatibleProperties(package, link.Properties, "SeqOpOutputLink", MEGame.LE1, ref prunedTransient);
+                        pruned |= prunedTransient;
+                    }
+                }
+
+                if (eventLinks != null)
+                {
+                    foreach (var link in eventLinks)
+                    {
+                        link.Properties = EntryPruner.RemoveIncompatibleProperties(package, link.Properties, "SeqEventLink", MEGame.LE1, ref prunedTransient);
+                        pruned |= prunedTransient;
+                    }
+                }
+
+                if (prunedTransient)
+                {
+                    instancedDefaults.WriteProperties(props);
+                }
+            }
+
+            if (prunedTransient)
+            {
+                options.SetStatusText("PPC (Pruned incompatible properties)");
+            }
         }
 
         // ME1 -> LE1 Prefab's Sequence class was changed to a subclass. No different props though.
@@ -660,6 +731,14 @@ namespace CrossGenV.Classes
             }
         }
 
+        public static void DisallowRunningUntilModeStarts(IMEPackage le1File, VTestOptions vTestOptions)
+        {
+            var mainSeq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(mainSeq, vTestOptions.cache);
+            var remoteEvent = SequenceObjectCreator.CreateActivateRemoteEvent(mainSeq, "DisallowRunning", vTestOptions.cache);
+            KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", remoteEvent);
+        }
+
         private static void FixAhernConversation(IMEPackage le1File, VTestOptions vTestOptions)
         {
 
@@ -726,6 +805,28 @@ namespace CrossGenV.Classes
                     new StringRefProperty(183458, "srParaphrase")));
             }
             ahernConv.WriteProperties(properties);
+        }
+
+        private static object _shaderDonorSync = new();
+
+        /// <summary>
+        /// Installs a custom shader from a donor package
+        /// </summary>
+        /// <param name="le1File"></param>
+        public static void AddCustomShader(IMEPackage le1File, string ifp)
+        {
+            // We will port out of existing package. We lock to prevent concurrent load
+            IMEPackage donorPackage = null;
+            lock (_shaderDonorSync)
+            {
+                donorPackage = MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_DonorsDir, $"{ifp}.pcc"));
+            }
+
+            var source = donorPackage.FindExport(ifp);
+            var target = le1File.FindExport(ifp);
+
+            // Just replace with same data. It should trigger a ShaderCache update
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.ReplaceSingularWithRelink, source, le1File, target, true, new RelinkerOptionsPackage(), out _);
         }
     }
 }
