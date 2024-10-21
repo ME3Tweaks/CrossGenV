@@ -61,7 +61,8 @@ namespace CrossGenV.Classes.Levels
                     FixGethFlashlights(exp, vTestOptions);
                     // Increase survival mode engagement by forcing the player to engage with enemies that charge the player.
                     // This prevents them from camping and getting free survival time
-                    if (VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Respawner") && !VTestKismet.IsContainedWithinSequenceNamed(exp, "CAH_Respawner")) // Might force on CAH too since it's not that engaging.
+                    // This also covers CAH
+                    if (VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Respawner"))
                     {
                         // Sequence objects + add to sequence
                         var crustAttach = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_AttachCrustEffect", 5920, 1672);
@@ -98,14 +99,14 @@ namespace CrossGenV.Classes.Levels
 
 
                         // CHARGE AI BRANCH
-                        var chargeAiClass = EntryImporter.EnsureClassIsInFile(le1File, "BioAI_Charge", new RelinkerOptionsPackage() { Cache = vTestOptions.cache });
+                        var chargeAiClass = EntryImporter.EnsureClassIsInFile(le1File, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
                         changeAiCharge.WriteProperty(new ObjectProperty(chargeAiClass, "ControllerClass"));
-                        KismetHelper.SetComment(chargeAiLog, "CROSSGEN: Engaging player with BioAI_Charge");
+                        KismetHelper.SetComment(chargeAiLog, "CROSSGEN: Engaging player with CrossgenAI_Charge");
 
                         // ASSAULT AI BRANCH
-                        var assaultAiClass = EntryImporter.EnsureClassIsInFile(le1File, "BioAI_Assault", new RelinkerOptionsPackage() { Cache = vTestOptions.cache });
+                        var assaultAiClass = EntryImporter.EnsureClassIsInFile(le1File, "CrossgenAI_Assault", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
                         changeAiAssault.WriteProperty(new ObjectProperty(assaultAiClass, "ControllerClass"));
-                        KismetHelper.SetComment(assaultAiLog, "CROSSGEN: Relaxing player engagement with BioAI_Assault");
+                        KismetHelper.SetComment(assaultAiLog, "CROSSGEN: Relaxing player engagement with CrossgenAI_Assault");
 
                         // ASSAULT CHANCE - 1 in 4 chance
                         aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
@@ -144,7 +145,14 @@ namespace CrossGenV.Classes.Levels
                         KismetHelper.CreateVariableLink(setWeaponAttributes, "Toxic Factor", toxicFactor);
                         KismetHelper.CreateVariableLink(setWeaponAttributes, "Phasic Factor", phasicFactor);
 
-                        exp.WriteProperty(new StrProperty("Spawn_Single_Guy_SUR", "ObjName"));
+                        if (VTestKismet.IsContainedWithinSequenceNamed(exp, "CAH_Respawner"))
+                        {
+                            exp.WriteProperty(new StrProperty("Spawn_Single_Guy_CAH", "ObjName"));
+                        }
+                        else
+                        {
+                            exp.WriteProperty(new StrProperty("Spawn_Single_Guy_SUR", "ObjName"));
+                        }
                         VTestAdditionalContent.InstallTalentRamping(crustAttach, "Done", vTestOptions);
                         VTestAdditionalContent.InstallPowerRamping(crustAttach, "Done", vTestOptions);
                     }
