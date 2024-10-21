@@ -14,8 +14,7 @@ namespace CrossGenV.Classes.Modes
     {
         public static void AddCaptureEngagementSequencing(IMEPackage le1Package, VTestOptions options)
         {
-            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "BioAI_Charge",
-                new RelinkerOptionsPackage() { Cache = options.cache });
+            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = options.cache });
             foreach (var seq in le1Package.Exports.Where(x =>
                          x.ClassName == "Sequence").ToList())
             {
@@ -174,7 +173,7 @@ namespace CrossGenV.Classes.Modes
             }
 
             // Subdivide into ramp chunks
-            var chanceInc = SequenceObjectCreator.CreateFloat(seq, 1.0f / MaxEnemyRampCount + 1, vTestOptions.cache);
+            var chanceInc = SequenceObjectCreator.CreateFloat(seq, 1.0f / (MaxEnemyRampCount + 1), vTestOptions.cache);
             KismetHelper.SetComment(chanceInc, "Chance increment");
 
             var countInc = SequenceObjectCreator.CreateInt(seq, 1, vTestOptions.cache);
