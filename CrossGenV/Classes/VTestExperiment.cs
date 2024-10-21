@@ -129,18 +129,7 @@ namespace CrossGenV.Classes
                         vTestOptions.SetStatusText($@"Inventorying VTestHelper");
                         vTestOptions.vTestHelperPackage = MEPackageHandler.OpenMEPackage(file, forceLoadFromDisk: true); // Do not put into cache
 
-                        // Inventory the classes from vtest helper to ensure they can be created without having to be in the 
-                        // code for LEC
-                        var vTestSeqObjClasses = vTestOptions.vTestHelperPackage.Exports.Where(x =>
-                            x.IsClass && x.InheritsFrom("SequenceObject")).ToList();
-                        foreach (var e in vTestSeqObjClasses)
-                        {
-                            var classInfo = GlobalUnrealObjectInfo.generateClassInfo(e);
-                            var defaults = vTestOptions.vTestHelperPackage.GetUExport(ObjectBinary.From<UClass>(e).Defaults);
-                            vTestOptions.SetStatusText($@"  Inventorying class {e.InstancedFullPath}");
-                            GlobalUnrealObjectInfo.GenerateSequenceObjectInfoForClassDefaults(defaults);
-                            GlobalUnrealObjectInfo.InstallCustomClassInfo(e.ObjectName, classInfo, e.Game);
-                        }
+                        InventoryPackage(vTestOptions.vTestHelperPackage, vTestOptions);
                     }
                     else
                     {
@@ -190,9 +179,6 @@ namespace CrossGenV.Classes
             }
 
             vTestOptions.SetStatusText("Running VTest");
-
-            // VTest - Compile AI classes
-            vTestOptions.vTestAIPackage = VTestAI.GenerateAIClassPackage(vTestOptions);
 
             // VTest File Loop ---------------------------------------
             var rootCache = vTestOptions.cache;
@@ -328,6 +314,30 @@ namespace CrossGenV.Classes
                     destPackage.AdditionalPackagesToCook.AddRange(File.ReadAllLines(Path.Combine(VTestPaths.VTest_StaticLightingDir, "SLLevels-PRC2AA.txt")).Where(x => x.GetUnrealLocalization() == MELocalization.None));
                     destPackage.Save();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Inventories classes in a package and puts them into the class database
+        /// </summary>
+        /// <param name="package"></param>
+        /// <param name="options"></param>
+        public static void InventoryPackage(IMEPackage package, VTestOptions options)
+        {
+            // Inventory the classes from vtest helper to ensure they can be created without having to be in the 
+            // code for LEC
+            var vTestSeqObjClasses = package.Exports.Where(x => x.IsClass).ToList();
+            foreach (var e in vTestSeqObjClasses)
+            {
+                var classInfo = GlobalUnrealObjectInfo.generateClassInfo(e);
+                options.SetStatusText($@"  Inventorying class {e.InstancedFullPath}");
+                if (e.InheritsFrom("SequenceObject"))
+                {
+                    var defaults = e.GetDefaults();
+                    GlobalUnrealObjectInfo.GenerateSequenceObjectInfoForClassDefaults(defaults);
+                }
+
+                GlobalUnrealObjectInfo.InstallCustomClassInfo(e.ObjectName, classInfo, e.Game);
             }
         }
 
