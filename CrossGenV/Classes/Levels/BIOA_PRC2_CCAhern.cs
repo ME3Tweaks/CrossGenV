@@ -15,6 +15,9 @@ namespace CrossGenV.Classes.Levels
                 VTestTerrain.PortInCorrectedTerrain(me1File, le1File, "CCAHERN.Terrain_1", "BIOA_LAV60_00_LAY.pcc", vTestOptions);
                 VTestTerrain.CorrectTerrainSetup(me1File, le1File, vTestOptions);
             }
+
+            // Don't allow running until wipe effect
+            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
         }
     }
 }

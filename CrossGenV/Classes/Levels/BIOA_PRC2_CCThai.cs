@@ -14,5 +14,11 @@ namespace CrossGenV.Classes.Levels
             var matFixObject01 = me1File.FindExport("BIOA_JUG40_S.jug40_Object01");
             matFixObject01.ObjectName = "jug40_Object01_Crossgen";
         }
+
+        public void PostPortingCorrection()
+        {
+            // Don't allow running until wipe effect
+            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
+        }
     }
 }

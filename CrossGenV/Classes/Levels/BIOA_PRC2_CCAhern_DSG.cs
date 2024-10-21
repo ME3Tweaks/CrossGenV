@@ -70,7 +70,7 @@ namespace CrossGenV.Classes.Levels
 
             // Fix the AI to actually charge. For some reason they don't, maybe AI changed internally when going to LE1
             var root = le1File.FindExport("BIOA_PRC2_SIM_C.Mercenary");
-            var chargeAi = EntryImporter.EnsureClassIsInFile(le1File, "BioAI_Charge", new RelinkerOptionsPackage() { Cache = vTestOptions.cache });
+            var chargeAi = EntryImporter.EnsureClassIsInFile(le1File, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
             foreach (var exp in le1File.Exports.Where(x => x.idxLink == root.UIndex))
             {
                 if (!exp.ObjectName.Name.Contains("Sniper"))

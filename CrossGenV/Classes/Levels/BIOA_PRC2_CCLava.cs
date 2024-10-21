@@ -61,8 +61,12 @@ namespace CrossGenV.Classes.Levels
                     tc.WriteBinary(tcBin);
                 }
 
-                VTestKismet.CreateSignaledTextureStreaming(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence"), VTestMaterial.cclavaTextureStreamingMaterials, vTestOptions);
+                // 10/19/2024 - Comment out as we moved this to all materials in all levels.
+                // VTestKismet.CreateSignaledTextureStreaming(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence"), VTestMaterial.cclavaTextureStreamingMaterials, vTestOptions);
             }
+
+            // Don't allow running until wipe effect
+            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
         }
     }
 }

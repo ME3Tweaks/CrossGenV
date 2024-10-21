@@ -23,6 +23,9 @@ namespace CrossGenV.Classes.Levels
             var rotation = fb2.GetProperty<StructProperty>("Rotation");
             rotation.Properties.AddOrReplaceProp(new FloatProperty(0f, "Pitch"));
             fb2.WriteProperty(rotation);
+
+            // Don't allow running until wipe effect
+            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
         }
     }
 }
