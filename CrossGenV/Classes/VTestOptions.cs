@@ -100,10 +100,6 @@ namespace CrossGenV.Classes
         #region Autoset options - Do not change these
         public IMEPackage vTestHelperPackage;
         
-        /// <summary>
-        /// Contains dynamic-built AI classes
-        /// </summary>
-        public IMEPackage vTestAIPackage;
         public ObjectInstanceDB objectDB;
         public IMEPackage assetCachePackage;
         internal int assetCacheIndex;
