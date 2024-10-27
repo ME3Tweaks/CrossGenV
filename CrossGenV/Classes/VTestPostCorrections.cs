@@ -813,17 +813,23 @@ namespace CrossGenV.Classes
         /// Installs a custom shader from a donor package
         /// </summary>
         /// <param name="le1File"></param>
-        public static void AddCustomShader(IMEPackage le1File, string ifp)
+        public static void AddCustomShader(IMEPackage le1File, string materialIfp)
         {
+            var target = le1File.FindExport(materialIfp);
+            if (target == null)
+            {
+                Debug.WriteLine("Target material not found, this may be normal.");
+                return;
+            }
+
             // We will port out of existing package. We lock to prevent concurrent load
             IMEPackage donorPackage = null;
             lock (_shaderDonorSync)
             {
-                donorPackage = MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_DonorsDir, $"{ifp}.pcc"));
+                donorPackage = MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_DonorsDir, $"{materialIfp}.pcc"));
             }
 
-            var source = donorPackage.FindExport(ifp);
-            var target = le1File.FindExport(ifp);
+            var source = donorPackage.FindExport(materialIfp);
 
             // Just replace with same data. It should trigger a ShaderCache update
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.ReplaceSingularWithRelink, source, le1File, target, true, new RelinkerOptionsPackage(), out _);

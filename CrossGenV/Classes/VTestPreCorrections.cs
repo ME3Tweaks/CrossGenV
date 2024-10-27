@@ -26,7 +26,7 @@ namespace CrossGenV.Classes
         public static void SetupForWindowMaterialDonor(IMEPackage me1Package)
         {
             // 10/20/2024 - NaNuke made shader for windows
-            // Changen ame so it picks up different material donor
+            // Change name so it picks up different material donor
             var portWindow = me1Package.FindExport("BIOA_PRC2_S.BIOA_PRC2_PortWindow");
             portWindow.ObjectName = "BIOA_PRC2_PortWindow_CROSSGEN";
         }
