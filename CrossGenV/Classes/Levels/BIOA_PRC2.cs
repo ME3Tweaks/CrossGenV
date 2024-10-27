@@ -67,6 +67,9 @@ namespace CrossGenV.Classes.Levels
             // 10/19/2024 - Install AI classes into persistent level so we can reference them as imports
             VTestAI.GenerateAIClasses(le1File, vTestOptions);
 
+            // 10/24/2024 - Add trailer cameras. We will leave this in compiled build in case someone wants to use it for something as well
+            VTestPromotional.AddTrailerCameras(le1File, vTestOptions);
+
             // Inventory package, as we will be importing out of this package.
             VTestExperiment.InventoryPackage(le1File, vTestOptions);
         }
