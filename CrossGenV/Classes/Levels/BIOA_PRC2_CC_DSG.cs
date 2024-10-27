@@ -1,11 +1,9 @@
 ﻿using CrossGenV.Classes.Modes;
-using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
-using System;
 using System.Diagnostics;
 using System.Linq;
 
@@ -26,7 +24,188 @@ namespace CrossGenV.Classes.Levels
             "BIOG_GTH_STP_NKD_R.NKDa.GTH_STP_NKDa_MDL", // Geth Prime
         };
 
-        public void PostPortingCorrection()
+        public virtual void PostPortingCorrection()
+        {
+            SharedPostPortingCorrection();
+        }
+
+        /// <summary>
+        /// Sets up the capture ring changes that changes ring over caputre time
+        /// </summary>
+        /// <param name="mapName"></param>
+        public void SetCaptureRingChanger(string mapName)
+        {
+            foreach (var seq in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
+            {
+                var seqName = VTestKismet.GetSequenceName(seq);
+                if (seqName == "Cap_And_Hold_Point" && VTestKismet.IsContainedWithinSequenceNamed(seq, $"CAH_{mapName}_Handler"))
+                {
+                    var initHook = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", -1424,2872);
+
+                    var percentCalc = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_ScalarMathUnit", 2832, 3216);
+                    var percent = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Float", 2920, 3304);
+                    var ring = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_External", 1000, 4104);
+
+                    var capping = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_RingCapping", vTestOptions.cache);
+
+                    // Reset
+                    KismetHelper.CreateOutputLink(initHook, "Out", capping);
+                    
+                    // Update
+                    KismetHelper.CreateOutputLink(percentCalc, "Out", capping, 1);
+                    KismetHelper.CreateVariableLink(capping, "Ring", ring);
+                    KismetHelper.CreateVariableLink(capping, "Completion", percent);
+                    continue;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Disables saving the game while in the simulator
+        /// </summary>
+        /// <param name="le1File"></param>
+        /// <param name="vTestOptions"></param>
+        public static void PreventSavingOnSimLoad(IMEPackage le1File, VTestOptions vTestOptions)
+        {
+            // Debug builds allow you to save the game RIGHT before you draw your weapon. This makes it much easier to debug levels
+            // Todo: Remove this true block once all levels are verified save preventing and then save-enabled once map exit
+            if (!vTestOptions.debugBuild)
+            {
+                var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+                var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(seq, vTestOptions.cache);
+                var preventSave = SequenceObjectCreator.CreateToggleSave(seq, SequenceObjectCreator.CreateBool(seq, false), vTestOptions.cache);
+                KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", preventSave);
+            }
+        }
+
+        /// <summary>
+        /// Calls the reset ramping remote event
+        /// </summary>
+        /// <param name="le1File"></param>
+        /// <param name="vTestOptions"></param>
+        public static void ResetRamping(IMEPackage le1File, VTestOptions vTestOptions)
+        {
+            var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var loaded = KismetHelper.GetAllSequenceElements(seq).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "SeqEvent_LevelLoaded");
+            loaded ??= SequenceObjectCreator.CreateLevelLoaded(seq, vTestOptions.cache);
+            var re = SequenceObjectCreator.CreateActivateRemoteEvent(seq, "CG_RESET_RAMPING", vTestOptions.cache);
+
+            // We do both Loaded and Visible and Out because the first LevelLoaded we find may be either, since OT used Out and LE uses Loaded and Visible - both seem to work, as they are on outlink 0.
+            KismetHelper.CreateOutputLink(loaded, "Loaded and Visible", re);
+            KismetHelper.CreateOutputLink(loaded, "Out", re);
+
+        }
+
+        public static void FixGethFlashlights(ExportEntry sequence, VTestOptions vTestOptions)
+        {
+            // Custom class by Kinkojiro to add and un-add the flashlight VFX
+            var actorFactoryWithOwner = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqAct_ActorFactoryWithOwner");
+            var attachFL = SequenceObjectCreator.CreateSequenceObject(sequence.FileRef, "LEXSeqAct_AttachGethFlashLight", vTestOptions.cache);
+            var deattachFL = SequenceObjectCreator.CreateSequenceObject(sequence.FileRef, "LEXSeqAct_AttachGethFlashLight", vTestOptions.cache);
+            KismetHelper.AddObjectsToSequence(sequence, false, attachFL, deattachFL);
+
+            // ATTACH FLASHLIGHT
+            {
+                var outLinksFactory = KismetHelper.GetOutputLinksOfNode(actorFactoryWithOwner);
+                var originalOutlink = outLinksFactory[0][2].LinkedOp;
+                outLinksFactory[0][2].LinkedOp = attachFL; // repoint to attachFL
+                KismetHelper.WriteOutputLinksToNode(actorFactoryWithOwner, outLinksFactory);
+                KismetHelper.CreateOutputLink(attachFL, "Done", originalOutlink as ExportEntry);
+                var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 4536, 2016);
+                KismetHelper.CreateVariableLink(attachFL, "Target", currentPawn);
+            }
+            // DETACH FLASHLIGHT
+            {
+                var attachCrustEffect = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_AttachCrustEffect", 5752, 2000);
+                var attachOutlinks = KismetHelper.GetOutputLinksOfNode(attachCrustEffect);
+                var originalOutlink = attachOutlinks[0][1].LinkedOp;
+                attachOutlinks[0][1].LinkedOp = deattachFL; // repoint to deattachFL
+                attachOutlinks[0][1].InputLinkIdx = 1; // Detach
+                KismetHelper.WriteOutputLinksToNode(attachCrustEffect, attachOutlinks);
+                KismetHelper.CreateOutputLink(deattachFL, "Done", originalOutlink as ExportEntry);
+
+                var cachedPawn = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 5640, 2128);
+                KismetHelper.CreateVariableLink(deattachFL, "Target", cachedPawn);
+            }
+        }
+
+        public static void RemoveBitExplosionEffect(ExportEntry exp)
+        {
+            // These sequences need the 'bit explosion' effect removed because BioWare changed something in SeqAct_ActorFactory and completely broke it
+            // We are just going to use the crust effect instead
+            var sequenceObjects = exp.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects");
+            foreach (var seqObjProp in sequenceObjects.ToList()) // ToList as we're going to modify it so we need a copy
+            {
+                if (!sequenceObjects.Contains(seqObjProp))
+                    continue; // it's already been removed
+
+                var seqObj = seqObjProp.ResolveToEntry(exp.FileRef) as ExportEntry;
+                if (seqObj != null)
+                {
+                    if (seqObj.ClassName == "SeqAct_ActorFactory")
+                    {
+                        var outLinks = KismetHelper.GetOutputLinksOfNode(seqObj);
+                        outLinks[0].RemoveAt(0); // Remove the first outlink, which goes to Delay
+                        KismetHelper.WriteOutputLinksToNode(seqObj, outLinks); // remove the link so we don't try to connect to it when skipping
+                        KismetHelper.SkipSequenceElement(seqObj, "Finished");
+                        sequenceObjects.Remove(seqObjProp);
+                    }
+                    else if (seqObj.ClassName == "BioSeqAct_Delay")
+                    {
+                        // We can ID these by the position data since they are built from a template and thus always have the same positions
+                        // It also references destroying the spawned particle system
+                        var props = seqObj.GetProperties();
+                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 &&
+                            props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
+                        {
+                            // This needs removed too
+                            var nextNodes = KismetHelper.GetOutputLinksOfNode(seqObj);
+                            var nextNode = nextNodes[0][0].LinkedOp as ExportEntry;
+                            var subNodeOfNext = KismetHelper.GetVariableLinksOfNode(nextNode)[0].LinkedNodes[0] as ExportEntry;
+
+                            // Remove all of them from the sequence
+                            sequenceObjects.Remove(seqObjProp); // Delay
+                            sequenceObjects.Remove(new ObjectProperty(subNodeOfNext.UIndex)); // Destroy
+                            sequenceObjects.Remove(new ObjectProperty(nextNode.UIndex)); // SeqVar_Object
+                        }
+                    }
+                }
+            }
+
+            exp.WriteProperty(sequenceObjects);
+        }
+
+        /// <summary>
+        /// Changes sequencing a bit to install a force-load of mips plus a delay
+        /// </summary>
+        public static void FixSimMapTextureLoading(ExportEntry startDelay, VTestOptions vTestOptions, ExportEntry streamingLocation = null)
+        {
+            var sequence = KismetHelper.GetParentSequence(startDelay);
+            var stopLoadingMovie = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_StopLoadingMovie");
+            KismetHelper.RemoveOutputLinks(startDelay);
+
+            var streamInTextures = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_StreamInTextures", vTestOptions.cache);
+            var streamInDelay = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_Delay", vTestOptions.cache);
+            var remoteEventStreamIn = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
+
+            KismetHelper.AddObjectToSequence(remoteEventStreamIn, sequence);
+            KismetHelper.AddObjectToSequence(streamInTextures, sequence);
+            KismetHelper.AddObjectToSequence(streamInDelay, sequence);
+
+            streamInDelay.WriteProperty(new FloatProperty(4f, "Duration")); // Load screen will be 4s
+            streamInTextures.WriteProperty(new FloatProperty(8f, "Seconds")); // Force textures to stream in at full res for a bit over the load screen time
+            remoteEventStreamIn.WriteProperty(new NameProperty("CROSSGEN_PrepTextures", "EventName")); // This is used to signal other listeners that they should also stream in textures
+
+            streamingLocation ??= KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().First(x => x.ClassName == "SeqVar_External" && x.GetProperty<StrProperty>("VariableLabel")?.Value == "Scenario_Start_Location");
+            KismetHelper.CreateVariableLink(streamInTextures, "Location", streamingLocation);
+
+            KismetHelper.CreateOutputLink(startDelay, "Finished", remoteEventStreamIn); // Initial 1 frame delay to event signal
+            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInTextures); // Event Signal to StreamInTextures
+            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInDelay); // Event Signal to Loading Screen Delay
+            KismetHelper.CreateOutputLink(streamInDelay, "Finished", stopLoadingMovie); // Loading Screen Delay to Stop Loading Movie
+        }
+
+        public void SharedPostPortingCorrection()
         {
             var upperFName = le1File.FileNameNoExtension.ToUpper();
 
@@ -38,6 +217,12 @@ namespace CrossGenV.Classes.Levels
 
             PreventSavingOnSimLoad(le1File, vTestOptions);
             ResetRamping(le1File, vTestOptions);
+
+            // 10/22/2024 - NaNuke - Custom capture ring shader
+            VTestPostCorrections.AddCustomShader(le1File, "CROSSGENV.StrategicRing_Cap_MAT_NEW");
+
+            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
+
 
             VTestAudio.SetupMusicIntensity(le1File, upperFName, vTestOptions);
             VTestAudio.SetupKillStreakVO(le1File, vTestOptions);
@@ -67,6 +252,7 @@ namespace CrossGenV.Classes.Levels
                         // Sequence objects + add to sequence
                         var crustAttach = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_AttachCrustEffect", 5920, 1672);
                         var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqVar_Object", 4536, 2016);
+                        var death = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqEvent_Death", 1664, 2608);
 
                         // AI change
                         var delay = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_Delay", vTestOptions.cache);
@@ -112,6 +298,9 @@ namespace CrossGenV.Classes.Levels
                         aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
                         aiChoiceRand.WriteProperty(new FloatProperty(4, "Max"));
                         aiChoiceAssaultThreshold.WriteProperty(new FloatProperty(3f, "FloatValue")); // The generated random number must be above this to change to assault. 
+
+                        // Connect sequence objects - Stop AI change timer when pawn dies 10/26/2024
+                        KismetHelper.CreateOutputLink(death, "Out", delay, 1); // Stop
 
                         // Connect sequence objects - Delay and branch pick
                         KismetHelper.CreateOutputLink(crustAttach, "Done", delay);
@@ -338,221 +527,19 @@ namespace CrossGenV.Classes.Levels
                     VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.SurvivalHealthGateCurve", vTestOptions);
                 }
             }
-
-            if (upperFName == "BIOA_PRC2_CCLAVA_DSG")
-            {
-                PostPortingCorrection_CCLava_DSG();
-            }
         }
 
-        /// <summary>
-        /// Level specific corrections for CCLava_DSG
-        /// </summary>
-        private void PostPortingCorrection_CCLava_DSG()
+        public virtual void PrePortingCorrection()
         {
-            // SeqAct_ChangeCollision changed and requires an additional property otherwise it doesn't work.
-            string[] collisionsToTurnOff =
-            [
-                // Hut doors and kill volumes
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_1",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_3",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_5",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_6",
-            ];
-
-            foreach (var cto in collisionsToTurnOff)
+            // Change strategic ring material name so it picks up donor instead
+            var strategicRing = me1File.FindExport("BIOA_PRC2_MatFX.Material.StrategicRing_Cap_MAT");
+            if (strategicRing != null)
             {
-                var exp = le1File.FindExport(cto);
-                exp.WriteProperty(new EnumProperty("COLLIDE_NoCollision", "ECollisionType", MEGame.LE1, "CollisionType"));
+                var cgv = ExportCreator.CreatePackageExport(me1File, "CROSSGENV");
+                strategicRing.idxLink = cgv.UIndex;
+                strategicRing.ObjectName = "StrategicRing_Cap_MAT_NEW_matInst";
+                strategicRing.Class = EntryImporter.EnsureClassIsInFile(me1File, "MaterialInstanceConstant", new RelinkerOptionsPackage()); // Change class so donor is properly picked up?
             }
-
-            string[] collisionsToTurnOn =
-            [
-                // Hut doors and kill volumes
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_0",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_9",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_2",
-                "TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_4",
-            ];
-
-            foreach (var cto in collisionsToTurnOn)
-            {
-                var exp = le1File.FindExport(cto);
-                exp.WriteProperty(new EnumProperty("COLLIDE_BlockAll", "ECollisionType", MEGame.LE1, "CollisionType"));
-            }
-
-            // Add code to disable reachspecs when turning the doors on so enemies do not try to use these areas
-            var hutSeq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility");
-            var cgSource = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Set_Hut_Accessibility.SeqAct_ChangeCollision_4");
-            var disableReachSpecs = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_ToggleReachSpec", vTestOptions.cache);
-
-            KismetHelper.AddObjectToSequence(disableReachSpecs, hutSeq);
-            KismetHelper.CreateOutputLink(cgSource, "Out", disableReachSpecs, 2);
-
-            string[] reachSpecsToDisable =
-            [
-                // NORTH ROOM
-                "TheWorld.PersistentLevel.ReachSpec_1941", // CoverLink to PathNode
-                "TheWorld.PersistentLevel.ReachSpec_1937", // CoverLink to CoverLink
-                "TheWorld.PersistentLevel.ReachSpec_2529", // PathNode to PathNode
-
-                // SOUTH ROOM
-                "TheWorld.PersistentLevel.ReachSpec_1856", // CoverLink to PathNode
-                "TheWorld.PersistentLevel.ReachSpec_1849", // CoverLink to CoverLink
-            ];
-
-            foreach (var rs in reachSpecsToDisable)
-            {
-                var obj = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Object", vTestOptions.cache);
-                KismetHelper.AddObjectToSequence(obj, hutSeq);
-                obj.WriteProperty(new ObjectProperty(le1File.FindExport(rs), "ObjValue"));
-                KismetHelper.CreateVariableLink(disableReachSpecs, "ReachSpecs", obj);
-            }
-        }
-
-        /// <summary>
-        /// Disables saving the game while in the simulator
-        /// </summary>
-        /// <param name="le1File"></param>
-        /// <param name="vTestOptions"></param>
-        public static void PreventSavingOnSimLoad(IMEPackage le1File, VTestOptions vTestOptions)
-        {
-            // Debug builds allow you to save the game RIGHT before you draw your weapon. This makes it much easier to debug levels
-            // Todo: Remove this true block once all levels are verified save preventing and then save-enabled once map exit
-            if (!vTestOptions.debugBuild)
-            {
-                var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
-                var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(seq, vTestOptions.cache);
-                var preventSave = SequenceObjectCreator.CreateToggleSave(seq, SequenceObjectCreator.CreateBool(seq, false), vTestOptions.cache);
-                KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", preventSave);
-            }
-        }
-
-        /// <summary>
-        /// Calls the reset ramping remote event
-        /// </summary>
-        /// <param name="le1File"></param>
-        /// <param name="vTestOptions"></param>
-        public static void ResetRamping(IMEPackage le1File, VTestOptions vTestOptions)
-        {
-            var seq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
-            var loaded = KismetHelper.GetAllSequenceElements(seq).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "SeqEvent_LevelLoaded");
-            loaded ??= SequenceObjectCreator.CreateLevelLoaded(seq, vTestOptions.cache);
-            var re = SequenceObjectCreator.CreateActivateRemoteEvent(seq, "CG_RESET_RAMPING", vTestOptions.cache);
-
-            // We do both Loaded and Visible and Out because the first LevelLoaded we find may be either, since OT used Out and LE uses Loaded and Visible - both seem to work, as they are on outlink 0.
-            KismetHelper.CreateOutputLink(loaded, "Loaded and Visible", re);
-            KismetHelper.CreateOutputLink(loaded, "Out", re);
-
-        }
-
-        public static void FixGethFlashlights(ExportEntry sequence, VTestOptions vTestOptions)
-        {
-            // Custom class by Kinkojiro to add and un-add the flashlight VFX
-            var actorFactoryWithOwner = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqAct_ActorFactoryWithOwner");
-            var attachFL = SequenceObjectCreator.CreateSequenceObject(sequence.FileRef, "LEXSeqAct_AttachGethFlashLight", vTestOptions.cache);
-            var deattachFL = SequenceObjectCreator.CreateSequenceObject(sequence.FileRef, "LEXSeqAct_AttachGethFlashLight", vTestOptions.cache);
-            KismetHelper.AddObjectsToSequence(sequence, false, attachFL, deattachFL);
-
-            // ATTACH FLASHLIGHT
-            {
-                var outLinksFactory = KismetHelper.GetOutputLinksOfNode(actorFactoryWithOwner);
-                var originalOutlink = outLinksFactory[0][2].LinkedOp;
-                outLinksFactory[0][2].LinkedOp = attachFL; // repoint to attachFL
-                KismetHelper.WriteOutputLinksToNode(actorFactoryWithOwner, outLinksFactory);
-                KismetHelper.CreateOutputLink(attachFL, "Done", originalOutlink as ExportEntry);
-                var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 4536, 2016);
-                KismetHelper.CreateVariableLink(attachFL, "Target", currentPawn);
-            }
-            // DETACH FLASHLIGHT
-            {
-                var attachCrustEffect = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_AttachCrustEffect", 5752, 2000);
-                var attachOutlinks = KismetHelper.GetOutputLinksOfNode(attachCrustEffect);
-                var originalOutlink = attachOutlinks[0][1].LinkedOp;
-                attachOutlinks[0][1].LinkedOp = deattachFL; // repoint to deattachFL
-                attachOutlinks[0][1].InputLinkIdx = 1; // Detach
-                KismetHelper.WriteOutputLinksToNode(attachCrustEffect, attachOutlinks);
-                KismetHelper.CreateOutputLink(deattachFL, "Done", originalOutlink as ExportEntry);
-
-                var cachedPawn = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "SeqVar_Object", 5640, 2128);
-                KismetHelper.CreateVariableLink(deattachFL, "Target", cachedPawn);
-            }
-        }
-
-        public static void RemoveBitExplosionEffect(ExportEntry exp)
-        {
-            // These sequences need the 'bit explosion' effect removed because BioWare changed something in SeqAct_ActorFactory and completely broke it
-            // We are just going to use the crust effect instead
-            var sequenceObjects = exp.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects");
-            foreach (var seqObjProp in sequenceObjects.ToList()) // ToList as we're going to modify it so we need a copy
-            {
-                if (!sequenceObjects.Contains(seqObjProp))
-                    continue; // it's already been removed
-
-                var seqObj = seqObjProp.ResolveToEntry(exp.FileRef) as ExportEntry;
-                if (seqObj != null)
-                {
-                    if (seqObj.ClassName == "SeqAct_ActorFactory")
-                    {
-                        var outLinks = KismetHelper.GetOutputLinksOfNode(seqObj);
-                        outLinks[0].RemoveAt(0); // Remove the first outlink, which goes to Delay
-                        KismetHelper.WriteOutputLinksToNode(seqObj, outLinks); // remove the link so we don't try to connect to it when skipping
-                        KismetHelper.SkipSequenceElement(seqObj, "Finished");
-                        sequenceObjects.Remove(seqObjProp);
-                    }
-                    else if (seqObj.ClassName == "BioSeqAct_Delay")
-                    {
-                        // We can ID these by the position data since they are built from a template and thus always have the same positions
-                        // It also references destroying the spawned particle system
-                        var props = seqObj.GetProperties();
-                        if (props.GetProp<IntProperty>("ObjPosX")?.Value == 4440 &&
-                            props.GetProp<IntProperty>("ObjPosY")?.Value == 2672)
-                        {
-                            // This needs removed too
-                            var nextNodes = KismetHelper.GetOutputLinksOfNode(seqObj);
-                            var nextNode = nextNodes[0][0].LinkedOp as ExportEntry;
-                            var subNodeOfNext = KismetHelper.GetVariableLinksOfNode(nextNode)[0].LinkedNodes[0] as ExportEntry;
-
-                            // Remove all of them from the sequence
-                            sequenceObjects.Remove(seqObjProp); // Delay
-                            sequenceObjects.Remove(new ObjectProperty(subNodeOfNext.UIndex)); // Destroy
-                            sequenceObjects.Remove(new ObjectProperty(nextNode.UIndex)); // SeqVar_Object
-                        }
-                    }
-                }
-            }
-
-            exp.WriteProperty(sequenceObjects);
-        }
-
-        /// <summary>
-        /// Changes sequencing a bit to install a force-load of mips plus a delay
-        /// </summary>
-        public static void FixSimMapTextureLoading(ExportEntry startDelay, VTestOptions vTestOptions, ExportEntry streamingLocation = null)
-        {
-            var sequence = KismetHelper.GetParentSequence(startDelay);
-            var stopLoadingMovie = VTestKismet.FindSequenceObjectByClassAndPosition(sequence, "BioSeqAct_StopLoadingMovie");
-            KismetHelper.RemoveOutputLinks(startDelay);
-
-            var streamInTextures = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_StreamInTextures", vTestOptions.cache);
-            var streamInDelay = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_Delay", vTestOptions.cache);
-            var remoteEventStreamIn = SequenceObjectCreator.CreateSequenceObject(startDelay.FileRef, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
-
-            KismetHelper.AddObjectToSequence(remoteEventStreamIn, sequence);
-            KismetHelper.AddObjectToSequence(streamInTextures, sequence);
-            KismetHelper.AddObjectToSequence(streamInDelay, sequence);
-
-            streamInDelay.WriteProperty(new FloatProperty(4f, "Duration")); // Load screen will be 4s
-            streamInTextures.WriteProperty(new FloatProperty(8f, "Seconds")); // Force textures to stream in at full res for a bit over the load screen time
-            remoteEventStreamIn.WriteProperty(new NameProperty("CROSSGEN_PrepTextures", "EventName")); // This is used to signal other listeners that they should also stream in textures
-
-            streamingLocation ??= KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().First(x => x.ClassName == "SeqVar_External" && x.GetProperty<StrProperty>("VariableLabel")?.Value == "Scenario_Start_Location");
-            KismetHelper.CreateVariableLink(streamInTextures, "Location", streamingLocation);
-
-            KismetHelper.CreateOutputLink(startDelay, "Finished", remoteEventStreamIn); // Initial 1 frame delay to event signal
-            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInTextures); // Event Signal to StreamInTextures
-            KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInDelay); // Event Signal to Loading Screen Delay
-            KismetHelper.CreateOutputLink(streamInDelay, "Finished", stopLoadingMovie); // Loading Screen Delay to Stop Loading Movie
         }
     }
 }
