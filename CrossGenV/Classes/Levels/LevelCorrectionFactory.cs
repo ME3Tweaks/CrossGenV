@@ -17,19 +17,19 @@ namespace CrossGenV.Classes.Levels
                 "BIOA_PRC2_CCAHERN_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
                 
                 "BIOA_PRC2_CCCAVE" => MakeLevel<BIOA_PRC2_CCCave>(me1Package, le1Package, options),
-                "BIOA_PRC2_CCCAVE_DSG" => MakeLevel<BIOA_PRC2_CC_DSG>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCCAVE_DSG" => MakeLevel<BIOA_PRC2_CCCave_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCCAVE_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
                 
                 "BIOA_PRC2_CCCRATE" => MakeLevel<BIOA_PRC2_CCCrate>(me1Package, le1Package, options),
-                "BIOA_PRC2_CCCRATE_DSG" => MakeLevel<BIOA_PRC2_CC_DSG>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCCRATE_DSG" => MakeLevel<BIOA_PRC2_CCCrate_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCCRATE_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
 
                 "BIOA_PRC2_CCLAVA" => MakeLevel<BIOA_PRC2_CCLava>(me1Package, le1Package, options),
-                "BIOA_PRC2_CCLAVA_DSG" => MakeLevel<BIOA_PRC2_CC_DSG>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCLAVA_DSG" => MakeLevel<BIOA_PRC2_CCLava_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCLAVA_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
 
                 "BIOA_PRC2_CCTHAI" => MakeLevel<BIOA_PRC2_CCThai>(me1Package, le1Package, options),
-                "BIOA_PRC2_CCTHAI_DSG" => MakeLevel<BIOA_PRC2_CC_DSG>(me1Package, le1Package, options),
+                "BIOA_PRC2_CCTHAI_DSG" => MakeLevel<BIOA_PRC2_CCThai_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCTHAI_SND" => MakeLevel<BIOA_PRC2_CC_SND>(me1Package, le1Package, options),
 
                 "BIOA_PRC2_CCAIRLOCK" => MakeLevel<BIOA_PRC2_CCAirlock>(me1Package, le1Package, options),

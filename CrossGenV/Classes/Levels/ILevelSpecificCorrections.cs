@@ -1,5 +1,4 @@
 ﻿using LegendaryExplorerCore.Packages;
-using System.Diagnostics;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -14,7 +13,7 @@ namespace CrossGenV.Classes.Levels
 
         }
 
-        public void PostPortingCorrection()
+        public virtual void PostPortingCorrection()
         {
 
         }
