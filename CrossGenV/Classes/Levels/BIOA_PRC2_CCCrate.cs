@@ -17,9 +17,6 @@ namespace CrossGenV.Classes.Levels
             var destLevel = le1File.FindExport("TheWorld.PersistentLevel");
             EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, sourceAsset, le1File, destLevel, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var mesh);
             LevelTools.SetLocation(mesh as ExportEntry, 15864, -25928, -5490);
-
-            // Don't allow running until wipe effect
-            VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
         }
     }
 }

@@ -2,6 +2,8 @@
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
 using System.Linq;
+using LegendaryExplorerCore.Kismet;
+using static Microsoft.IO.RecyclableMemoryStreamManager;
 
 namespace CrossGenV.Classes.Levels
 {
