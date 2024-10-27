@@ -36,7 +36,7 @@ namespace CrossGenV.Classes
             if (fName.CaseInsensitiveEquals("BIOA_PRC2") || fName.CaseInsensitiveEquals("BIOA_PRC2AA"))
             {
 
-                if (me1File is MEPackage me1FileP && le1File is MEPackage le1FileP)
+                if (me1File is MEPackage && le1File is MEPackage le1FileP)
                 {
                     // This will be used for lighting build step (has to be done manually)
                     var files = Directory.GetFiles(Directory.GetParent(me1File.FilePath).FullName, "*.sfm",
