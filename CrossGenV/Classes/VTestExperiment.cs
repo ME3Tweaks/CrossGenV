@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using LegendaryExplorerCore.GameFilesystem;
 using LegendaryExplorerCore.Gammtek.Extensions;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Localization;
@@ -182,17 +181,34 @@ namespace CrossGenV.Classes
 
             // VTest File Loop ---------------------------------------
             var rootCache = vTestOptions.cache;
+            var levelCache = rootCache.ChainNewCache();
             foreach (var vTestLevel in vTestOptions.vTestLevels)
             {
+                levelCache = rootCache.ChainNewCache();
+                vTestOptions.cache = levelCache.ChainNewCache();
                 var levelFiles = Directory.GetFiles(Path.Combine(VTestPaths.VTest_SourceDir, vTestLevel)).ToList();
+
+                // Port LOC first, it will be super commonly accessed. We will stuff it in the cache
+                var locInt = Path.Combine(VTestPaths.VTest_SourceDir, vTestLevel, $"BIOA_{vTestLevel}_LOC_INT.SFM");
+                if (File.Exists(locInt))
+                {
+                    vTestOptions.cache = levelCache.ChainNewCache();
+                    PortFile(locInt, vTestLevel, vTestOptions); // Master file is first in the list.
+                    levelFiles.Remove(locInt);
+                    levelCache.InsertIntoCache(MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_FinalDestDir, $"BIOA_{vTestLevel}_LOC_INT.pcc")));
+                }
+
                 PortFile(levelFiles[0], vTestLevel, vTestOptions); // Master file is first in the list.
                 levelFiles.RemoveAt(0);
+                levelCache.InsertIntoCache(MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_FinalDestDir, $"BIOA_{vTestLevel}.pcc")));
 
+
+                vTestOptions.cache = levelCache.ChainNewCache();
                 // Port LOC files first so that import resolution of localized assets is correct when doing the main files
                 Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1 )}, f =>
                 {
                     // Uncomment to filter for iteration
-                    //if (!f.Contains("thai", StringComparison.OrdinalIgnoreCase))
+                    //if (!f.Contains("lava_dsg", StringComparison.OrdinalIgnoreCase))
                     //    return;
 
                     if (f.GetUnrealLocalization() == MELocalization.None)
@@ -206,7 +222,7 @@ namespace CrossGenV.Classes
                 Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1) }, f =>
                 {
                     // Uncomment to filter for iteration
-                    //if (!f.Contains("thai_dsg", StringComparison.OrdinalIgnoreCase))
+                    //if (!f.Contains("lava_dsg", StringComparison.OrdinalIgnoreCase))
                     //    return;
 
                     if (f.GetUnrealLocalization() != MELocalization.None)
@@ -218,6 +234,9 @@ namespace CrossGenV.Classes
             }
 
             vTestOptions.cache = rootCache.ChainNewCache();
+
+            // 10/26/2024 - Convert all AI classes in the mod to Crossgen versions for simulator
+            VTestAI.ConvertAIToCrossgen(vTestOptions);
 
             // TLKS ARE DONE POST ONLY
             VTestTLK.PostUpdateTLKs(vTestOptions);

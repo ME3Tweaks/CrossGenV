@@ -341,10 +341,6 @@ namespace CrossGenV.Classes
                 case "prc2_jealous_jerk_N.Node_Data_Sequence.BioSeqEvt_ConvNode_12":
                     SetGenderSpecificLength(export, -0.8f, 0.0f, vTestOptions); // That wasn't luck. It was skill. | Femshep's dialogue is too long here
                     break;
-
-
-
-
             }
         }
 

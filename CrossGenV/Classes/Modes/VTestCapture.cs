@@ -15,8 +15,7 @@ namespace CrossGenV.Classes.Modes
         public static void AddCaptureEngagementSequencing(IMEPackage le1Package, VTestOptions options)
         {
             var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = options.cache });
-            foreach (var seq in le1Package.Exports.Where(x =>
-                         x.ClassName == "Sequence").ToList())
+            foreach (var seq in le1Package.Exports.Where(x => x.ClassName == "Sequence").ToList())
             {
                 var seqName = VTestKismet.GetSequenceName(seq);
                 if (seqName == "Spawn_Single_Guy" && VTestKismet.IsContainedWithinSequenceNamed(seq, "CAH_Respawner"))
@@ -30,7 +29,6 @@ namespace CrossGenV.Classes.Modes
                     InstallCapSignals(seq, options);
                     continue;
                 }
-
             }
 
             var packageName = le1Package.FileNameNoExtension;

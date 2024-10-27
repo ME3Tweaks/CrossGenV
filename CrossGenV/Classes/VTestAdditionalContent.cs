@@ -1,4 +1,5 @@
-﻿using LegendaryExplorerCore.Kismet;
+﻿using System.Diagnostics;
+using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal;
 using System.Linq;
@@ -117,6 +118,11 @@ namespace CrossGenV.Classes
             // ObjectList -> Object
             // Different 
             var pawnLoad = le1File.FindExport(hookupIFP);
+            if (pawnLoad == null)
+            {
+                le1File.Save();
+                Debugger.Break();
+            }
             var sequence = KismetHelper.GetParentSequence(pawnLoad);
 
             // Get all object lists in the sequence that have object types of BioPawnChallengeScaledType objects in them.
