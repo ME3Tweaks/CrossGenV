@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -7,7 +6,6 @@ using CrossGenV.Classes;
 using LegendaryExplorerCore;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Packages;
-using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using Microsoft.Win32;
 
 namespace CrossGenV
@@ -32,25 +30,45 @@ namespace CrossGenV
             // Initialize Legendary Explorer Core
             LegendaryExplorerCoreLib.InitLib(TaskScheduler.Current, x => Console.WriteLine($"ERROR: {x}"));
 
+
+            
+
             // ASK FOR GAME BOOT
+            
             Console.WriteLine("-------------------------------");
             Console.WriteLine("Install mod when compiling completes [Y/N]? (5 second timeout)");
             var input = ConsoleReadLineWithTimeout(TimeSpan.FromSeconds(5));
+            
             bool installAndBootGame = "Y".CaseInsensitiveEquals(input);
+
+            //bool installAndBootGame = false;
 
             // RUN VTEST
 
             // This object is passed through to all the methods so we don't have to constantly update the signatures
             var vTestOptions = new VTestOptions()
             {
-                SetStatusText = x => Console.WriteLine(x),
+                SetStatusText = Console.WriteLine,
                 cache = TieredPackageCache.GetGlobalPackageCache(MEGame.LE1)
             };
+
+            // For debugging resynth
+            //foreach (var packagePath in Directory.GetFiles(@"S:\SteamLibrary\steamapps\common\Mass Effect Legendary Edition\Game\ME1\BioGame\DLC\DLC_MOD_Vegas", "*.pcc", SearchOption.AllDirectories).Where(x => x.RepresentsPackageFilePath()))
+            //{
+            //    var package = MEPackageHandler.OpenMEPackage(packagePath);
+            //    vTestOptions.SetStatusText($"Resynthesizing package {package.FileNameNoExtension}");
+
+            //    var newPackage = PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache);
+            //    newPackage.Save();
+            //}
+
+            //return;
+
 
             vTestOptions.SetStatusText("Performing VTest");
             VTestExperiment.RunVTest(vTestOptions);
 
-            vTestOptions.SetStatusText("VTest run completed");
+            vTestOptions.SetStatusText($"VTest run completed at {DateTime.Now:G}");
             if (installAndBootGame)
             {
                 var mmPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\Software\ME3Tweaks", "ExecutableLocation", null);
