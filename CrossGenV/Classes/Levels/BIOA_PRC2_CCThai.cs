@@ -1,7 +1,8 @@
-﻿using LegendaryExplorerCore.Packages;
-using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
+﻿using LegendaryExplorerCore.Helpers;
+using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
+using System.Numerics;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -23,13 +24,27 @@ namespace CrossGenV.Classes.Levels
             // Audemus
             // We rename object so it picks up donor with correct material applied. Overrides didn't seem to work
             var pillarMesh = me1File.FindExport("BIOA_JUG40_S.JUG40_PILLARV00");
-            pillarMesh.ObjectName = " JUG40_PILLARV00_CROSSGEN";
+            pillarMesh.ObjectName = "JUG40_PILLARV00_CROSSGEN";
         }
 
         public void PostPortingCorrection()
         {
             // Don't allow running until wipe effect
             VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
+            FixRockCoverZ();
+        }
+
+        private void FixRockCoverZ()
+        {
+            // Part of Task 95 - Collision issues on S platform corner
+            var smca = le1File.FindExport("TheWorld.PersistentLevel.StaticMeshCollectionActor_35");
+            var smc = le1File.FindExport("TheWorld.PersistentLevel.StaticMeshCollectionActor_35.StaticMeshActor_1216_SMC");
+            var bin = ObjectBinary.From<StaticMeshCollectionActor>(smca);
+            var index = bin.Components.IndexOf(smc.UIndex);
+            var dsd = bin.LocalToWorldTransforms[index].UnrealDecompose();
+            dsd.translation = new Vector3(260,-31189,-2546); // Down a few units
+            bin.LocalToWorldTransforms[index] = ActorUtils.ComposeLocalToWorld(dsd.translation, dsd.rotation, dsd.scale);
+            smca.WriteBinary(bin);
         }
     }
 }
