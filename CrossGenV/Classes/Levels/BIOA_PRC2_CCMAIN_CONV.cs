@@ -86,7 +86,8 @@ namespace CrossGenV.Classes.Levels
             var fileLib = new FileLib(le1File);
             var usop = new UnrealScriptOptionsPackage() { Cache = new PackageCache() };
             var flOk = fileLib.Initialize(usop);
-
+            if (!flOk) return;
+            
             // Update interp length and fade out timing
             le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.InterpData_0").WriteProperty(new FloatProperty(12.75f, "InterpLength"));
             var fadeCurve = @"properties
@@ -107,7 +108,7 @@ namespace CrossGenV.Classes.Levels
 
         }
 
-        public void DebugConversationConsoleEvents()
+        private void DebugConversationConsoleEvents()
         {
             if (vTestOptions.debugBuild)
             {

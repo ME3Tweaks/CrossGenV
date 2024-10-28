@@ -8,6 +8,11 @@ namespace CrossGenV.Classes.Levels
         {
             var levelNameUpper = levelName.ToUpper();
 
+            if(levelNameUpper.Contains("BIOA_PRC2_CCSCOREBOARD_DSG_LOC"))
+            {
+                return MakeLevel<BIOA_PRC2_CCScoreboard_DSG_LOC>(me1Package, le1Package, options);
+            }
+
             return levelNameUpper switch
             {
                 "BIOA_PRC2" => MakeLevel<BIOA_PRC2>(me1Package, le1Package, options),
@@ -48,7 +53,6 @@ namespace CrossGenV.Classes.Levels
                 "BIOA_PRC2_CCSIM03_LAY" => MakeLevel<BIOA_PRC2_CCSIM03_LAY>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCSIM04_DSG" => MakeLevel<BIOA_PRC2_CCSIM04_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2_CCSIM05_DSG" => MakeLevel<BIOA_PRC2_CCSIM05_DSG>(me1Package, le1Package, options),
-
                 "BIOA_PRC2_CCSPACE02_DSG" => MakeLevel<BIOA_PRC2_CCSpace02_DSG>(me1Package, le1Package, options),
 
                 "BIOA_PRC2AA" => MakeLevel<BIOA_PRC2AA>(me1Package, le1Package, options),

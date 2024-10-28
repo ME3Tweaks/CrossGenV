@@ -40,8 +40,7 @@ namespace CrossGenV.Classes.Levels
             // VTestUtility.AddModLevelExtensions(le1File, "BIOA_PRC2");
 
             // Blocking Volumes for shep to stand on post-mission
-            int[] sourceTriggerStreams = new int[]
-            {
+            int[] sourceTriggerStreams = {
                             10, 11, 12, 13, 18 // 18 is technically not required (ahern) but left in event of future changes. These are the scoreboard triggerstreams
             };
 
@@ -56,7 +55,7 @@ namespace CrossGenV.Classes.Levels
 
                 var tsExport = le1File.FindExport(@"TheWorld.PersistentLevel.BioTriggerStream_" + sts);
                 var loc = LevelTools.GetLocation(tsExport);
-                LevelTools.SetLocation(newBlockingVolume as ExportEntry, loc.X, loc.Y, loc.Z - 256f);
+                LevelTools.SetLocation(newBlockingVolume, loc.X, loc.Y, loc.Z - 256f);
             }
 
             AddGlobalVariables();
@@ -113,16 +112,16 @@ namespace CrossGenV.Classes.Levels
             // Adjust the triggerstreams to pre-stream in some files to prevent a full blocking load from occurring.
             // They all have the same state name
 
-            string[] levelsToAdd = new[]
-            {
-                    "BIOA_PRC2_CCMain_Conv", // This will trigger blocking load as it goes directly to visible on the next change
-                    "BIOA_PRC2_CCMain_SND", // This will trigger blocking load as it goes directly to visible on the next change
+            string[] levelsToAdd =
+            [
+                "BIOA_PRC2_CCMain_Conv", // This will trigger blocking load as it goes directly to visible on the next change
+                "BIOA_PRC2_CCMain_SND", // This will trigger blocking load as it goes directly to visible on the next change
 
-                    // These ones are here just to pre-load things into memory in the event the player just mashes their way through
-                    "BIOA_PRC2_CCSim",
-                    "BIOA_PRC2_CCSim_ART",
-                    "BIOA_PRC2_CCSim_DSG",
-                };
+                // These ones are here just to pre-load things into memory in the event the player just mashes their way through
+                "BIOA_PRC2_CCSim",
+                "BIOA_PRC2_CCSim_ART",
+                "BIOA_PRC2_CCSim_DSG"
+            ];
 
             foreach (var export in le1File.Exports.Where(x => x.ClassName == "BioTriggerStream"))
             {
