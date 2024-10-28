@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
 using LegendaryExplorerCore.Kismet;
+using System.Threading.Tasks;
 
 namespace CrossGenV.Classes
 {
@@ -21,7 +22,7 @@ namespace CrossGenV.Classes
         /// <summary>
         /// Forces textures to stream in around the player for 10 seconds
         /// </summary>
-        public static void InstallPrepTextures(IMEPackage package, VTestOptions vTestOptions)
+        private static void InstallPrepTextures(IMEPackage package, VTestOptions vTestOptions)
         {
             var mainSeq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
             if (mainSeq == null)
@@ -178,6 +179,23 @@ namespace CrossGenV.Classes
 
                 }
             });
+        }
+
+        public static void InstallAllPrepTextureSignals(VTestOptions vTestOptions)
+        {
+            vTestOptions.SetStatusText("Installing PrepTextures listeners");
+            Parallel.ForEach(VTestUtility.GetFinalPackages(), new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1) },
+                f =>
+                {
+                    var quick = MEPackageHandler.UnsafePartialLoad(f, x => false);
+                    if (quick.FindExport("TheWorld.PersistentLevel.Main_Sequence") != null)
+                    {
+                        var le1File = MEPackageHandler.OpenMEPackage(f);
+                        vTestOptions.SetStatusText($"\t Installing signal to {le1File.FileNameNoExtension}");
+                        VTestTextures.InstallPrepTextures(le1File, vTestOptions);
+                        le1File.Save();
+                    }
+                });
         }
     }
 }

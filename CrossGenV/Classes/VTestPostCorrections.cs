@@ -76,11 +76,7 @@ namespace CrossGenV.Classes
             //FixLighting(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Ahern Conversation)");
             FixAhernConversation(le1File, vTestOptions);
-
-            // 10/19/2024 - Stream in all materials when map load signal occurs
-            vTestOptions.SetStatusText($"PPC (StreamInTextures)");
-            VTestTextures.InstallPrepTextures(le1File, vTestOptions);
-
+            
             // Disabled 08/18/2024 - Do not use assets for optimization as we now rebake lighting
             //vTestOptions.SetStatusText($"PPC (Optimization)");
             //PortME1OptimizationAssets(me1File, le1File, vTestOptions);

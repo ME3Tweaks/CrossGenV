@@ -4,6 +4,7 @@ using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -192,6 +193,16 @@ namespace CrossGenV.Classes
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Returns list of all packages in the destination directory (*.pcc)
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerable<string> GetFinalPackages()
+        {
+            var finalPath = VTestPaths.VTest_FinalDestDir;
+            return Directory.GetFiles(finalPath, "*.pcc", SearchOption.AllDirectories);
         }
     }
 }

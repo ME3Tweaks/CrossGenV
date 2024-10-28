@@ -205,7 +205,7 @@ namespace CrossGenV.Classes
 
                 vTestOptions.cache = levelCache.ChainNewCache();
                 // Port LOC files first so that import resolution of localized assets is correct when doing the main files
-                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1 )}, f =>
+                Parallel.ForEach(levelFiles, new ParallelOptions() { MaxDegreeOfParallelism = (vTestOptions.parallelizeLevelBuild ? 6 : 1) }, f =>
                 {
                     // Uncomment to filter for iteration
                     //if (!f.Contains("lava_dsg", StringComparison.OrdinalIgnoreCase))
@@ -244,6 +244,12 @@ namespace CrossGenV.Classes
             // 10/02/2024 - Framework all NPCs
             VTestFramework.FrameworkNPCs(vTestOptions);
 
+            // 10/19/2024 - Stream in all materials when map load signal occurs
+            // 10/27/2024 - This must be done after frameworking as we trash things in frameworking
+            VTestTextures.InstallAllPrepTextureSignals(vTestOptions);
+
+
+
             // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
             // save them in the package.
             // 08/23/2024 - Externalize lightmap textures. There are not enough new textures to
@@ -254,7 +260,7 @@ namespace CrossGenV.Classes
             //    // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
             //}
 
-            // 08/23/2024 - Add package resynthesis for cleaner output
+                // 08/23/2024 - Add package resynthesis for cleaner output
             if (vTestOptions.resynthesizePackages)
             {
                 foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.RepresentsPackageFilePath()))
