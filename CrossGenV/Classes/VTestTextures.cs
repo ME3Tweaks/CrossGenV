@@ -124,8 +124,6 @@ namespace CrossGenV.Classes
                             tbin.LightMapFlags |= ELightMapFlags.LMF_Streamed;
                             tex.WriteBinary(tbin);
                         }
-                        
-
                     }
 
                     if (changedMips > 0)

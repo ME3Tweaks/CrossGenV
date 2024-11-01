@@ -82,6 +82,11 @@ namespace CrossGenV.Classes
         public bool isBuildForStaticLightingBake = false;
 
         /// <summary>
+        /// Turn this only for rendering loading shots; otherwise lighting streams in once levels become visible and it looks bad until they load
+        /// </summary>
+        public bool useStreamedLighting = false;
+
+        /// <summary>
         /// If packages should be resynthesized for cleanliness at the end
         /// </summary>
         public bool resynthesizePackages = false;

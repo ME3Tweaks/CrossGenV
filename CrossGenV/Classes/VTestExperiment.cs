@@ -252,15 +252,15 @@ namespace CrossGenV.Classes
 
             // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
             // save them in the package.
+            // 10/31/2024 - Streamed lighting mode is used to render the loading screens
             // 08/23/2024 - Externalize lightmap textures. There are not enough new textures to
             // make it worth doing non-lighting (also annoying bugs I don't want to fix in TFC Compactor)
-            //if (!vTestOptions.isBuildForStaticLightingBake)
-            //{
-            //    VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
-            //    // Lighting doesn't need compacted as it won't have dupes (or if it does, very, very few)
-            //}
+            if (vTestOptions.useStreamedLighting)
+            {
+                VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
+            }
 
-                // 08/23/2024 - Add package resynthesis for cleaner output
+            // 08/23/2024 - Add package resynthesis for cleaner output
             if (vTestOptions.resynthesizePackages)
             {
                 foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.RepresentsPackageFilePath()))
