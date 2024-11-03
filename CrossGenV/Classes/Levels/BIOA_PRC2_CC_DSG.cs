@@ -6,6 +6,7 @@ using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -29,6 +30,29 @@ namespace CrossGenV.Classes.Levels
             SharedPostPortingCorrection();
         }
 
+        public void FixSoftlockWhenRagdollOnGameEnd()
+        {
+            foreach (var teleport in le1File.Exports.Where(x => x.ClassName == "SeqAct_Teleport" && VTestKismet.IsContainedWithinSequenceNamed(x, "OL_Size")).ToList())
+            {
+                var seq = KismetHelper.GetParentSequence(teleport);
+                var objs = KismetHelper.GetSequenceObjects(seq).OfType<ExportEntry>().ToList();
+                var connections = KismetHelper.FindOutputConnectionsToNode(teleport, objs);
+
+                var forceTeleport = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceTeleport", vTestOptions.cache);
+                foreach (var con in connections)
+                {
+                    var oVars = KismetHelper.GetVariableLinksOfNode(teleport);
+                    KismetHelper.WriteVariableLinksToNode(forceTeleport, oVars);
+                    KismetHelper.ChangeOutputLink(con, 0, 0, forceTeleport.UIndex);
+                    KismetHelper.WriteOutputLinksToNode(forceTeleport, KismetHelper.GetOutputLinksOfNode(teleport));
+
+                    // KismetHelper.RemoveFromSequence(teleport, true);
+                    KismetHelper.RemoveAllLinks(teleport); // Disconnect from nodes
+                }
+
+            }
+        }
+
         /// <summary>
         /// Sets up the capture ring changes that changes ring over caputre time
         /// </summary>
@@ -40,7 +64,7 @@ namespace CrossGenV.Classes.Levels
                 var seqName = VTestKismet.GetSequenceName(seq);
                 if (seqName == "Cap_And_Hold_Point" && VTestKismet.IsContainedWithinSequenceNamed(seq, $"CAH_{mapName}_Handler"))
                 {
-                    var initHook = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", -1424,2872);
+                    var initHook = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", -1424, 2872);
 
                     var percentCalc = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_ScalarMathUnit", 2832, 3216);
                     var percent = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Float", 2920, 3304);
@@ -48,13 +72,51 @@ namespace CrossGenV.Classes.Levels
 
                     var capping = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_RingCapping", vTestOptions.cache);
 
-                    // Reset
+                    // Reset (on initial gametype start)
                     KismetHelper.CreateOutputLink(initHook, "Out", capping);
-                    
+                    // Reset (on capture starting)
+                    KismetHelper.CreateOutputLink(initHook, "Out", capping);
+
                     // Update
-                    KismetHelper.CreateOutputLink(percentCalc, "Out", capping, 1);
+                    // For percent calc, we MUST be the first outlink, or it will break when we do a further calculation in this frame for completed
+                    var outLinks = KismetHelper.GetOutputLinksOfNode(percentCalc);
+                    outLinks[0].Insert(0, new OutputLink() { LinkedOp = capping, InputLinkIdx = 1 }); // Update
+                    KismetHelper.WriteOutputLinksToNode(percentCalc, outLinks);
+
                     KismetHelper.CreateVariableLink(capping, "Ring", ring);
                     KismetHelper.CreateVariableLink(capping, "Completion", percent);
+
+
+
+                    // SetMaterial for completed
+                    // This material is referenced in RingCapping properties so it will be pulled in out of VTestHelper automatically
+                    var setCompletedPointMat = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", 3536, 3232);
+                    var setCompletedRingMat = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", 3680, 3264);
+                    // setCompletedMat.WriteProperty(new ObjectProperty(seq.FileRef.FindExport("CROSSGENV.StrategicRing_Cap_MAT_Finished_matInst"), "NewMaterial"));
+                    KismetHelper.SkipSequenceElement(setCompletedRingMat, "Out");
+                    KismetHelper.RemoveFromSequence(setCompletedRingMat, false);
+                    KismetHelper.CreateOutputLink(setCompletedPointMat, "Out", capping, 2); // Complete
+
+                    // SetMaterial for initial touch
+                    var cappingCompletedCheck = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqCond_CompareBool", 360, 3216);
+                    KismetHelper.CreateOutputLink(cappingCompletedCheck, "True", capping, 2); // Complete
+                    KismetHelper.CreateOutputLink(cappingCompletedCheck, "False", capping, 0); // Reset
+
+                    // Set initial material state BEFORE the delay demiurge used. No idea why. Even they commented asking why it was so late
+                    var finishedCappingQ = SequenceObjectCreator.CreateCompareBool(seq, SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Bool", "Capped_Yet", vTestOptions.cache));
+                    KismetHelper.SetComment(finishedCappingQ, "Crossgen: Setup material on same frame as when we begin capping instead after later delay");
+                    KismetHelper.CreateOutputLink(finishedCappingQ, "True", capping, 2); // Finished
+                    KismetHelper.CreateOutputLink(finishedCappingQ, "False", capping, 0); // Reset
+
+                    // We re-order the outlinks of cah mode check so that our material update runs first to ensure proper execution order
+                    var isCahMode = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqCond_CompareBool", -1936, 3224);
+                    outLinks = KismetHelper.GetOutputLinksOfNode(isCahMode);
+                    outLinks[0].Insert(0, new OutputLink() { LinkedOp = finishedCappingQ });
+                    KismetHelper.WriteOutputLinksToNode(isCahMode, outLinks);
+
+                    // Finished Capping: Change to Completed look
+
+
                     continue;
                 }
             }
@@ -527,6 +589,8 @@ namespace CrossGenV.Classes.Levels
                     VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.SurvivalHealthGateCurve", vTestOptions);
                 }
             }
+
+            FixSoftlockWhenRagdollOnGameEnd();
         }
 
         public virtual void PrePortingCorrection()
