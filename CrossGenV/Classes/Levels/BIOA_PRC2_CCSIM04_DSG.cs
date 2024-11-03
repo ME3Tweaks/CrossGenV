@@ -1,6 +1,11 @@
-﻿using LegendaryExplorerCore.Kismet;
+﻿using System.Collections.Generic;
+using System.Linq;
+using LegendaryExplorerCore.Gammtek.Extensions;
+using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Unreal;
+using LegendaryExplorerCore.Unreal.ObjectInfo;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -39,6 +44,33 @@ namespace CrossGenV.Classes.Levels
 
             InstallLoadScreenFix();
             StreamInHenchTextures();
+
+            InstallLockers();
+        }
+
+        /// <summary>
+        /// Installs armor lockers so the player can customize their squadmates
+        /// </summary>
+        private void InstallLockers()
+        {
+            var helperBase = vTestOptions.vTestHelperPackage.FindExport("CCSIM04_DSG");
+
+            // Port the POIs and spawnpoint for hench
+            var actorsToPort = helperBase.FileRef.Exports.Where(x => x.Parent == helperBase && x.IsA("Actor"));
+            var portedActors = new List<ExportEntry>();
+            foreach (var actor in actorsToPort)
+            {
+                EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, actor, le1File,
+                    le1File.GetLevel(), true,
+                    new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var ported);
+
+                portedActors.Add(ported as ExportEntry);
+            }
+
+            le1File.AddToLevelActorsIfNotThere(portedActors.ToArray());
+
+            // Install the helper sequence
+            VTestKismet.InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence","CCSIM04_DSG.HenchmenLockers", vTestOptions);
         }
 
         private void InstallLoadScreenFix()
