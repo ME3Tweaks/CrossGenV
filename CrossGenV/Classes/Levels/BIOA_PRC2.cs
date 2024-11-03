@@ -199,6 +199,12 @@ namespace CrossGenV.Classes.Levels
                 KismetHelper.CreateOutputLink(previous, "Out", entry);
                 previous = entry;
             }
+
+            // Task 103 - Using -RESUME causes first load screen to not work. Maybe when combined with 
+            // skip splash screen, unsure how game works as movie manager is instantiated native and
+            // can't seem to get reference from unrealscript.
+            var loadScreenBool = SequenceObjectCreator.CreateBool(seq, false, vTestOptions.cache);
+            loadScreenBool.WriteProperty(new NameProperty("HasShownLoadScreenOnce", "VarName"));
         }
     }
 }
