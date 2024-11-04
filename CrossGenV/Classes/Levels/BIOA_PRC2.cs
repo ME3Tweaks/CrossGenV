@@ -21,7 +21,7 @@ namespace CrossGenV.Classes.Levels
             // This is hack to port things over in ModdedSource. The streaming data was referenced by an object that doesn't actually
             // use this (game will die if it tries). We remove this reference and set up our own.
             // This is a total hack, but it works for less code.
-            le1File.Save();
+            //le1File.Save();
             le1File.FindExport("TheWorld.PersistentLevel.AmbientSound_20").RemoveProperty("Base");
             VTestUtility.AddWorldReferencedObjects(le1File, le1File.FindExport("DVDStreamingAudioData.PC.snd_prc1_music")); // This must stay in memory for the music 2DA to work for PRC1 audio
 

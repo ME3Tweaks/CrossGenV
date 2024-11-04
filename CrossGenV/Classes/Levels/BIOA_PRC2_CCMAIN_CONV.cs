@@ -17,41 +17,51 @@ namespace CrossGenV.Classes.Levels
 
             FixFirstSeeShepardCinematic();
 
+            FixLoadingPostScoreboard();
+
+            TightenPostMissionBlackScreens();
             // Ahern's post-mission dialogue. This installs the streaming textures event
-            var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin");
-            var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_RemoteEvent", vTestOptions.cache);
-            var streamInTextures = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_StreamInTextures", vTestOptions.cache);
-            KismetHelper.AddObjectsToSequence(sequence, false, remoteEvent, streamInTextures);
+            // 11/03/2024 - No longer used due to frameworking these pawns
+            // var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin");
+            //var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_RemoteEvent", vTestOptions.cache);
+            //var streamInTextures = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_StreamInTextures", vTestOptions.cache);
+            //KismetHelper.AddObjectsToSequence(sequence, false, remoteEvent, streamInTextures);
 
-            KismetHelper.CreateOutputLink(remoteEvent, "Out", streamInTextures);
-            KismetHelper.CreateVariableLink(streamInTextures, "Location", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqVar_Object_19")); //Location: Ahern Teleport Point
+            //KismetHelper.CreateOutputLink(remoteEvent, "Out", streamInTextures);
+            //KismetHelper.CreateVariableLink(streamInTextures, "Location", le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqVar_Object_19")); //Location: Ahern Teleport Point
 
-            remoteEvent.WriteProperty(new NameProperty("PrimeTexturesAhern", "EventName"));
-            var materials = new ArrayProperty<ObjectProperty>("ForceMaterials")
-            {
-                // AHERN
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_103")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_104")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_105")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_106")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_107")),
+            ////remoteEvent.WriteProperty(new NameProperty("PrimeTexturesAhern", "EventName"));
+            ////var materials = new ArrayProperty<ObjectProperty>("ForceMaterials")
+            ////{
+            ////    // AHERN
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_103")),
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_104")),
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_105")),
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_106")),
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_4.BioMaterialInstanceConstant_107")),
 
-                // VIDINOS
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_120")), //armor
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_121")), //head
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_122")), // eye
+            ////    // VIDINOS
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_120")), //armor
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_121")), //head
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_5.BioMaterialInstanceConstant_122")), // eye
 
-                // BRYANT
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_97")), // armor
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_101")), //head
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_98")), //hair
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_102")), //scalp
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_100")), // eye
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_99")) //lash
-            };
+            ////    // BRYANT
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_97")), // armor
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_101")), //head
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_98")), //hair
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_102")), //scalp
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_100")), // eye
+            ////    new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_8.BioMaterialInstanceConstant_99")) //lash
+            ////};
 
-            streamInTextures.WriteProperty(materials);
-            streamInTextures.WriteProperty(new FloatProperty(12f, "Seconds")); // How long to force stream. We set this to 12 to ensure blackscreen and any delays between fully finish
+            // Give Ahern my-special-mission a moment to settle once his pawn becomes visible but before we show him. He seems to bounce down.
+            var togglePL = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.Play_Ahern_Offers_Final_Mission_0.SeqAct_Toggle_0");
+            var delay = SequenceObjectCreator.CreateDelay(KismetHelper.GetParentSequence(togglePL), 0.3f, vTestOptions.cache);
+            KismetHelper.InsertActionAfter(togglePL, "Out", delay, 0, "Finished");
+
+
+            //streamInTextures.WriteProperty(materials);
+            //streamInTextures.WriteProperty(new FloatProperty(12f, "Seconds")); // How long to force stream. We set this to 12 to ensure blackscreen and any delays between fully finish
 
             // Install classes not in ME1
             var bftsItems = new[]
@@ -63,7 +73,7 @@ namespace CrossGenV.Classes.Levels
                 ("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.BioSeqAct_Delay_4","TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.BioSeqAct_BlackScreen_2", "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980", "Finished"),
                 ("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.BioSeqAct_ModifyPropertyPawn_0","TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.BioSeqAct_BlackScreen_3", "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982","Out"),
                 ("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_1.Sequence_981.SeqAct_Delay_1","TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_1.Sequence_981.BioSeqAct_BlackScreen_4", "TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_1.Sequence_981", "Finished")
-                        
+
             };
 
             foreach (var bfts in bftsItems)
@@ -81,13 +91,34 @@ namespace CrossGenV.Classes.Levels
             VTestAdditionalContent.AddMissionCompletionExperience(le1File, vTestOptions);
         }
 
+        /// <summary>
+        /// Tightens up delays for post-mission items
+        /// </summary>
+        private void TightenPostMissionBlackScreens()
+        {
+            var playerQuit = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_Delay_1");
+            playerQuit.WriteProperty(new FloatProperty(0.1f, "Duration"));
+
+        }
+
+        /// <summary>
+        /// Installs a custom WaitForBackgroundStreaming class 
+        /// </summary>
+        private void FixLoadingPostScoreboard()
+        {
+            var hookup = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_SetStreamingState_0");
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var waitForStreaming = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_WaitForBackgroundStreaming", vTestOptions.cache);
+            KismetHelper.InsertActionAfter(hookup, "Out", waitForStreaming, 0, "Finished");
+        }
+
         private void FixFirstSeeShepardCinematic()
         {
             var fileLib = new FileLib(le1File);
             var usop = new UnrealScriptOptionsPackage() { Cache = new PackageCache() };
             var flOk = fileLib.Initialize(usop);
             if (!flOk) return;
-            
+
             // Update interp length and fade out timing
             le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.InterpData_0").WriteProperty(new FloatProperty(12.75f, "InterpLength"));
             var fadeCurve = @"properties
