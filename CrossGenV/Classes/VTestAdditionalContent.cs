@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal;
@@ -91,15 +92,28 @@ namespace CrossGenV.Classes
             var sequence = KismetHelper.GetParentSequence(pawnLoad);
 
             // Get all object lists in the sequence that have object types of BioPawnChallengeScaledType objects in them.
-            var spawnLists = KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().Where(x =>
+            var objectListsLists = KismetHelper.GetSequenceObjects(sequence).OfType<ExportEntry>().Where(x =>
                     x.ClassName == "SeqVar_ObjectList"
                     && x.GetProperty<ArrayProperty<ObjectProperty>>("ObjList") is var objList
-                    && objList.Count > 0
-                    && objList[0] != null
-                    && objList[0].Value > 0
-                    && le1File.GetUExport(objList[0].Value) is ExportEntry bpcst
-                    && bpcst.ClassName == "BioPawnChallengeScaledType")
+                    && objList.Count > 0)
                 .ToList();
+
+
+            List<ExportEntry> spawnLists = new List<ExportEntry>();
+            foreach (var objList in objectListsLists)
+            {
+                var list = objList.GetProperty<ArrayProperty<ObjectProperty>>("ObjList");
+                var hasChallengeScaledType = list.Any(x =>
+                    x.Value > 0 && le1File.GetUExport(x.Value) is ExportEntry bpcst
+                                && bpcst.ClassName == "BioPawnChallengeScaledType");
+                if (!hasChallengeScaledType)
+                    continue;
+
+                spawnLists.Add(objList);
+            }
+
+            // The last element we will encounter is the cache object
+            spawnLists.Remove(spawnLists.Last());
 
             var spawnChanger = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, sequence.InstancedFullPath,
                 "HelperSequences.CrossgenUpdateSpawnlists", options);
