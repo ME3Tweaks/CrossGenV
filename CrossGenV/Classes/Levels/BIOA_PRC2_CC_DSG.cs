@@ -426,7 +426,7 @@ namespace CrossGenV.Classes.Levels
                 }
                 #endregion
 
-                #region Issue Rally Command at map start to ensure squadmates don't split up, blackscreen off should be fade in not turn off
+                #region Issue Rally Command at map start to ensure squadmates don't split up, blackscreen off should be fade in not turn off, PLAYER_QUIT streaming
                 else if (seqName == "TA_V3_Gametype_Handler")
                 {
                     // Time Trial
@@ -449,6 +449,8 @@ namespace CrossGenV.Classes.Levels
                     KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
                     KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
                     BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay", 72, 1736), vTestOptions);
+
+                    PlayerQuitStreamingFix(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", -904, 3544), "Out");
                 }
                 else if (seqName == "Check_Capping_Completion")
                 {
@@ -491,6 +493,14 @@ namespace CrossGenV.Classes.Levels
                         surDecaySignal.WriteProperty(new NameProperty("CROSSGEN_START_SUR_HEALTHGATE_DECAY", "EventName"));
                         KismetHelper.CreateOutputLink(surDecayStart, "Out", surDecaySignal);
                     }
+
+                    // Same sequence names, different positions.
+                    var playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", 144, 4136);
+                    if (playerQuitSetBool == null)
+                    {
+                        playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", -568, 3408);
+                    }
+                    PlayerQuitStreamingFix(playerQuitSetBool, "Out");
                 }
                 else if (seqName == "Vampire_Mode_Handler")
                 {
@@ -591,6 +601,14 @@ namespace CrossGenV.Classes.Levels
             }
 
             FixSoftlockWhenRagdollOnGameEnd();
+        }
+
+        private void PlayerQuitStreamingFix(ExportEntry hookup, string outlinkName)
+        {
+            // Streams in CCSIM04 in loaded state so it's ready to show sooner
+            var seq = KismetHelper.GetParentSequence(hookup);
+            var sss = SequenceObjectCreator.CreateSetStreamingState(seq, SequenceObjectCreator.CreateName(seq,"Load_Post_Scenario_Scoreboard", vTestOptions.cache), SequenceObjectCreator.CreateBool(seq, true, vTestOptions.cache));
+            KismetHelper.InsertActionAfter(hookup, outlinkName, sss, 0, "Out");
         }
 
         public virtual void PrePortingCorrection()
