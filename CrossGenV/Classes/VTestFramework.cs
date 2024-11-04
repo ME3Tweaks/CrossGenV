@@ -948,14 +948,14 @@ throw new Exception("This must be fixed for release!");
                 setLoc.WriteProperty(CommonStructs.RotatorProp(0, 0, 0, "RotationValue"));
             }
 
-            var modifyPawn =
-                VTestKismet.AddHelperObjectToSequence(seq, "VTestHelper.BioSeqAct_ModifyPropertyPawn_0", options);
+            var modifyPawn = VTestKismet.AddHelperObjectToSequence(seq, "VTestHelper.BioSeqAct_ModifyPropertyPawn_0", options);
             KismetHelper.CreateVariableLink(modifyPawn, "Target", pawnRef);
-            KismetHelper.CreateVariableLink(modifyPawn, "Active",
-                SequenceObjectCreator.CreateBool(seq, true, options.cache));
+            KismetHelper.CreateVariableLink(modifyPawn, "Active", SequenceObjectCreator.CreateBool(seq, true, options.cache));
             // We don't want to edit the tag, but we're going to just leave this commented here
             //KismetHelper.CreateVariableLink(modifyPawn, "Tag", SequenceObjectCreator.CreateName(seq, $"NPC_{pawn.NPCName}", options.cache));
 
+            // 11/03/2024 - Stream textures in for the pawn when we handshake because it's probably about to become visible
+            var forceResident = SequenceObjectCreator.CreateForceActorMipsResident(seq, pawnRef);
 
             // Logic
             KismetHelper.CreateOutputLink(seqIn, "Out", poll); // Sequence activation -> Poll
@@ -964,7 +964,8 @@ throw new Exception("This must be fixed for release!");
             KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close self once passed through
             KismetHelper.CreateOutputLink(gate, "Out", setLoc); // Gate output -> SetLocation
             KismetHelper.CreateOutputLink(setLoc, "Out", modifyPawn); // SetLocation -> ModifyPropertyPawn
-            KismetHelper.CreateOutputLink(modifyPawn, "Out", readyOut); // SetLocation -> ModifyPropertyPawn
+            KismetHelper.CreateOutputLink(modifyPawn, "Out", forceResident); // ModifyPropertyPawn -> ForceResident
+            KismetHelper.CreateOutputLink(forceResident, "Finished", readyOut); // ForceResident -> Finish
 
             if (pawn.Comment != null)
             {
