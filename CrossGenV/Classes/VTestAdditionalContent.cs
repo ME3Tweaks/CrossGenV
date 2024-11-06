@@ -59,7 +59,6 @@ namespace CrossGenV.Classes
 
         public static void AddExtraEnemyTypes(IMEPackage le1File, VTestOptions options)
         {
-            // Todo: Add gating for this somewhere, maybe in helper sequence
             var fname = le1File.FileNameNoExtension.ToUpper();
             switch (fname)
             {
@@ -112,8 +111,19 @@ namespace CrossGenV.Classes
                 spawnLists.Add(objList);
             }
 
-            // The last element we will encounter is the cache object
-            spawnLists.Remove(spawnLists.Last());
+            // All spawnlists contain the types data, 
+            // But we want to make sure we don't include the original load types
+
+            // ToArray to make dupe
+            var seqElements = KismetHelper.GetAllSequenceElements(sequence).OfType<ExportEntry>().ToList();
+            foreach (var spawnList in spawnLists.ToArray())
+            {
+                var preloadObjs = KismetHelper.FindVariableConnectionsToNode(spawnList, seqElements, ["Pawn type list"]);
+                foreach (var preloadObj in preloadObjs)
+                {
+                    spawnLists.Remove(preloadObj);
+                }
+            }
 
             var spawnChanger = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, sequence.InstancedFullPath,
                 "HelperSequences.CrossgenUpdateSpawnlists", options);
@@ -159,12 +169,6 @@ namespace CrossGenV.Classes
                 KismetHelper.CreateVariableLink(spawnChanger, "Spawns", sl);
             }
         }
-
-        public static void AddUsableLockers(IMEPackage le1File, VTestOptions options)
-        {
-
-        }
-
 
         public static void InstallTalentRamping(ExportEntry hookup, string outName, VTestOptions options)
         {
