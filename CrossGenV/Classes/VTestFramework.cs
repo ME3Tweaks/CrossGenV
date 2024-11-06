@@ -972,6 +972,12 @@ throw new Exception("This must be fixed for release!");
                 KismetHelper.SetComment(seq, pawn.Comment);
             }
 
+            // 11/05/2024 - Stream textures in when requested
+            var prepTextures= SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, $"CROSSGEN_PrepTextures", options.cache);
+            var forceResident2 = SequenceObjectCreator.CreateForceActorMipsResident(seq, pawnRef);
+            KismetHelper.CreateOutputLink(prepTextures, "Out", forceResident2);
+
+
             return seq;
         }
 
