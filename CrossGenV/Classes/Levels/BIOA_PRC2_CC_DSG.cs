@@ -53,7 +53,7 @@ namespace CrossGenV.Classes.Levels
         }
 
         /// <summary>
-        /// Sets up the capture ring changes that changes ring over caputre time
+        /// Sets up the capture ring changes that changes ring over capture time
         /// </summary>
         /// <param name="mapName"></param>
         public void SetCaptureRingChanger(string mapName)
@@ -98,14 +98,18 @@ namespace CrossGenV.Classes.Levels
 
                     // SetMaterial for initial touch
                     var cappingCompletedCheck = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqCond_CompareBool", 360, 3216);
+                    var capturingMaterial = le1File.FindExport("CROSSGENV.StrategicRing_Cap_MAT_NEW_matInst"); // Ring capturing material
+                    var capPointObject = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_External", 1000, 4264);
+                    var setCapturingMaterialOnPoint = SequenceObjectCreator.CreateSetMaterial(seq, capPointObject, capturingMaterial, vTestOptions.cache);
+                    KismetHelper.SetComment(setCapturingMaterialOnPoint, "Not capped yet - set to ring capturing material so they share same mat");
                     KismetHelper.CreateOutputLink(cappingCompletedCheck, "True", capping, 2); // Complete
-                    KismetHelper.CreateOutputLink(cappingCompletedCheck, "False", capping, 0); // Reset
 
-                    // Set initial material state BEFORE the delay demiurge used. No idea why. Even they commented asking why it was so late
+                 // Set initial material state BEFORE the delay demiurge used. No idea why. Even they commented asking why it was so late
                     var finishedCappingQ = SequenceObjectCreator.CreateCompareBool(seq, SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Bool", "Capped_Yet", vTestOptions.cache));
                     KismetHelper.SetComment(finishedCappingQ, "Crossgen: Setup material on same frame as when we begin capping instead after later delay");
                     KismetHelper.CreateOutputLink(finishedCappingQ, "True", capping, 2); // Finished
-                    KismetHelper.CreateOutputLink(finishedCappingQ, "False", capping, 0); // Reset
+                    KismetHelper.CreateOutputLink(finishedCappingQ, "False", setCapturingMaterialOnPoint);
+                    KismetHelper.CreateOutputLink(setCapturingMaterialOnPoint, "Out", capping, 0); // Reset
 
                     // We re-order the outlinks of cah mode check so that our material update runs first to ensure proper execution order
                     var isCahMode = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqCond_CompareBool", -1936, 3224);
@@ -113,9 +117,19 @@ namespace CrossGenV.Classes.Levels
                     outLinks[0].Insert(0, new OutputLink() { LinkedOp = finishedCappingQ });
                     KismetHelper.WriteOutputLinksToNode(isCahMode, outLinks);
 
+
+                    // Untouch point during capture - reset point material as it will remain visible
+                    var uncappedMat = le1File.FindExport("BIOA_PRC2_MatFX.StrategicPoint_Cap_MAT");
+                    var untouchSound = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_PlaySound", -1912, 3696);
+                    var setToBlinkingPointMat = SequenceObjectCreator.CreateSetMaterial(seq, capPointObject, uncappedMat, vTestOptions.cache);
+                    KismetHelper.SetComment(setToBlinkingPointMat, "Reset back to uncapped material");
+                    KismetHelper.InsertActionAfter(untouchSound, "Out", setToBlinkingPointMat, 0, "Out");
+
                     // Finished Capping: Change to Completed look
-
-
+                    EntryExporter.ExportExportToPackage(vTestOptions.vTestHelperPackage.FindExport("CROSSGENV.StrategicRing_Cap_MAT_Finished_matInst"), le1File, out var portedFinishedMat, vTestOptions.cache);
+                    var completedSet = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", 3536, 3232);
+                    completedSet.WriteProperty(new ObjectProperty(portedFinishedMat, "NewMaterial"));
+                    
                     continue;
                 }
             }
@@ -606,7 +620,7 @@ namespace CrossGenV.Classes.Levels
         {
             // Streams in CCSIM04 in loaded state so it's ready to show sooner
             var seq = KismetHelper.GetParentSequence(hookup);
-            var sss = SequenceObjectCreator.CreateSetStreamingState(seq, SequenceObjectCreator.CreateName(seq,"Load_Post_Scenario_Scoreboard", vTestOptions.cache), SequenceObjectCreator.CreateBool(seq, true, vTestOptions.cache));
+            var sss = SequenceObjectCreator.CreateSetStreamingState(seq, SequenceObjectCreator.CreateName(seq, "Load_Post_Scenario_Scoreboard", vTestOptions.cache), SequenceObjectCreator.CreateBool(seq, true, vTestOptions.cache));
             KismetHelper.InsertActionAfter(hookup, outlinkName, sss, 0, "Out");
         }
 
