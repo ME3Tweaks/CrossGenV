@@ -389,7 +389,7 @@ namespace CrossGenV.Classes
                 stringRefs.Add(new TLKStringRef(338491, "Salarian enemies will replace the normal enemies in the combat simulator."));
                 stringRefs.Add(new TLKStringRef(338492, "Batarian enemies will replace the normal enemies in the combat simulator."));
                 stringRefs.Add(new TLKStringRef(338493, "Monsters"));
-                stringRefs.Add(new TLKStringRef(338494, "Monsterous enemies will replace the normal enemies in the combat simulator."));
+                stringRefs.Add(new TLKStringRef(338494, "Monstrous enemies will replace the normal enemies in the combat simulator."));
                 stringRefs.Add(new TLKStringRef(338495, "Mixed Enemies"));
                 stringRefs.Add(new TLKStringRef(338496, "Enemies from all available factions will appear in the combat simulator."));
                 stringRefs.Add(new TLKStringRef(338497, "All Settings: Vanilla"));
@@ -402,6 +402,18 @@ namespace CrossGenV.Classes
                 stringRefs.Add(new TLKStringRef(338504, "Enemy types will not be changed from the defaults."));
                 stringRefs.Add(new TLKStringRef(338505, "Enemy types have been changed from the defaults."));
                 stringRefs.Add(new TLKStringRef(338506, "Default"));
+
+                // Enemy names
+
+                // Salarian
+                stringRefs.Add(new TLKStringRef(338507, "Salarian Mercenary"));
+                stringRefs.Add(new TLKStringRef(338508, "Salarian Sharpshooter"));
+                stringRefs.Add(new TLKStringRef(338509, "Salarian Guard"));
+                stringRefs.Add(new TLKStringRef(338510, "Salarian Vanquisher"));
+                //stringRefs.Add(new TLKStringRef(338511, "Salarian Tank")); // Blank placeholder
+
+                // Batarian
+                stringRefs.Add(new TLKStringRef(338512, "Batarian Raider"));
             }
         }
 
