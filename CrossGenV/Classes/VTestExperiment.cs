@@ -374,8 +374,10 @@ namespace CrossGenV.Classes
 
             if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
             {
-                //if (levelFileName.Contains("ccsim", StringComparison.OrdinalIgnoreCase))
-                PortLOCFile(levelFileName, vTestOptions);
+#if DEBUG
+                if (levelFileName.GetUnrealLocalization() == MELocalization.INT)
+#endif
+                    PortLOCFile(levelFileName, vTestOptions);
             }
             else
             {
