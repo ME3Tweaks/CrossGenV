@@ -238,6 +238,9 @@ namespace CrossGenV.Classes
             // 10/26/2024 - Convert all AI classes in the mod to Crossgen versions for simulator
             VTestAI.ConvertAIToCrossgen(vTestOptions);
 
+            // 11/09/2024 - Generate holowipe BIOG files
+            VTestMaterial.GenerateHolowipeMaterials(vTestOptions);
+
             // TLKS ARE DONE POST ONLY
             VTestTLK.PostUpdateTLKs(vTestOptions);
 

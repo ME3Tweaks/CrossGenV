@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LegendaryExplorerCore.GameFilesystem;
+using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Unreal.Classes;
 
 namespace CrossGenV.Classes
 {
@@ -52,14 +56,25 @@ namespace CrossGenV.Classes
             { "Character_Color", "ColorSelected" } // PRC2 Scoreboard Materials
         };
 
-        public static string[] cclavaTextureStreamingMaterials = new[]
+        public static void GenerateHolowipeMaterials(VTestOptions options)
         {
-            // Terrain materials
-            "BIOA_LAV60_T.LAV60_GrassF02",
-            "BIOA_LAV60_T.LAV60_Rock02",
-            "BIOA_LAV60_T.lav60_riveredge01",
-            "BIOA_LAV60_T.LAV60_Road",
-            "BIOA_LAV60_T.lav60_rockcover_new_road"
-        };
+            var holowipePackageF = Path.Combine(VTestPaths.VTest_FinalDestDir, "DecookedAssets", "BIOG_WPN_VTEST_ALL_R");
+            var holowipePackageP = MEPackageHandler.CreateAndOpenPackage(holowipePackageF, MEGame.LE1);
+
+            var equipPackage = MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_PrecomputedDir, "..", "2DAs", "BIOG_2DA_Equipment_X.pcc");
+            var itemsObj = equipPackage.FindExport("BIOG_2DA_Equipment_X.Items_Items");
+            var items = new Bio2DA(itemsObj);
+
+            for (int i = 0; i < items.RowCount; i++)
+            {
+                var itemType = items[i, "ItemClass"];
+                if (itemType != null && itemType.DisplayableValue == "BioItemWeaponRanged")
+                {
+
+                }
+            }
+
+            holowipePackageP.Save();
+        }
     }
 }
