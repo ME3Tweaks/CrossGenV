@@ -296,6 +296,9 @@ namespace CrossGenV.Classes
                 case "prc2_ahern_N.Node_Data_Sequence.BioSeqEvt_ConvNode_217":
                     SetGenderSpecificLength(export, 0.5f, 0f, vTestOptions); // I got a brochure from ExoGeni and they dropped a prefab down on Intai'sae for me, here in the Argus Rho cluster.
                     break;
+                case "prc2_ahern_N.Node_Data_Sequence.BioSeqEvt_ConvNode_104":  
+                    SetGenderSpecificLength(export, 0.12f, 0.12f, vTestOptions); // You haven't reconsidered taking a shot at my special scenario, have you?
+                    break;
                 case "prc2_ochren_N.Node_Data_Sequence.BioSeqEvt_ConvNode_67":
                     SetGenderSpecificLength(export, 0, 1.1f, vTestOptions); // So you must be the famous commander shepard
                     break;

@@ -34,14 +34,27 @@ namespace CrossGenV.Classes.Modes
             var packageName = le1Package.FileNameNoExtension;
             switch (packageName)
             {
-                case "BIOA_PRR2_CCTHAI_DSG":
-                {
-                    // Disconnect the logic for disabling enemies on capture start as we have changed it
+                case "BIOA_PRC2_CCTHAI_DSG":
+                    {
+                        // Disconnect the logic for disabling enemies on capture start as we have changed it
                         var deactivateDefenders = le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SeqAct_Gate_6");
-                        le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Thai_Handler.SeqAct_Gate_6");
-                    KismetHelper.RemoveFromSequence(deactivateDefenders, true);
-                    break;
-                }
+                        KismetHelper.RemoveFromSequence(deactivateDefenders, true);
+                        break;
+                    }
+                case "BIOA_PRC2_CCLAVA_DSG":
+                    {
+                        // Disconnect the logic for disabling enemies on capture start as we have changed it
+                        var deactivateDefenders = le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Lava_Handler.SeqAct_Gate_16");
+                        KismetHelper.RemoveFromSequence(deactivateDefenders, true);
+                        break;
+                    }
+                case "BIOA_PRC2_CCCAVE_DSG":
+                    {
+                        // Disconnect the logic for disabling enemies on capture start as we have changed it
+                        var deactivateDefenders = le1Package.FindExport("TheWorld.PersistentLevel.Main_Sequence.CAH_Cave_Handler.SeqAct_Gate_1");
+                        KismetHelper.RemoveFromSequence(deactivateDefenders, true);
+                        break;
+                    }
             }
         }
 
@@ -75,10 +88,10 @@ namespace CrossGenV.Classes.Modes
             var randEngageSw = SequenceObjectCreator.CreateRandSwitch(seq, 2, options.cache);
             KismetHelper.SetComment(randEngageSw, "Force target to player");
 
-            var unlockTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_UnLockTarget", options.cache);
+            //var unlockTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_UnLockTarget", options.cache);
             var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_LockTarget", options.cache);
 
-            KismetHelper.CreateVariableLink(unlockTarget, "Pawn", currentEnemy);
+            //KismetHelper.CreateVariableLink(unlockTarget, "Pawn", currentEnemy);
 
             //var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceCombatTarget", options.cache);
             KismetHelper.CreateVariableLink(setTarget, "Pawn", currentEnemy);
@@ -108,12 +121,12 @@ namespace CrossGenV.Classes.Modes
 
 
             // AI Targets Player
-            KismetHelper.CreateOutputLink(changeAiOnSignal, "Out", randEngageSw);
-            KismetHelper.CreateOutputLink(changeAiOnSpawn, "Out", randEngageSw);
-            KismetHelper.CreateOutputLink(randEngageSw, "Link 1", unlockTarget);
-            KismetHelper.CreateOutputLink(randEngageSw, "Link 2", unlockTarget); // TEST: 100%
+            KismetHelper.CreateOutputLink(changeAiOnSignal, "Out", setTarget);
+            KismetHelper.CreateOutputLink(changeAiOnSpawn, "Out", setTarget);
+            //KismetHelper.CreateOutputLink(randEngageSw, "Link 1", unlockTarget);
+            //KismetHelper.CreateOutputLink(randEngageSw, "Link 2", unlockTarget); // TEST: 100%
 
-            KismetHelper.CreateOutputLink(unlockTarget, "Success", setTarget);
+            //KismetHelper.CreateOutputLink(unlockTarget, "Success", setTarget);
 
 
             // Engage

@@ -98,7 +98,19 @@ namespace CrossGenV.Classes
                         KismetHelper.CreateOutputLink(gc, "Finished", gate);
                         KismetHelper.CreateOutputLink(gate, "Out", mlv); // Visible
                         KismetHelper.CreateOutputLink(gate, "Out", interp); // Visible
+                    }
+                    else
+                    {
+                        // Not a load cam
+                        // Play
+                        var mlv = SequenceObjectCreator.CreateSequenceObject(singleSeq, "LEXSeqAct_MultiLevelVisibility", options.cache);
+                        mlv.WriteProperty(new ArrayProperty<NameProperty>(levels.Select(x => new NameProperty(x)), "Levels"));
+                        KismetHelper.InsertActionAfter(startRe, "Out", mlv, 0, "Out");
 
+                        // Stop
+                        mlv = SequenceObjectCreator.CreateSequenceObject(singleSeq, "LEXSeqAct_MultiLevelVisibility", options.cache);
+                        mlv.WriteProperty(new ArrayProperty<NameProperty>(levels.Select(x => new NameProperty(x)), "Levels"));
+                        KismetHelper.InsertActionAfter(stopRe, "Out", mlv, 2, "Out"); // Unload
                     }
                 }
             }

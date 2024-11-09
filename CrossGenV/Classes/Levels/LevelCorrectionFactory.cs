@@ -12,6 +12,11 @@ namespace CrossGenV.Classes.Levels
             {
                 return MakeLevel<BIOA_PRC2_CCScoreboard_DSG_LOC>(me1Package, le1Package, options);
             }
+            
+            if(levelNameUpper.Contains("BIOA_PRC2_CCMAIN_CONV_LOC"))
+            {
+                return MakeLevel<BIOA_PRC2_CCMAIN_CONV_LOC>(me1Package, le1Package, options);
+            }
 
             return levelNameUpper switch
             {
