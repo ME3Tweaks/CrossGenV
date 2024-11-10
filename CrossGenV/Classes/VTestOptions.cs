@@ -64,7 +64,7 @@ namespace CrossGenV.Classes
         /// <summary>
         /// If debug features should be enabled in the build
         /// </summary>
-        public bool debugBuild = true;
+        public bool debugBuild = false;
 
         /// <summary>
         /// If static lighting should be converted to non-static lighting. Only works if debugBuild is true
