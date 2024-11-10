@@ -20,7 +20,7 @@ namespace CrossGenV.Classes
             options.SetStatusText("Compiling CrossgenAI classes");
             var cggc = ExportCreator.CreatePackageExport(package, "Crossgen_GameContent", cache: options.cache);
 
-            var classesToSub = LE1UnrealObjectInfo.ObjectInfo.Classes.Where(x => x.Value.IsA("BioAiController", MEGame.LE1));
+            var classesToSub = LE1UnrealObjectInfo.ObjectInfo.Classes.Where(x => x.Value.IsA("BioAiController", MEGame.LE1) && x.Key.StartsWith("Bio"));
 
             var usop = new UnrealScriptOptionsPackage() { Cache = options.cache };
             FileLib lib = new FileLib(package);
@@ -36,6 +36,11 @@ namespace CrossGenV.Classes
                     continue; // Do not subclass this
 
                 var className = $"CrossgenAI{cts.Key.Substring(usp)}";
+                if (package.FindExport($"{cggc.ObjectName}.{className}", "Class") != null)
+                {
+                    continue; // Already done
+                }
+
                 options.SetStatusText($"  {className}");
 
                 var classText = $"Class {className} extends {cts.Key};";
@@ -46,7 +51,12 @@ namespace CrossGenV.Classes
 
                 var results = UnrealScriptCompiler.CompileClass(package, classText, lib, usop, parent: cggc);
                 package.Save();
-                compiledClasses.Add(package.FindExport($"{cggc.InstancedFullPath}.{className}"));
+                var compiledClass = package.FindExport($"{cggc.InstancedFullPath}.{className}");
+                if (compiledClass == null)
+                {
+
+                }
+                compiledClasses.Add(compiledClass);
             }
 
             // Must keep these referenced or they will fall out of memory.

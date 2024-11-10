@@ -14,7 +14,7 @@ namespace CrossGenV.Classes.Modes
     {
         public static void AddCaptureEngagementSequencing(IMEPackage le1Package, VTestOptions options)
         {
-            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = options.cache });
+            var chargeClass = EntryImporter.EnsureClassIsInFile(le1Package, "CrossgenAI_MobPlayer", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = options.cache });
             foreach (var seq in le1Package.Exports.Where(x => x.ClassName == "Sequence").ToList())
             {
                 var seqName = VTestKismet.GetSequenceName(seq);
@@ -79,23 +79,23 @@ namespace CrossGenV.Classes.Modes
             var deathListener = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_AttachToEvent", 5680, 1672);
             var currentEnemy = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
             var disablePawnHook = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "Sequence", 5424, 1672);
-            var changeAiOnSignal = SequenceObjectCreator.CreateChangeAI(seq, chargeClass, currentEnemy, options.cache);
-            var changeAiOnSpawn = SequenceObjectCreator.CreateChangeAI(seq, chargeClass, currentEnemy, options.cache);
+            var changeAiOnSignal = SequenceObjectCreator.CreateChangeAI(seq, chargeClass, currentEnemy, true, options.cache);
+            var changeAiOnSpawn = SequenceObjectCreator.CreateChangeAI(seq, chargeClass, currentEnemy, true, options.cache);
 
 
             var forceEngage = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "ForceCaptureEngage", options.cache);
             var captureDisengage = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "CaptureDisengage", options.cache);
-            var randEngageSw = SequenceObjectCreator.CreateRandSwitch(seq, 2, options.cache);
-            KismetHelper.SetComment(randEngageSw, "Force target to player");
+            //var randEngageSw = SequenceObjectCreator.CreateRandSwitch(seq, 2, options.cache);
+            //KismetHelper.SetComment(randEngageSw, "Force target to player");
 
             //var unlockTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_UnLockTarget", options.cache);
-            var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_LockTarget", options.cache);
+            //var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "BioSeqAct_LockTarget", options.cache);
 
             //KismetHelper.CreateVariableLink(unlockTarget, "Pawn", currentEnemy);
 
             //var setTarget = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceCombatTarget", options.cache);
-            KismetHelper.CreateVariableLink(setTarget, "Pawn", currentEnemy);
-            KismetHelper.CreateVariableLink(setTarget, "Target", player);
+            //KismetHelper.CreateVariableLink(setTarget, "Pawn", currentEnemy);
+            //KismetHelper.CreateVariableLink(setTarget, "Target", player);
             // KismetHelper.CreateVariableLink(setTarget, "LockTarget", SequenceObjectCreator.CreateBool(seq, true, options.cache));
 
             var currentState = SequenceObjectCreator.CreateBool(seq, false, options.cache);
@@ -111,7 +111,7 @@ namespace CrossGenV.Classes.Modes
             KismetHelper.CreateVariableLink(getDist, "A", player);
             KismetHelper.CreateVariableLink(getDist, "B", currentEnemy);
             KismetHelper.CreateVariableLink(getDist, "Distance", dist);
-            var respawnDist = SequenceObjectCreator.CreateFloat(seq, 27000, options.cache); // It's using Size() instead of Distance(). We may want to consider just making a custom class and returning .Distance().
+            var respawnDist = SequenceObjectCreator.CreateFloat(seq, 20000, options.cache); // It's using Size() instead of Distance(). We may want to consider just making a custom class and returning .Distance().
             var compare = SequenceObjectCreator.CreateCompareFloat(seq, dist, respawnDist, options.cache);
             var doDamage = SequenceObjectCreator.CreateCauseDamage(seq, currentEnemy, null, 9999, options.cache); // Do a ton of damage. The instigator is not the player because that triggers killstreaks
             var ksvoDelay = SequenceObjectCreator.CreateDelay(seq, 1, options.cache);
@@ -121,8 +121,8 @@ namespace CrossGenV.Classes.Modes
 
 
             // AI Targets Player
-            KismetHelper.CreateOutputLink(changeAiOnSignal, "Out", setTarget);
-            KismetHelper.CreateOutputLink(changeAiOnSpawn, "Out", setTarget);
+            //KismetHelper.CreateOutputLink(changeAiOnSignal, "Out", setTarget);
+            //KismetHelper.CreateOutputLink(changeAiOnSpawn, "Out", setTarget);
             //KismetHelper.CreateOutputLink(randEngageSw, "Link 1", unlockTarget);
             //KismetHelper.CreateOutputLink(randEngageSw, "Link 2", unlockTarget); // TEST: 100%
 
