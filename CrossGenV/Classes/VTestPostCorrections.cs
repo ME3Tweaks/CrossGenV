@@ -76,7 +76,7 @@ namespace CrossGenV.Classes
             //FixLighting(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Ahern Conversation)");
             FixAhernConversation(le1File, vTestOptions);
-            
+
             // Disabled 08/18/2024 - Do not use assets for optimization as we now rebake lighting
             //vTestOptions.SetStatusText($"PPC (Optimization)");
             //PortME1OptimizationAssets(me1File, le1File, vTestOptions);
@@ -141,6 +141,10 @@ namespace CrossGenV.Classes
             if (level != null)
             {
                 LevelTools.RebuildPersistentLevelChildren(level);
+
+                // 11/9/2024 - Inventory path nodes for later reachspec compute
+                VTestPathing.InventoryNavigationNodes(le1File, vTestOptions);
+
             }
             //CorrectTriggerStreamsMaybe(me1File, le1File);
         }

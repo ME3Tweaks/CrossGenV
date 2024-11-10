@@ -238,8 +238,6 @@ namespace CrossGenV.Classes
             // 10/26/2024 - Convert all AI classes in the mod to Crossgen versions for simulator
             VTestAI.ConvertAIToCrossgen(vTestOptions);
 
-            // 11/09/2024 - Generate holowipe BIOG files
-            VTestMaterial.GenerateHolowipeMaterials(vTestOptions);
 
             // TLKS ARE DONE POST ONLY
             VTestTLK.PostUpdateTLKs(vTestOptions);
@@ -251,7 +249,8 @@ namespace CrossGenV.Classes
             // 10/27/2024 - This must be done after frameworking as we trash things in frameworking
             VTestTextures.InstallAllPrepTextureSignals(vTestOptions);
 
-
+            // 10/09/2024 - Compute reachspecs
+            VTestPathing.ComputeReachspecs(vTestOptions);
 
             // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
             // save them in the package.
