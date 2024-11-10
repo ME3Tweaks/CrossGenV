@@ -57,7 +57,7 @@ namespace CrossGenV.Classes.Levels
                 }
                 else if (seqName == "Spawn_Single_Guy")
                 {
-                    BIOA_PRC2_CC_DSG.RemoveBitExplosionEffect(exp);
+                    BIOA_PRC2_CC_DSG.RemoveBitExplosionEffect(exp, vTestOptions);
                     BIOA_PRC2_CC_DSG.FixGethFlashlights(exp, vTestOptions); // This is just for consistency
                 }
                 else if (seqName == "OL_Size")

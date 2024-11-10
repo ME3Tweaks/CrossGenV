@@ -104,7 +104,7 @@ namespace CrossGenV.Classes.Levels
                     KismetHelper.SetComment(setCapturingMaterialOnPoint, "Not capped yet - set to ring capturing material so they share same mat");
                     KismetHelper.CreateOutputLink(cappingCompletedCheck, "True", capping, 2); // Complete
 
-                 // Set initial material state BEFORE the delay demiurge used. No idea why. Even they commented asking why it was so late
+                    // Set initial material state BEFORE the delay demiurge used. No idea why. Even they commented asking why it was so late
                     var finishedCappingQ = SequenceObjectCreator.CreateCompareBool(seq, SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Bool", "Capped_Yet", vTestOptions.cache));
                     KismetHelper.SetComment(finishedCappingQ, "Crossgen: Setup material on same frame as when we begin capping instead after later delay");
                     KismetHelper.CreateOutputLink(finishedCappingQ, "True", capping, 2); // Finished
@@ -129,7 +129,7 @@ namespace CrossGenV.Classes.Levels
                     EntryExporter.ExportExportToPackage(vTestOptions.vTestHelperPackage.FindExport("CROSSGENV.StrategicRing_Cap_MAT_Finished_matInst"), le1File, out var portedFinishedMat, vTestOptions.cache);
                     var completedSet = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetMaterial", 3536, 3232);
                     completedSet.WriteProperty(new ObjectProperty(portedFinishedMat, "NewMaterial"));
-                    
+
                     continue;
                 }
             }
@@ -204,7 +204,7 @@ namespace CrossGenV.Classes.Levels
             }
         }
 
-        public static void RemoveBitExplosionEffect(ExportEntry exp)
+        public static void RemoveBitExplosionEffect(ExportEntry exp, VTestOptions options)
         {
             // These sequences need the 'bit explosion' effect removed because BioWare changed something in SeqAct_ActorFactory and completely broke it
             // We are just going to use the crust effect instead
@@ -248,6 +248,16 @@ namespace CrossGenV.Classes.Levels
             }
 
             exp.WriteProperty(sequenceObjects);
+            // Above is 2021 code, before we had helper classes to find things.
+
+            // 11/09/2024 - Remove all crusts from pawn before setting holowipe crust
+            // Also 11/09/2024 - For some reason removing crusts also removes player ability to turn for indeterminate amounts of time
+            //var deathSetObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetObject", 5568, 2008);
+            //var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqVar_Object", 4536, 2016);
+            //var removeCrusts = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_RemoveAllCrustEffects", options.cache);
+            //KismetHelper.CreateVariableLink(removeCrusts, "Target", currentPawn);
+            //KismetHelper.InsertActionAfter(deathSetObj, "Out", removeCrusts, 0, "Out");
+            
         }
 
         /// <summary>
@@ -317,7 +327,7 @@ namespace CrossGenV.Classes.Levels
 
                 if (seqName == "Spawn_Single_Guy")
                 {
-                    RemoveBitExplosionEffect(exp);
+                    RemoveBitExplosionEffect(exp, vTestOptions);
                     FixGethFlashlights(exp, vTestOptions);
                     // Increase survival mode engagement by forcing the player to engage with enemies that charge the player.
                     // This prevents them from camping and getting free survival time
