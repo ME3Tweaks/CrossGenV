@@ -236,7 +236,11 @@ namespace CrossGenV.Classes
             vTestOptions.cache = rootCache.ChainNewCache();
 
             // 10/26/2024 - Convert all AI classes in the mod to Crossgen versions for simulator
+            // Only convert if not for static lighting and we are building PRC2
+            if (!vTestOptions.isBuildForStaticLightingBake && vTestOptions.vTestLevels.Contains("PRC2"))
+            {
             VTestAI.ConvertAIToCrossgen(vTestOptions);
+            }
 
 
             // TLKS ARE DONE POST ONLY
@@ -590,7 +594,8 @@ namespace CrossGenV.Classes
 
             // 08/21/2024 - Add static lighting import
             // PRC2AA lightmaps look awful
-            if (!levelName.Contains("PRC2AA"))
+            // 11/10/2024 - Verified and tested in UDK, it looks awful, it looks like ME1 lightmaps were done in Maya somehow?
+            if (!levelName.Contains("PRC2AA", StringComparison.OrdinalIgnoreCase))
             {
                 // No point importing static lighting if we are going to bake it again
                 if (!vTestOptions.isBuildForStaticLightingBake)
