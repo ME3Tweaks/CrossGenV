@@ -444,12 +444,13 @@ namespace CrossGenV.Classes
             var langsToUpdate = new[] { "", "RA", "RU", "DE", "FR", "IT", "ES", "JA", "PL", "PLPC" };
             foreach (var lang in langsToUpdate)
             {
+                var intermedBasePath = basePath;
                 if (lang != "")
                 {
-                    basePath += "_";
+                    intermedBasePath += "_";
                 }
 
-                var tlkPackage = MEPackageHandler.OpenMEPackage(basePath + lang + ".pcc");
+                var tlkPackage = MEPackageHandler.OpenMEPackage(intermedBasePath + lang + ".pcc");
 
                 // Add our specific TLK strings.
                 AddVTestSpecificStrings(tlkPackage.FindExport("GlobalTlk_tlk"), lang);
@@ -461,13 +462,13 @@ namespace CrossGenV.Classes
                 switch (lang)
                 {
                     case "DE":
-                        tlkPackage.Save(basePath + "GE.pcc"); // English VO
+                        tlkPackage.Save(intermedBasePath + "GE.pcc"); // English VO
                         break;
                     case "FR":
-                        tlkPackage.Save(basePath + "FE.pcc"); // English VO
+                        tlkPackage.Save(intermedBasePath + "FE.pcc"); // English VO
                         break;
                     case "IT":
-                        tlkPackage.Save(basePath + "IE.pcc"); // English VO
+                        tlkPackage.Save(intermedBasePath + "IE.pcc"); // English VO
                         break;
                 }
             }

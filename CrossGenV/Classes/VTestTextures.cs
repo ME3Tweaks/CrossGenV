@@ -22,11 +22,14 @@ namespace CrossGenV.Classes
         /// <summary>
         /// Forces textures to stream in around the player for 10 seconds
         /// </summary>
-        private static void InstallPrepTextures(IMEPackage package, VTestOptions vTestOptions)
+        public static void InstallPrepTextures(IMEPackage package, VTestOptions vTestOptions)
         {
             var mainSeq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
             if (mainSeq == null)
                 return; // Not a level
+
+            vTestOptions.SetStatusText($"Installing PrepTextures handler to {package.FileNameNoExtension}");
+
             var remoteEvent = SequenceObjectCreator.CreateSeqEventRemoteActivated(mainSeq, "CROSSGEN_PrepTextures");
             var player = SequenceObjectCreator.CreatePlayerObject(mainSeq, true, vTestOptions.cache);
             var sin = SequenceObjectCreator.CreateStreamInTextures(mainSeq, location: player, cache: vTestOptions.cache); // We use the player location actor. We want to stream in location not mesh.
