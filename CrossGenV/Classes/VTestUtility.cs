@@ -201,5 +201,33 @@ namespace CrossGenV.Classes
             var finalPath = VTestPaths.VTest_FinalDestDir;
             return Directory.GetFiles(finalPath, "*.pcc", SearchOption.AllDirectories);
         }
+
+        /// <summary>
+        /// Ensures objects are referenced in the package.
+        /// </summary>
+        /// <param name="package"></param>
+        /// <param name="cache"></param>
+        /// <param name="itemsToReference"></param>
+        public static void EnsureReferenced(IMEPackage package, PackageCache cache, IEnumerable<ExportEntry> itemsToReference)
+        {
+            if ((package.Flags & UnrealFlags.EPackageFlags.Map) != 0)
+            {
+                // Map
+                var theWorld = package.FindExport("TheWorld");
+                var worldBin = ObjectBinary.From<World>(theWorld);
+                worldBin.ExtraReferencedObjects.AddRange(itemsToReference.Select(x => x.UIndex));
+                worldBin.ExtraReferencedObjects = worldBin.ExtraReferencedObjects.Distinct().ToArray(); // ToList since it's modifying itself
+                theWorld.WriteBinary(worldBin);
+            }
+            else
+            {
+                // Not a map
+                var referencer = ExportCreator.CreateObjectReferencer(package, cache);
+                var references = referencer.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects") ?? new ArrayProperty<ObjectProperty>("ReferencedObjects");
+                references.AddRange(itemsToReference.Select(x=>new ObjectProperty(x)));
+                references.ReplaceAll(references.Distinct().ToList()); // ToList since it's modifying itself
+                referencer.WriteProperty(references);
+            }
+        }
     }
 }
