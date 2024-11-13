@@ -91,19 +91,9 @@ namespace CrossGenV.Classes
                     }
                 }
                 #endregion
-                //// These are precomputed and stored in VTestHelper.pcc 
-                //else if (exp.ClassName == "Terrain")
-                //{
-                //    exp.RemoveProperty("TerrainComponents"); // Don't port the components; we will port them ourselves in post
-                //}
                 else if (exp.ClassName == "BioTriggerStream")
                 {
                     PreCorrectBioTriggerStream(exp);
-                }
-                else if (exp.ClassName == "BioWorldInfo")
-                {
-                    // Remove streaminglevels that don't do anything
-                    //PreCorrectBioWorldInfoStreamingLevels(exp);
                 }
                 else if (exp.ClassName == "MaterialInstanceConstant")
                 {
@@ -119,13 +109,6 @@ namespace CrossGenV.Classes
                             elem.ShadowMaps = [0]; // We want no shadowmaps
                             elem.LightMap = new LightMap() { LightMapType = ELightMapType.LMT_None }; // Strip the lightmaps
                         }
-                    }
-                    else
-                    {
-                        //foreach (var elem in mcb.Elements)
-                        //{
-                        //    KeepLightmapTextures(elem.LightMap, me1Package);
-                        //}
                     }
 
                     exp.WriteBinary(mcb);
