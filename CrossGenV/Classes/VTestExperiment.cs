@@ -148,6 +148,7 @@ namespace CrossGenV.Classes
             }
 
 
+            // Uncomment to only go to checks step without deleting the folder
             // goto Checks;
 
             vTestOptions.SetStatusText("Clearing mod folder");
@@ -182,7 +183,7 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText("Running VTest");
 
-            // VTest File Loop ---------------------------------------
+            #region  VTest File Loop PASS 1
             var rootCache = vTestOptions.cache;
             var levelCache = rootCache.ChainNewCache();
             foreach (var vTestLevel in vTestOptions.vTestLevels)
@@ -235,6 +236,7 @@ namespace CrossGenV.Classes
                     PortFile(f, vTestLevel, false, vTestOptions);
                 });
             }
+            #endregion
 
             vTestOptions.cache = rootCache.ChainNewCache();
 
@@ -252,13 +254,43 @@ namespace CrossGenV.Classes
             // 10/02/2024 - Framework all NPCs
             VTestFramework.FrameworkNPCs(vTestOptions);
 
-            // 10/19/2024 - Stream in all materials when map load signal occurs
-            // 10/27/2024 - This must be done after frameworking as we trash things in frameworking
-            VTestTextures.InstallAllPrepTextureSignals(vTestOptions);
 
-            // 10/09/2024 - Compute reachspecs
-            VTestPathing.ComputeReachspecs(vTestOptions);
+            #region VTest File Loop PASS 2 (Post Framework)
+            rootCache = vTestOptions.cache;
+            levelCache = rootCache.ChainNewCache();
+            // We don't look in subfolders in this pass
+            foreach (var file in Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "*.pcc"))
+            {
+                vTestOptions.cache = rootCache.ChainNewCache();
+                var package = MEPackageHandler.OpenMEPackage(file);
 
+                var isMap = (package.Flags & UnrealFlags.EPackageFlags.Map) != 0;
+
+                if (isMap)
+                {
+                    // 08/21/2024 - Add texture to instances map calculator
+                    vTestOptions.SetStatusText($"Generating texture to instances map for {package.FileNameNoExtension}");
+                    LevelTools.CalculateTextureToInstancesMap(package, vTestOptions.cache);
+
+                    // 10/09/2024 - Compute reachspecs
+                    VTestPathing.ComputeReachspecs(package, vTestOptions);
+
+                    // 10/19/2024 - Stream in all materials when map load signal occurs
+                    // 10/27/2024 - This must be done after frameworking as we trash things in frameworking
+                    VTestTextures.InstallPrepTextures(package, vTestOptions);
+                }
+
+                if (package.IsModified)
+                {
+                    package.Save();
+                }
+
+            }
+
+            #endregion
+
+
+            
             // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
             // save them in the package.
             // 10/31/2024 - Streamed lighting mode is used to render the loading screens
@@ -269,6 +301,7 @@ namespace CrossGenV.Classes
                 VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
             }
 
+            // PASS 3
             // 11/12/2024 - Ensure referencing in packages before we resynthesize them
             VTestReferencer.EnsureReferencesInDecooked(vTestOptions);
             VTestReferencer.EnsureReferencesInWavelists(vTestOptions);
@@ -292,7 +325,7 @@ namespace CrossGenV.Classes
             vTestOptions.SetStatusText("Performing checks");
 
             // Perform checks on all files
-            foreach (var f in Directory.GetFiles(VTestPaths.VTest_FinalDestDir))
+            foreach (var f in Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "*.pcc", SearchOption.AllDirectories))
             {
                 if (f.RepresentsPackageFilePath())
                 {
@@ -464,7 +497,8 @@ namespace CrossGenV.Classes
         {
             var levelName = Path.GetFileNameWithoutExtension(levelFileName).ToUpper();
 
-            //if (!forcePort && !levelFileName.Contains("CCCAVE_DSG", StringComparison.OrdinalIgnoreCase))
+            // Uncomment to force only certain files to port
+            //if (!forcePort && !levelFileName.Contains("AHERN", StringComparison.OrdinalIgnoreCase))
             //    return;
 
             if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
@@ -698,10 +732,6 @@ namespace CrossGenV.Classes
                 }
             }
 
-            // 08/21/2024 - Add texture to instances map calculator
-            vTestOptions.SetStatusText($"Generating texture to instances map for {levelName}");
-            LevelTools.CalculateTextureToInstancesMap(le1File, vTestOptions.cache);
-
             vTestOptions.SetStatusText($"Saving package {levelName}");
             le1File.Save();
 
@@ -727,26 +757,6 @@ namespace CrossGenV.Classes
                 case "BIOA_PRC2_CCSCOREBOARD_DSG_LOC_IT": // Italian English VO
                     le1File.Save(Path.Combine(VTestPaths.VTest_FinalDestDir, "BIOA_PRC2_CCSCOREBOARD_DSG_LOC_IE"));
                     break;
-            }
-
-            vTestOptions.SetStatusText($"RCP CHECK for {le1File.FileNameNoExtension}");
-
-            Debug.WriteLine($"RCP CHECK FOR {le1File.FileNameNoExtension} -------------------------");
-            var sw = Stopwatch.StartNew();
-            ReferenceCheckPackage rcp = new ReferenceCheckPackage();
-            EntryChecker.CheckReferences(rcp, le1File, LECLocalizationShim.NonLocalizedStringConverter);
-            sw.Stop();
-            Debug.WriteLine($"RCP CHECK TIME {le1File.FileNameNoExtension}: {sw.ElapsedMilliseconds}ms");
-
-
-            foreach (var err in rcp.GetBlockingErrors())
-            {
-                vTestOptions.SetStatusText($"RCP: [ERROR] {err.Entry.InstancedFullPath} {err.Message}");
-            }
-
-            foreach (var err in rcp.GetSignificantIssues())
-            {
-                vTestOptions.SetStatusText($"RCP: [WARN] {err.Entry.InstancedFullPath} {err.Message}");
             }
         }
 
