@@ -35,29 +35,15 @@ namespace CrossGenV.Classes
         }
 
 
-        public static void ComputeReachspecs(VTestOptions options)
+        public static void ComputeReachspecs(IMEPackage package, VTestOptions options)
         {
-            var packageFiles = Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "*.pcc", SearchOption.AllDirectories);
-            foreach (var pf in packageFiles)
+            var fileHasReachspecs = package.Exports.Any(x => x.IsA("ReachSpec"));
+            if (fileHasReachspecs)
             {
-                // Only tables
-                var quick = MEPackageHandler.UnsafePartialLoad(pf, x => false);
-                var fileHasReachspecs = quick.Exports.Any(x => x.IsA("ReachSpec"));
-                if (fileHasReachspecs)
+                options.SetStatusText($"Computing reachspecs in {package.FileNameNoExtension}");
+                foreach (var spec in package.Exports.Where(x => x.IsA("ReachSpec")))
                 {
-                    // Open the package
-                    options.SetStatusText($"Computing reachspecs in {quick.FileNameNoExtension}");
-                    using var package = MEPackageHandler.OpenMEPackage(pf);
-
-                    foreach (var spec in package.Exports.Where(x => x.IsA("ReachSpec")))
-                    {
-                        ComputeSingleReachspec(spec, options);
-                    }
-
-                    if (package.IsModified)
-                    {
-                        package.Save();
-                    }
+                    ComputeSingleReachspec(spec, options);
                 }
             }
         }
