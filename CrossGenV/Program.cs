@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using CrossGenV.Classes;
 using LegendaryExplorerCore;
+using LegendaryExplorerCore.GameFilesystem;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Packages;
 using Microsoft.Win32;
@@ -30,15 +31,11 @@ namespace CrossGenV
             // Initialize Legendary Explorer Core
             LegendaryExplorerCoreLib.InitLib(TaskScheduler.Current, x => Console.WriteLine($"ERROR: {x}"));
 
-
-            
-
             // ASK FOR GAME BOOT
-            
             Console.WriteLine("-------------------------------");
             Console.WriteLine("Install mod when compiling completes [Y/N]? (5 second timeout)");
             var input = ConsoleReadLineWithTimeout(TimeSpan.FromSeconds(5));
-            
+
             bool installAndBootGame = "Y".CaseInsensitiveEquals(input);
 
             //bool installAndBootGame = false;
@@ -51,6 +48,13 @@ namespace CrossGenV
                 SetStatusText = Console.WriteLine,
                 cache = TieredPackageCache.GetGlobalPackageCache(MEGame.LE1)
             };
+
+#if !DEBUG
+            // Release builds will NOT have debug features enabled
+            vTestOptions.resynthesizePackages = true;
+            vTestOptions.debugBuild = false;
+            vTestOptions.useStreamedLighting = false;
+#endif
 
             // For debugging resynth
             //foreach (var packagePath in Directory.GetFiles(@"S:\SteamLibrary\steamapps\common\Mass Effect Legendary Edition\Game\ME1\BioGame\DLC\DLC_MOD_Vegas", "*.pcc", SearchOption.AllDirectories).Where(x => x.RepresentsPackageFilePath()))
