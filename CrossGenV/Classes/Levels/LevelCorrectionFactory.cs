@@ -61,8 +61,11 @@ namespace CrossGenV.Classes.Levels
                 "BIOA_PRC2_CCSPACE02_DSG" => MakeLevel<BIOA_PRC2_CCSpace02_DSG>(me1Package, le1Package, options),
 
                 "BIOA_PRC2AA" => MakeLevel<BIOA_PRC2AA>(me1Package, le1Package, options),
-                "BIOA_PRC2AA_00_DSG" => MakeLevel<BIOA_PRC2AA_00_DSG>(me1Package, le1Package, options),
                 "BIOA_PRC2AA_00_LAY" => MakeLevel<BIOA_PRC2AA_00_LAY>(me1Package, le1Package, options),
+                "BIOA_PRC2AA_00_DSG" => MakeLevel<BIOA_PRC2AA_00_DSG>(me1Package, le1Package, options),
+
+
+                "COMBATPERFTEST" => MakeLevel<COMBATPERFTEST>(me1Package, le1Package, options),
                 _ => MakeLevel<NoLevelCorrections>(me1Package, le1Package, options)
             };
         }
