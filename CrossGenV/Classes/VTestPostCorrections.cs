@@ -72,11 +72,10 @@ namespace CrossGenV.Classes
             VTestAudio.FixAudioLengths(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Localizations)");
             VTestLocalization.FixLocalizations(le1File, vTestOptions);
-            //vTestOptions.SetStatusText($"PPC (Lighting)"); // Disabled in static build
-            //FixLighting(le1File, vTestOptions);
             vTestOptions.SetStatusText($"PPC (Ahern Conversation)");
             FixAhernConversation(le1File, vTestOptions);
-
+            vTestOptions.SetStatusText($"PPC (Geth Holowipe)");
+            FixGethHolowipe(le1File, vTestOptions);
             // Disabled 08/18/2024 - Do not use assets for optimization as we now rebake lighting
             //vTestOptions.SetStatusText($"PPC (Optimization)");
             //PortME1OptimizationAssets(me1File, le1File, vTestOptions);
@@ -88,7 +87,7 @@ namespace CrossGenV.Classes
             // Global lighting changes
             if (!vTestOptions.isBuildForStaticLightingBake)
             {
-                if (fName.StartsWith("BIOA_PRC2AA"))
+                if (fName.StartsWith("BIOA_PRC2AA", StringComparison.OrdinalIgnoreCase))
                 {
                     // Lights are way overblown for this map. This value is pretty close to the original game
                     foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
@@ -96,9 +95,8 @@ namespace CrossGenV.Classes
                         var brightness = pl.GetProperty<FloatProperty>("Brightness")?.Value ?? 1;
                         pl.WriteProperty(new FloatProperty(brightness * .1f, "Brightness"));
                     }
-                }
-
-                if (fName.StartsWith("BIOA_PRC2") && !fName.StartsWith("BIOA_PRC2AA"))
+                } 
+                else if (fName.StartsWith("BIOA_PRC2", StringComparison.OrdinalIgnoreCase))
                 {
                     // Lights are way overblown for this map. This value is pretty close to the original game
                     foreach (var pl in le1File.Exports.Where(x => x.IsA("LightComponent")))
@@ -112,27 +110,7 @@ namespace CrossGenV.Classes
                     }
                 }
             }
-
-            // Reduce directional lights - these are not in their own files because ReduceDirectionalLights doesn't do anything anymore and I'm lazy
-            switch (fName.ToUpper())
-            {
-                case "BIOA_PRC2_CCCAVE_L":
-                    ReduceDirectionalLights(le1File, 0.1f);
-                    break;
-                case "BIOA_PRC2_CCLAVA_L":
-                    ReduceDirectionalLights(le1File, 0.15f);
-                    break;
-                case "BIOA_PRC2_CCCRATE_L":
-                    ReduceDirectionalLights(le1File, 0.25f);
-                    break;
-                case "BIOA_PRC2_CCAHERN_ART":
-                    ReduceDirectionalLights(le1File, 0.1f);
-                    break;
-                case "BIOA_PRC2_CCTHAI_L":
-                    ReduceDirectionalLights(le1File, 0.6f);
-                    break;
-            }
-
+            
             // 10/14/24 - All level specific corrections have been moved to their own classes in the Levels folder.
             var levelSpecificCorrections = LevelCorrectionFactory.GetLevel(fName, me1File, le1File, vTestOptions);
             levelSpecificCorrections.PostPortingCorrection();
@@ -146,7 +124,28 @@ namespace CrossGenV.Classes
                 VTestPathing.InventoryNavigationNodes(le1File, vTestOptions);
 
             }
-            //CorrectTriggerStreamsMaybe(me1File, le1File);
+        }
+
+        /// <summary>
+        /// Fixes geth appearances to use new one that has multiplexor with holowipe effect added
+        /// </summary>
+        /// <param name="le1File"></param>
+        /// <param name="vTestOptions"></param>
+        private static void FixGethHolowipe(IMEPackage le1File, VTestOptions vTestOptions)
+        {
+            // Small geth
+            le1File.ReplaceName("BIOG_GTH_TRO_NKD_R", "BIOG_VTEST_GTH_TRO_NKD_R");
+            le1File.ReplaceName("GTH_TRO_Character_Appr", "VTEST_GTH_TRO_Character_Appr");
+            le1File.ReplaceName("GTH_TRO_Body_Appr", "VTEST_GTH_TRO_Body_Appr");
+
+            // Tall geth
+            le1File.ReplaceName("BIOG_GTH_STP_NKD_R", "BIOG_VTEST_GTH_STP_NKD_R");
+            le1File.ReplaceName("GTH_STP_Character_Appr", "VTEST_GTH_STP_Character_Appr");
+            le1File.ReplaceName("GTH_STL_Character_Appr", "VTEST_GTH_STL_Character_Appr");
+            le1File.ReplaceName("GTH_JUG_Character_Appr", "VTEST_GTH_JUG_Character_Appr");
+            le1File.ReplaceName("GTH_STP_Body_Appr", "VTEST_GTH_STP_Body_Appr");
+            le1File.ReplaceName("GTH_STL_Body_Appr", "VTEST_STL_STP_Body_Appr");
+            le1File.ReplaceName("GTH_JUG_Body_Appr", "VTEST_JUG_STP_Body_Appr");
         }
 
         private static void CorrectSequenceOpProperties(IMEPackage package, VTestOptions options)
@@ -716,22 +715,7 @@ namespace CrossGenV.Classes
             }
         }
 
-        private static void ReduceDirectionalLights(IMEPackage le1File, float multiplier)
-        {
-            // Disabled due to static lighting changes
-            return;
-            foreach (var exp in le1File.Exports.Where(x => x.ClassName == "DirectionalLightComponent").ToList())
-            {
-                var brightness = exp.GetProperty<FloatProperty>("Brightness");
-                if (brightness != null)
-                {
-                    brightness.Value *= multiplier;
-                    exp.WriteProperty(brightness);
-                }
-            }
-        }
-
-        public static void DisallowRunningUntilModeStarts(IMEPackage le1File, VTestOptions vTestOptions)
+      public static void DisallowRunningUntilModeStarts(IMEPackage le1File, VTestOptions vTestOptions)
         {
             var mainSeq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
             var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(mainSeq, vTestOptions.cache);
