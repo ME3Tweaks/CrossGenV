@@ -24,13 +24,17 @@ namespace CrossGenV.Classes.Levels
 
         public void PostPortingCorrection()
         {
+            // 11/18/2024 - We no longer use snd_prc1_music because it doesn't loop correct,
+            // We have our own version now in Music_Vegas.pcc
+            // The following is disabled and removed from ModdedSource as well now.
+
             // PRC1 BioSoundNodeWaveStreamingData:
             // This is hack to port things over in ModdedSource. The streaming data was referenced by an object that doesn't actually
             // use this (game will die if it tries). We remove this reference and set up our own.
             // This is a total hack, but it works for less code.
             //le1File.Save();
-            le1File.FindExport("TheWorld.PersistentLevel.AmbientSound_20").RemoveProperty("Base");
-            VTestUtility.AddWorldReferencedObjects(le1File, le1File.FindExport("DVDStreamingAudioData.PC.snd_prc1_music")); // This must stay in memory for the music 2DA to work for PRC1 audio
+            //le1File.FindExport("TheWorld.PersistentLevel.AmbientSound_20").RemoveProperty("Base");
+            //VTestUtility.AddWorldReferencedObjects(le1File, le1File.FindExport("DVDStreamingAudioData.PC.snd_prc1_music")); // This must stay in memory for the music 2DA to work for PRC1 audio
 
             FixGethPulseGunVFX();
 
