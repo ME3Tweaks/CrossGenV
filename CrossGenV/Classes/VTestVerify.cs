@@ -3,13 +3,10 @@ using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Textures;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
 using LegendaryExplorerCore.Unreal;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LegendaryExplorerCore.Localization;
 using LegendaryExplorerCore.Shaders;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
 
@@ -22,7 +19,11 @@ namespace CrossGenV.Classes
     {
         public static void VTest_CheckFile(IMEPackage package, VTestOptions vTestOptions)
         {
-            #region Check Level has at least 2 actors
+            // Make sure we inventory package so references check is accurate
+            // Since this goes alphabetically it should have masters go first
+            VTestExperiment.InventoryPackage(package, vTestOptions);
+
+            // Legacy: Check levels have at least 2 actors in the list
             var level = package.FindExport("TheWorld.PersistentLevel");
             {
                 if (level != null)
@@ -38,8 +39,18 @@ namespace CrossGenV.Classes
             VTestCheckTextures(package, vTestOptions);
             VTestCheckMaterials(package, vTestOptions);
             VTestCheckDuplicates(package, vTestOptions);
+            VTestCheckReferences(package, vTestOptions);
 
-            #endregion
+        }
+
+        private static void VTestCheckReferences(IMEPackage package, VTestOptions vTestOptions)
+        {
+            var refCheck = new ReferenceCheckPackage();
+            EntryChecker.CheckReferences(refCheck, package, LECLocalizationShim.NonLocalizedStringConverter);
+            foreach (var issue in refCheck.GetSignificantIssues().Concat(refCheck.GetBlockingErrors()))
+            {
+                vTestOptions.SetStatusText($"{issue.Entry.FileRef.FileNameNoExtension} {issue.Entry.InstancedFullPath}: {issue.Message}");
+            }
         }
 
         private static void VTestCheckDuplicates(IMEPackage package, VTestOptions vTestOptions)
