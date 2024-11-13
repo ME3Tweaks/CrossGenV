@@ -15,6 +15,13 @@ namespace CrossGenV.Classes.Levels
         public IMEPackage le1File { get; init; }
         public VTestOptions vTestOptions { get; init; }
 
+        public void PrePortingCorrection()
+        {
+            // 11/11/2024 Remove 'Sprite' from BioSquadPlayer' as it will turn into unresolvable import in LE1
+            // Not really sure why this squad exists at all
+            me1File.FindExport("TheWorld.PersistentLevel.BioSquadPlayer_0").RemoveProperty("m_oSprite");
+        }
+
         public void PostPortingCorrection()
         {
             // PRC1 BioSoundNodeWaveStreamingData:

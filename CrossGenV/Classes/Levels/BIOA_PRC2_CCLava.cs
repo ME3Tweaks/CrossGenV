@@ -69,6 +69,10 @@ namespace CrossGenV.Classes.Levels
 
             // Don't allow running until wipe effect
             VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
+
+            // 11/11/2024 - Fix duplicate material 
+            var checker = le1File.FindExport("BIOA_ICE60_T.checker", "Material");
+            checker.ObjectName = "checker_mat";
         }
     }
 }

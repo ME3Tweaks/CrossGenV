@@ -32,6 +32,10 @@ namespace CrossGenV.Classes.Levels
             // Don't allow running until wipe effect
             VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
             FixRockCoverZ();
+
+            // 11/11/2024 - Fix duplicate material 
+            var checker = le1File.FindExport("BIOA_JUG80_T.JUG80_SAIL", "Material");
+            checker.ObjectName = "JUG80_SAIL_mat";
         }
 
         private void FixRockCoverZ()
