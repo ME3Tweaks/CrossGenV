@@ -21,6 +21,17 @@ namespace CrossGenV.Classes.Levels
             linkFromLinks[0] = new List<OutputLink> { OutputLink.FromTargetExport(executeTransition, 0) };
             KismetHelper.WriteOutputLinksToNode(linkFrom, linkFromLinks);
             KismetHelper.SetComment(executeTransition, "VTEST: Swapped order to prevent journal completion with low credits");
+
+            if (!vTestOptions.isBuildForStaticLightingBake)
+            {
+                FixupLighting();
+            }
+        }
+
+        private void FixupLighting()
+        {
+            var comp = le1File.FindExport("TheWorld.PersistentLevel.BioUseable_0.StaticMeshComponent_78");
+            comp.SetLightingChannels("bInitialized", "Dynamic", "CompositeDynamic", "Unnamed_1");
         }
     }
 }
