@@ -147,6 +147,9 @@ namespace CrossGenV.Classes
                 vTestOptions.cache.AddResidentPackage(resident);
             }
 
+
+            // goto Checks;
+
             vTestOptions.SetStatusText("Clearing mod folder");
             // Clear out dest dir
             VTestUtility.DeleteFilesAndFoldersRecursively(VTestPaths.VTest_FinalDestDir, deleteDirectoryItself: false);
@@ -193,12 +196,12 @@ namespace CrossGenV.Classes
                 if (File.Exists(locInt))
                 {
                     vTestOptions.cache = levelCache.ChainNewCache();
-                    PortFile(locInt, vTestLevel, vTestOptions); // Master file is first in the list.
+                    PortFile(locInt, vTestLevel, true, vTestOptions); // Master file is first in the list.
                     levelFiles.Remove(locInt);
                     levelCache.InsertIntoCache(MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_FinalDestDir, $"BIOA_{vTestLevel}_LOC_INT.pcc")));
                 }
 
-                PortFile(levelFiles[0], vTestLevel, vTestOptions); // Master file is first in the list.
+                PortFile(levelFiles[0], vTestLevel, true, vTestOptions); // Master file is first in the list.
                 levelFiles.RemoveAt(0);
                 levelCache.InsertIntoCache(MEPackageHandler.OpenMEPackage(Path.Combine(VTestPaths.VTest_FinalDestDir, $"BIOA_{vTestLevel}.pcc")));
 
@@ -215,7 +218,7 @@ namespace CrossGenV.Classes
                         return; // Do not port
 
                     vTestOptions.cache = rootCache.ChainNewCache();
-                    PortFile(f, vTestLevel, vTestOptions);
+                    PortFile(f, vTestLevel, false, vTestOptions);
                 });
 
                 // Port non LOC files next, after LOC files have been generated
@@ -229,7 +232,7 @@ namespace CrossGenV.Classes
                         return; // Do not port
 
                     vTestOptions.cache = rootCache.ChainNewCache();
-                    PortFile(f, vTestLevel, vTestOptions);
+                    PortFile(f, vTestLevel, false, vTestOptions);
                 });
             }
 
@@ -239,7 +242,7 @@ namespace CrossGenV.Classes
             // Only convert if not for static lighting and we are building PRC2
             if (!vTestOptions.isBuildForStaticLightingBake && vTestOptions.vTestLevels.Contains("PRC2"))
             {
-            VTestAI.ConvertAIToCrossgen(vTestOptions);
+                VTestAI.ConvertAIToCrossgen(vTestOptions);
             }
 
 
@@ -266,20 +269,26 @@ namespace CrossGenV.Classes
                 VTestTextures.MoveTexturesToTFC("Lighting", "DLC_MOD_Vegas", true, vTestOptions);
             }
 
+            // 11/12/2024 - Ensure referencing in packages before we resynthesize them
+            VTestReferencer.EnsureReferencesInDecooked(vTestOptions);
+            VTestReferencer.EnsureReferencesInWavelists(vTestOptions);
+            VTestReferencer.EnsureReferencesInBase(vTestOptions);
+
             // 08/23/2024 - Add package resynthesis for cleaner output
             if (vTestOptions.resynthesizePackages)
             {
-                foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir).Where(x => x.RepresentsPackageFilePath()))
+                foreach (var packagePath in Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "*.pcc", SearchOption.AllDirectories))
                 {
                     var package = MEPackageHandler.OpenMEPackage(packagePath);
                     vTestOptions.SetStatusText($"Resynthesizing package {package.FileNameNoExtension}");
 
-                    var newPackage = PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache);
+                    var newPackage = PackageResynthesizer.ResynthesizePackage(package, vTestOptions.cache, true);
                     newPackage.Save();
                 }
             }
 
-            // VTest post QA
+        // VTest post QA
+        Checks:
             vTestOptions.SetStatusText("Performing checks");
 
             // Perform checks on all files
@@ -345,7 +354,86 @@ namespace CrossGenV.Classes
                     destPackage.AdditionalPackagesToCook.AddRange(File.ReadAllLines(Path.Combine(VTestPaths.VTest_StaticLightingDir, "SLLevels-PRC2AA.txt")).Where(x => x.GetUnrealLocalization() == MELocalization.None));
                     destPackage.Save();
                 }
+
+                // 11/11/2024 - Lighting rebake auto exports to UDK
+                var masters = Directory.GetFiles(VTestPaths.VTest_FinalDestDir, "BioP*.pcc", SearchOption.AllDirectories);
+                foreach (var master in masters)
+                {
+                    var package = MEPackageHandler.OpenMEPackage(master);
+                    vTestOptions.SetStatusText($"Converting to UDK map: {package.FileNameNoExtension}");
+                    var udkMaster = ConvertToUDK.GenerateUDKFileForLevel(package);
+
+                    var levelFiles = new List<string>();
+                    foreach (var additionalPackage in ((MEPackage)package).AdditionalPackagesToCook)
+                    {
+                        var subLevel = Path.Combine(VTestPaths.VTest_FinalDestDir, $"{additionalPackage}.pcc");
+                        if (File.Exists(subLevel))
+                        {
+                            var subPackage = MEPackageHandler.OpenMEPackage(subLevel);
+                            vTestOptions.SetStatusText($"  Converting to UDK map: {subPackage.FileNameNoExtension}");
+                            levelFiles.Add(ConvertToUDK.GenerateUDKFileForLevel(subPackage));
+                        }
+                    }
+
+                    // Set up master sublevels
+                    using IMEPackage persistentUDK = MEPackageHandler.OpenUDKPackage(udkMaster);
+                    IEntry levStreamingClass = persistentUDK.GetEntryOrAddImport("Engine.LevelStreamingAlwaysLoaded", "Class");
+                    IEntry theWorld = persistentUDK.Exports.First(exp => exp.ClassName == "World");
+                    int i = 1;
+                    int firstLevStream = persistentUDK.ExportCount;
+                    foreach (string fileName in levelFiles.Select(Path.GetFileNameWithoutExtension))
+                    {
+                        persistentUDK.AddExport(new ExportEntry(persistentUDK, theWorld, new NameReference("LevelStreamingAlwaysLoaded", i), properties:
+                        [
+                            new NameProperty(fileName, "PackageName"),
+                            CommonStructs.ColorProp(System.Drawing.Color.FromArgb(255, (byte)(i % 256), (byte)((255 - i) % 256), (byte)(i * 7 % 256)), "DrawColor")
+                        ])
+                        {
+                            Class = levStreamingClass
+                        });
+                        i++;
+                    }
+
+                    var streamingLevelsProp = new ArrayProperty<ObjectProperty>("StreamingLevels");
+                    for (int j = firstLevStream; j < persistentUDK.ExportCount; j++)
+                    {
+                        streamingLevelsProp.Add(new ObjectProperty(j));
+                    }
+
+                    persistentUDK.Exports.First(exp => exp.ClassName == "WorldInfo").WriteProperty(streamingLevelsProp);
+                    persistentUDK.Save();
+
+                }
             }
+        }
+
+        private static void TestResynth()
+        {
+            var outPath = Path.Combine(VTestPaths.VTest_FinalDestDir, "SeekFreeShaderTest.pcc");
+            MEPackageHandler.CreateEmptyLevel(outPath, MEGame.LE1);
+            var newPackage = MEPackageHandler.OpenMEPackage(outPath);
+
+            var sourcePackageF = Path.Combine(VTestPaths.VTest_FinalDestDir, "BIOA_PRC2_CCCAVE_DSG.pcc");
+            var sourcePackage = MEPackageHandler.OpenMEPackage(sourcePackageF);
+
+            // Initial port should be OK
+            Console.WriteLine(">> INITIAL PORT IN");
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies,
+                sourcePackage.FindExport("SeekFreeShaderCache"), newPackage, null,
+                true, new RelinkerOptionsPackage(), out var portedSFCache);
+
+            Console.WriteLine(">> PACKAGE SAVE");
+            newPackage.Save();
+
+            // Replacement will fail now
+            Console.WriteLine(">> REPLACEMENT");
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.ReplaceSingularWithRelink,
+                sourcePackage.FindExport("SeekFreeShaderCache"), newPackage, newPackage.FindExport("SeekFreeShaderCache"),
+                true, new RelinkerOptionsPackage(), out portedSFCache);
+
+            Console.WriteLine("Done.");
+            Environment.Exit(0);
+
         }
 
         /// <summary>
@@ -372,10 +460,11 @@ namespace CrossGenV.Classes
             }
         }
 
-        private static void PortFile(string levelFileName, string masterMapName, VTestOptions vTestOptions)
+        private static void PortFile(string levelFileName, string masterMapName, bool forcePort, VTestOptions vTestOptions)
         {
-            var levelName = Path.GetFileNameWithoutExtension(levelFileName);
-            //if (!levelFileName.Contains("CCMAIN_CONV", StringComparison.OrdinalIgnoreCase))
+            var levelName = Path.GetFileNameWithoutExtension(levelFileName).ToUpper();
+
+            //if (!forcePort && !levelFileName.Contains("CCCAVE_DSG", StringComparison.OrdinalIgnoreCase))
             //    return;
 
             if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
@@ -422,14 +511,9 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText($"Preparing {levelName}");
 
-            // BIOC_BASE -> SFXGame
-            var bcBaseIdx = me1File.findName("BIOC_Base");
-            me1File.replaceName(bcBaseIdx, "SFXGame");
-
-            // BIOG_StrategicAI -> SFXStrategicAI
-            var bgsaiBaseIdx = me1File.findName("BIOG_StrategicAI");
-            if (bgsaiBaseIdx >= 0)
-                me1File.replaceName(bgsaiBaseIdx, "SFXStrategicAI");
+            // ME1 PS3 version changed names of base files due to engine version change
+            me1File.ReplaceName("BIOC_Base", "SFXGame");
+            me1File.ReplaceName("BIOG_StrategicAI", "SFXStrategicAI");
 
             CorrectFileForLEXMapFileDefaults(me1File, le1File, vTestOptions);
             VTestPreCorrections.PrePortingCorrections(me1File, le1File, vTestOptions);
@@ -442,8 +526,10 @@ namespace CrossGenV.Classes
             itemsToPort.AddRange(me1PersistentLevel.Actors.Where(x => x != 0) // Skip blanks
                 .Select(x => me1File.GetUExport(x))
                 .Where(x => ClassesToVTestPort.Contains(x.ClassName) || (syncBioWorldInfo && ClassesToVTestPortMasterOnly.Contains(x.ClassName))
-                                                                     // Allow porting terrain if doing static lighting build because we don't care about the collision data
-                                                                     || (vTestOptions.isBuildForStaticLightingBake && x.ClassName == "Terrain")));
+            // Allow porting terrain if doing static lighting build because we don't care about the collision data.
+            // Disabled 11/11/2024 - We also don't care about the lighting either cause the lightmaps for it are worthless and it speeds up lightmap baking.
+            //|| (vTestOptions.isBuildForStaticLightingBake && x.ClassName == "Terrain")
+            ));
 
             if (vTestOptions.debugBuild && vTestOptions.debugConvertStaticLightingToNonStatic)
             {
@@ -595,7 +681,8 @@ namespace CrossGenV.Classes
             // 08/21/2024 - Add static lighting import
             // PRC2AA lightmaps look awful
             // 11/10/2024 - Verified and tested in UDK, it looks awful, it looks like ME1 lightmaps were done in Maya somehow?
-            if (!levelName.Contains("PRC2AA", StringComparison.OrdinalIgnoreCase))
+            // 11/12/2024 - Okay fine we'll do static lighting. Sheesh. Did manual tweaking of lighting for lightmap bake
+            //if (!levelName.Contains("PRC2AA", StringComparison.OrdinalIgnoreCase))
             {
                 // No point importing static lighting if we are going to bake it again
                 if (!vTestOptions.isBuildForStaticLightingBake)
@@ -793,6 +880,10 @@ namespace CrossGenV.Classes
             var objReferencer = sourcePackage.Exports.First(x => x.idxLink == 0 && x.ClassName == "ObjectReferencer");
             var objs = objReferencer.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects");
             objs.RemoveAll(x => x.ResolveToEntry(sourcePackage).IsA("MaterialExpression")); // These will be referenced as needed. Don't port the originals. If these aren't removed we will get debug logger output.
+
+            // 11/11/2024 - Do not port unused DistributionFloatUniform objects - they are unused and pull in import references that do not exist
+            objs.RemoveAll(x => x.ResolveToEntry(sourcePackage).IsA("DistributionFloatUniform"));
+
             objReferencer.WriteProperty(objs);
 
             var rop = new RelinkerOptionsPackage()
