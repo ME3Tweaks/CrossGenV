@@ -351,78 +351,104 @@ namespace CrossGenV.Classes
                 case "JA":
                     AddEnglishStringRefs();
                     break;
+                case "": // INT has no language suffix.
+                    AddEnglishStringRefs();
+                    break;
+
             }
-            
+
             var huff = new HuffmanCompression();
             huff.LoadInputData(stringRefs);
             huff.SerializeTalkfileToExport(tlkExport);
 
             void AddEnglishStringRefs()
             {
-                stringRefs.Add(new TLKStringRef(338464, "Downloading Data"));
-                stringRefs.Add(new TLKStringRef(338465, "Simulator Settings"));
-                stringRefs.Add(new TLKStringRef(338466, "Open"));
-                stringRefs.Add(new TLKStringRef(338467, "ENABLED"));
-                stringRefs.Add(new TLKStringRef(338468, "DISABLED"));
-                stringRefs.Add(new TLKStringRef(338469, "Enable"));
-                stringRefs.Add(new TLKStringRef(338470, "Disable"));
-                stringRefs.Add(new TLKStringRef(338471, "Music"));
-                stringRefs.Add(new TLKStringRef(338472, "Appropriate music tracks will be added to each simulator map, which will change as the intensity ramps up."));
-                stringRefs.Add(new TLKStringRef(338473, "As in the original DLC, no music will be played in the simulator."));
-                stringRefs.Add(new TLKStringRef(338474, "XP on 1st Place"));
-                stringRefs.Add(new TLKStringRef(338475, "You will be granted experience upon getting 1st place in a simulator map. 1/3 of a level's worth of XP will be granted upon achieving 1st place for the first time on each simulator map. Additional XP will be granted upon beating your record, and upon completing the special scenario."));
-                stringRefs.Add(new TLKStringRef(338476, "No experience will be granted upon completing a simulator map."));
-                stringRefs.Add(new TLKStringRef(338477, "Survival: Enemy Count Ramping"));
-                stringRefs.Add(new TLKStringRef(338478, "Enemy Ramping"));
-                stringRefs.Add(new TLKStringRef(338479, "The amount of enemies that spawn will be fixed to the default, original version."));
-                stringRefs.Add(new TLKStringRef(338480, "The amount of enemies in survival mode will increase over time, creating a increasing difficulty curve as time progresses."));
-                stringRefs.Add(new TLKStringRef(338481, "Difficulty Ramping: Talents"));
-                stringRefs.Add(new TLKStringRef(338482, "As a mission progresses, enemies will gain talents and powers that make them more lethal."));
-                stringRefs.Add(new TLKStringRef(338483, "Enemies will not gain talents as simulator missions progress. This is the default value."));
-                stringRefs.Add(new TLKStringRef(338484, "Difficulty Ramping: Weapons"));
-                stringRefs.Add(new TLKStringRef(338485, "As a mission progresses, enemies will gain weapon mods that make them more lethal."));
-                stringRefs.Add(new TLKStringRef(338486, "Enemies will not gain weapon mods as simulator missions progress. This is the default value."));
-                stringRefs.Add(new TLKStringRef(338487, "Simulator: Enemy Selector"));
-                stringRefs.Add(new TLKStringRef(338488, "Select enemy type"));
-                stringRefs.Add(new TLKStringRef(338489, "This set of enemies is currently not enabled."));
-                stringRefs.Add(new TLKStringRef(338490, "Asari enemies will replace the normal enemies in the combat simulator."));
-                stringRefs.Add(new TLKStringRef(338491, "Salarian enemies will replace the normal enemies in the combat simulator."));
-                stringRefs.Add(new TLKStringRef(338492, "Batarian enemies will replace the normal enemies in the combat simulator."));
-                stringRefs.Add(new TLKStringRef(338493, "Monsters"));
-                stringRefs.Add(new TLKStringRef(338494, "Monstrous enemies will replace the normal enemies in the combat simulator."));
-                stringRefs.Add(new TLKStringRef(338495, "Mixed Enemies"));
-                stringRefs.Add(new TLKStringRef(338496, "Enemies from all available factions will appear in the combat simulator."));
-                stringRefs.Add(new TLKStringRef(338497, "All Settings: Vanilla"));
-                stringRefs.Add(new TLKStringRef(338498, "All Settings"));
-                stringRefs.Add(new TLKStringRef(338499, "All simulator settings will be set to their vanilla, original Mass Effect 1 value. For Pinnacle Station purists."));
-                stringRefs.Add(new TLKStringRef(338500, "All Settings: Recommended"));
-                stringRefs.Add(new TLKStringRef(338501, "All simulator settings will be set to their recommended states for this remaster."));
-                stringRefs.Add(new TLKStringRef(338502, "Selected"));
-                stringRefs.Add(new TLKStringRef(338503, "Not Selected"));
-                stringRefs.Add(new TLKStringRef(338504, "Enemy types will not be changed from the defaults."));
-                stringRefs.Add(new TLKStringRef(338505, "Enemy types have been changed from the defaults."));
-                stringRefs.Add(new TLKStringRef(338506, "Default"));
+                foreach (var strRef in EnglishStringRefs)
+                {
+                    stringRefs.Add(strRef);
+                }
+            }
+        }
+
+        public static readonly TLKStringRef[] EnglishStringRefs =
+        [
+            new TLKStringRef(338464, "Downloading Data"),
+                new TLKStringRef(338465, "Simulator Settings"),
+                new TLKStringRef(338466, "Open"),
+                new TLKStringRef(338467, "ENABLED"),
+                new TLKStringRef(338468, "DISABLED"),
+                new TLKStringRef(338469, "Enable"),
+                new TLKStringRef(338470, "Disable"),
+                new TLKStringRef(338471, "Music"),
+                new TLKStringRef(338472, "Appropriate music tracks will be added to each simulator map, which will change as the intensity ramps up."),
+                new TLKStringRef(338473, "As in the original DLC, no music will be played in the simulator."),
+                new TLKStringRef(338474, "XP on 1st Place"),
+                new TLKStringRef(338475, "You will be granted experience upon getting 1st place in a simulator map. 1/3 of a level's worth of XP will be granted upon achieving 1st place for the first time on each simulator map. Additional XP will be granted upon beating your record, and upon completing the special scenario."),
+                new TLKStringRef(338476, "No experience will be granted upon completing a simulator map."),
+                new TLKStringRef(338477, "Difficulty Ramping: Enemy Count"),
+                new TLKStringRef(338478, "Enemy Ramping"),
+                new TLKStringRef(338479, "The amount of enemies that spawn will be fixed to the default, original version."),
+                new TLKStringRef(338480, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies numbers will increase, creating a more engaging scenario."),
+                new TLKStringRef(338481, "Difficulty Ramping: Talents"),
+                new TLKStringRef(338482, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies will gain talents and powers that make them more lethal."),
+                new TLKStringRef(338483, "Enemies will not gain talents as simulator missions progress. This is the default value."),
+                new TLKStringRef(338484, "Difficulty Ramping: Weapon mods"),
+                new TLKStringRef(338485, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies will gain weapon mods that make them more lethal."),
+                new TLKStringRef(338486, "Enemies will not gain weapon mods as simulator missions progress. This is the default value."),
+                new TLKStringRef(338487, "Simulator: Enemy Selector"),
+                new TLKStringRef(338488, "Select enemy type"),
+                new TLKStringRef(338489, "This set of enemies is currently not enabled."),
+                new TLKStringRef(338490, "Asari enemies will replace the normal enemies in the combat simulator."),
+                new TLKStringRef(338491, "Salarian enemies will replace the normal enemies in the combat simulator."),
+                new TLKStringRef(338492, "Batarian enemies will replace the normal enemies in the combat simulator."),
+                new TLKStringRef(338493, "Monsters"),
+                new TLKStringRef(338494, "Monstrous enemies will replace the normal enemies in the combat simulator."),
+                new TLKStringRef(338495, "Mixed Enemies"),
+                new TLKStringRef(338496, "Enemies from all available factions will appear in the combat simulator."),
+                new TLKStringRef(338497, "All Settings: Vanilla"),
+                new TLKStringRef(338498, "All Settings"),
+                new TLKStringRef(338499, "All simulator settings will be set to their vanilla, original Mass Effect 1 value. For Pinnacle Station purists."),
+                new TLKStringRef(338500, "All Settings: Recommended"),
+                new TLKStringRef(338501, "All simulator settings will be set to their recommended states for this remaster."),
+                new TLKStringRef(338502, "Selected"),
+                new TLKStringRef(338503, "Not Selected"),
+                new TLKStringRef(338504, "Enemy types will not be changed from the defaults."),
+                new TLKStringRef(338505, "Enemy types have been changed from the defaults."),
+                new TLKStringRef(338506, "Default"),
 
                 // Enemy names
 
                 // Salarian
-                stringRefs.Add(new TLKStringRef(338507, "Salarian Mercenary"));
-                stringRefs.Add(new TLKStringRef(338508, "Salarian Sharpshooter"));
-                stringRefs.Add(new TLKStringRef(338509, "Salarian Guard"));
-                stringRefs.Add(new TLKStringRef(338510, "Salarian Vanquisher"));
-                //stringRefs.Add(new TLKStringRef(338511, "Salarian Tank")); // Blank placeholder
+                new TLKStringRef(338507, "Salarian Mercenary"),
+                new TLKStringRef(338508, "Salarian Sharpshooter"),
+                new TLKStringRef(338509, "Salarian Guard"),
+                new TLKStringRef(338510, "Salarian Vanquisher"),
+                new TLKStringRef(338511, "PLACEHOLDER"), // Blank placeholder
 
                 // Batarian
-                stringRefs.Add(new TLKStringRef(338512, "Batarian Raider"));
-            }
-        }
+                new TLKStringRef(338512, "Batarian Raider"),
+
+                // Asari
+
+                // Monster
+                
+        ];
+
+
+
 
         public static void PostUpdateTLKs(VTestOptions vTestOptions)
         {
-            var basePath = Path.Combine(VTestPaths.VTest_FinalDestDir, "DLC_MOD_Vegas_GlobalTlk_");
-            var langsToUpdate = new[] { "RA", "RU", "DE", "FR", "IT", "ES", "JA", "PL", "PLPC" };
+            var basePath = Path.Combine(VTestPaths.VTest_FinalDestDir, "DLC_MOD_Vegas_GlobalTlk");
+            // "" = English. It has no suffix
+            var langsToUpdate = new[] { "", "RA", "RU", "DE", "FR", "IT", "ES", "JA", "PL", "PLPC" };
             foreach (var lang in langsToUpdate)
             {
+                if (lang != "")
+                {
+                    basePath += "_";
+                }
+
                 var tlkPackage = MEPackageHandler.OpenMEPackage(basePath + lang + ".pcc");
 
                 // Add our specific TLK strings.

@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 using CrossGenV.Classes;
 using LegendaryExplorerCore;
-using LegendaryExplorerCore.GameFilesystem;
 using LegendaryExplorerCore.Helpers;
 using LegendaryExplorerCore.Packages;
 using Microsoft.Win32;
