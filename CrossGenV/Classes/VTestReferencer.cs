@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
-using static Microsoft.IO.RecyclableMemoryStreamManager;
 
 namespace CrossGenV.Classes
 {
@@ -18,7 +13,7 @@ namespace CrossGenV.Classes
         public static void EnsureReferencesInDecooked(VTestOptions options)
         {
             var sfSimulator = Path.Combine(VTestPaths.VTest_FinalDestDir, "DecookedAssets");
-            var packages = Directory.GetFileSystemEntries(sfSimulator, "*.pcc");
+            var packages = Directory.GetFiles(sfSimulator, "*.pcc");
             foreach (var packageF in packages)
             {
                 var package = MEPackageHandler.OpenMEPackage(packageF);
@@ -37,7 +32,7 @@ namespace CrossGenV.Classes
         public static void EnsureReferencesInWavelists(VTestOptions options)
         {
             var sfSimulator = Path.Combine(VTestPaths.VTest_FinalDestDir, "SFSimulator");
-            var packages = Directory.GetFileSystemEntries(sfSimulator, "*.pcc");
+            var packages = Directory.GetFiles(sfSimulator, "*.pcc");
             foreach (var packageF in packages)
             {
                 var package = MEPackageHandler.OpenMEPackage(packageF);
@@ -48,9 +43,7 @@ namespace CrossGenV.Classes
                     // BioPawnChallengeScaledTypes
                     // Classes for dynamic load
                     // GFxMovieInfo for faction images
-                    VTestUtility.EnsureReferenced(package, options.cache,
-                        package.Exports.Where(x =>
-                            x.ClassName is "GFxMovieInfo" or "BioPawnChallengeScaledType" || x.IsClass));
+                    VTestUtility.EnsureReferenced(package, options.cache, package.Exports.Where(x => x.ClassName is "GFxMovieInfo" or "BioPawnChallengeScaledType" || x.IsClass));
                 }
                 else
                 {
@@ -68,13 +61,12 @@ namespace CrossGenV.Classes
         public static void EnsureReferencesInBase(VTestOptions options)
         {
             var sfSimulator = Path.Combine(VTestPaths.VTest_FinalDestDir);
-            var packages = Directory.GetFileSystemEntries(sfSimulator, "*.pcc");
+            var packages = Directory.GetFiles(sfSimulator, "*.pcc");
             foreach (var packageF in packages)
             {
                 var package = MEPackageHandler.OpenMEPackage(packageF);
                 options.SetStatusText($"Ensuring references in {package.FileNameNoExtension}");
-                VTestUtility.EnsureReferenced(package, options.cache, package.Exports.Where(x => (x.Parent == null && x.ClassName is "BioTlkFile"))
-                );
+                VTestUtility.EnsureReferenced(package, options.cache, package.Exports.Where(x => (x.Parent == null && x.ClassName is "BioTlkFile")));
 
                 if (package.IsModified)
                 {

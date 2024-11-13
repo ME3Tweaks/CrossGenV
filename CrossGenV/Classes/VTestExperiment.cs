@@ -183,6 +183,9 @@ namespace CrossGenV.Classes
 
             vTestOptions.SetStatusText("Running VTest");
 
+            // Uncomment to not do the main chunk of work
+            // goto Pass3;
+
             #region  VTest File Loop PASS 1
             var rootCache = vTestOptions.cache;
             var levelCache = rootCache.ChainNewCache();
@@ -302,6 +305,7 @@ namespace CrossGenV.Classes
             }
 
             // PASS 3
+            Pass3:
             // 11/12/2024 - Ensure referencing in packages before we resynthesize them
             VTestReferencer.EnsureReferencesInDecooked(vTestOptions);
             VTestReferencer.EnsureReferencesInWavelists(vTestOptions);

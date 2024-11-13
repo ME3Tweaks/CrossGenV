@@ -372,7 +372,7 @@ namespace CrossGenV.Classes
 
         public static readonly TLKStringRef[] EnglishStringRefs =
         [
-            new TLKStringRef(338464, "Downloading Data"),
+                new TLKStringRef(338464, "Downloading Data"),
                 new TLKStringRef(338465, "Simulator Settings"),
                 new TLKStringRef(338466, "Open"),
                 new TLKStringRef(338467, "ENABLED"),
@@ -431,7 +431,12 @@ namespace CrossGenV.Classes
                 // Asari
 
                 // Monster
-                
+
+                // Extras
+                // TODO: HOOK THIS UP IN THE SOURCE FILE
+                new TLKStringRef(338550, "Score to beat:"),
+
+
         ];
 
 
