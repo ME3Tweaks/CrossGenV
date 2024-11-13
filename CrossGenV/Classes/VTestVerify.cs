@@ -34,10 +34,21 @@ namespace CrossGenV.Classes
                 }
             }
 
-            // VTestCheckImports(package, vTestOptions);
+            VTestCheckImports(package, vTestOptions);
             VTestCheckTextures(package, vTestOptions);
             VTestCheckMaterials(package, vTestOptions);
+            VTestCheckDuplicates(package, vTestOptions);
+
             #endregion
+        }
+
+        private static void VTestCheckDuplicates(IMEPackage package, VTestOptions vTestOptions)
+        {
+            var duplicates = EntryChecker.CheckForDuplicateIndices(package);
+            foreach (var dup in duplicates)
+            {
+                vTestOptions.SetStatusText($"{package.FileNameNoExtension}: Duplicate object {dup.Entry.InstancedFullPath}");
+            }
         }
 
         private static void VTestCheckMaterials(IMEPackage package, VTestOptions vTestOptions)
@@ -78,12 +89,16 @@ namespace CrossGenV.Classes
             }
         }
 
+
         public static void VTestCheckImports(IMEPackage p, VTestOptions vTestOptions)
         {
             foreach (var import in p.Imports)
             {
                 if (import.IsAKnownNativeClass())
                     continue; //skip
+        
+                // Import resolver should be able to resolve imports as the master packages _should_ be in the cache
+                // But I also haven't checked, so....
                 var resolvedExp = EntryImporter.ResolveImport(import, vTestOptions.cache);
                 if (resolvedExp == null)
                 {
@@ -102,7 +117,7 @@ namespace CrossGenV.Classes
                     //    }
                     //}
 
-                    Debug.WriteLine($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}");
+                    vTestOptions.SetStatusText($"Import not resolved in {Path.GetFileName(p.FilePath)}: {import.InstancedFullPath}");
                 }
             }
         }
