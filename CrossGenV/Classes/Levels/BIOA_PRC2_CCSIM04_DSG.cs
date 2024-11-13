@@ -22,26 +22,6 @@ namespace CrossGenV.Classes.Levels
             var artPlacable = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.SimulatorSettingsLogic.BioSeqEvt_ArtPlaceableUsed_0");
             artPlacable.WriteProperty(new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioInert_3"), "Originator"));
 
-
-            // Install texture streaming for Ocaren
-            var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
-            var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqEvent_RemoteEvent", vTestOptions.cache);
-            var streamInTextures = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_StreamInTextures", vTestOptions.cache);
-            KismetHelper.AddObjectsToSequence(sequence, false, remoteEvent, streamInTextures);
-            KismetHelper.CreateOutputLink(remoteEvent, "Out", streamInTextures);
-
-            remoteEvent.WriteProperty(new NameProperty("PrimeTexturesAhern", "EventName"));
-            // OCAREN
-            var materials = new ArrayProperty<ObjectProperty>("ForceMaterials")
-            {
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_11.BioMaterialInstanceConstant_151")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_11.BioMaterialInstanceConstant_152")),
-                new ObjectProperty(le1File.FindExport("TheWorld.PersistentLevel.BioPawn_11.BioMaterialInstanceConstant_153"))
-            };
-
-            streamInTextures.WriteProperty(materials);
-            streamInTextures.WriteProperty(new FloatProperty(12f, "Seconds")); // How long to force stream. We set this to 12 to ensure blackscreen and any delays between fully finish
-
             InstallLoadScreenFix();
             StreamInHenchTextures();
 
