@@ -6,11 +6,12 @@ using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.ObjectInfo;
 using System.Diagnostics;
 using System.Linq;
+using LegendaryExplorerCore.Gammtek.Extensions;
 
 namespace CrossGenV.Classes.Levels
 {
     /// <summary>
-    /// BIOA_PRC2_CCTHAI_SND, BIOA_PRC2_CCCAVE_SND, BIOA_PRC2_CCLAVA_SND, BIOA_PRC2_CCCRATE_SND, NOT AHERN
+    /// BIOA_PRC2_CCTHAI_DSG, BIOA_PRC2_CCCAVE_DSG, BIOA_PRC2_CCLAVA_DSG, BIOA_PRC2_CCCRATE_DSG, NOT AHERN
     /// </summary>
     internal class BIOA_PRC2_CC_DSG : ILevelSpecificCorrections
     {
@@ -636,6 +637,35 @@ namespace CrossGenV.Classes.Levels
 
         public virtual void PrePortingCorrection()
         {
+            // 11/11/2024 - Strip references to level-baked pawns; we want to load them dynamically instead so we have consistency in all files
+            var mainSeq = me1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var mainSeqObjs = KismetHelper.GetSequenceObjects(mainSeq).OfType<ExportEntry>().ToList();
+            var destroyObj = mainSeqObjs.FirstOrDefault(x => x.ClassName == "SeqAct_Destroy");
+            if (destroyObj != null)
+            {
+                var incomingRef = KismetHelper.FindOutputConnectionsToNode(destroyObj, mainSeqObjs);
+                var variables = KismetHelper.GetVariableLinksOfNode(destroyObj);
+
+                foreach (var ir in incomingRef)
+                {
+                    KismetHelper.RemoveFromSequence(ir, true);
+                }
+                foreach (var vl in variables)
+                {
+                    foreach (var vn in vl.LinkedNodes.OfType<ExportEntry>())
+                    {
+                        KismetHelper.RemoveFromSequence(vn, true);
+                    }
+                }
+                KismetHelper.RemoveFromSequence(destroyObj, true);
+            }
+
+            var levelActors = me1File.GetLevelActors();
+            foreach (var actor in levelActors.Where(x => x.ClassName == "BioPawn"))
+            {
+                me1File.RemoveFromLevelActors(actor);
+            }
+
             // Change strategic ring material name so it picks up donor instead
             var strategicRing = me1File.FindExport("BIOA_PRC2_MatFX.Material.StrategicRing_Cap_MAT");
             if (strategicRing != null)
