@@ -43,48 +43,49 @@ namespace CrossGenV.Classes
                         "Вы получаете опыт за 1-е место на карте симуляции. За 1-е место на каждой карте симулятора начисляется треть ОП, необходимых для повышения уровня. Дополнительные ОП будут начисляться за побитый рекорд, а также за прохождение особого сценария."));
                     stringRefs.Add(
                         new TLKStringRef(338476, "Опыт не будет начисляться за прохождение карт симулятора."));
-                    stringRefs.Add(new TLKStringRef(338477, "Выживание: Повышение количества противника"));
+                    stringRefs.Add(new TLKStringRef(338477, "Рост Сложности: Число Противников"));
                     stringRefs.Add(new TLKStringRef(338478, "Больше противника"));
-                    stringRefs.Add(new TLKStringRef(338479,
-                        "Количество противника будет фиксированным, как и в оригинальной версии."));
-                    stringRefs.Add(new TLKStringRef(338480,
-                        "Количество противника в выживании будет расти со временем, из-за чего сложность будет расти по кривой по мере прохождения."));
-                    stringRefs.Add(new TLKStringRef(338481, "Рост сложности: Таланты"));
-                    stringRefs.Add(new TLKStringRef(338482,
-                        "По мере прохождения миссий противник получает таланты и способности,  которые делают его более смертоносным."));
-                    stringRefs.Add(new TLKStringRef(338483,
-                        "Противник не будет получать таланты по мере прохождения миссий симуляции. Опция по умолчанию."));
-                    stringRefs.Add(new TLKStringRef(338484, "Рост сложности: Оружие"));
-                    stringRefs.Add(new TLKStringRef(338485,
-                        "По мере прохождения миссий противник получает модификации оружия, которые делают его более смертоносным."));
-                    stringRefs.Add(new TLKStringRef(338486,
-                        "Противник не будет получать модификации оружия по мере прохождения. Опция по умолчанию."));
+                    stringRefs.Add(new TLKStringRef(338479, "Количество противника будет фиксированным, как и в оригинальной версии."));
+                    stringRefs.Add(new TLKStringRef(338480, "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии число противников будет расти, создавая всё более захватывающий сценарий."));
+                    stringRefs.Add(new TLKStringRef(338481, "Рост Сложности: Умения"));
+                    stringRefs.Add(new TLKStringRef(338482, "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии противники будут получать боевые умения, становясь все более смертельными."));
+                    stringRefs.Add(new TLKStringRef(338483, "Противник не будет получать таланты по мере прохождения миссий симуляции. Опция по умолчанию."));
+                    stringRefs.Add(new TLKStringRef(338484, "Рост Сложности: Модификации оружия"));
+                    stringRefs.Add(new TLKStringRef(338485, "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии противники будут получать модификации оружия, становясь все более смертельными."));
+                    stringRefs.Add(new TLKStringRef(338486, "Противник не будет получать модификации оружия по мере прохождения. Опция по умолчанию."));
                     stringRefs.Add(new TLKStringRef(338487, "Симулятор: Селектор противника"));
                     stringRefs.Add(new TLKStringRef(338488, "Выберите тип противника"));
                     stringRefs.Add(new TLKStringRef(338489, "Этот сет противников не активирован."));
                     stringRefs.Add(new TLKStringRef(338490, "Противники-азари заменят обычных в боевой симуляции."));
-                    stringRefs.Add(
-                        new TLKStringRef(338491, "Противники-саларианцы заменят обычных в боевой симуляции."));
-                    stringRefs.Add(
-                        new TLKStringRef(338492, "Противники-батарианцы заменят обычных в боевой симуляции."));
+                    stringRefs.Add(new TLKStringRef(338491, "Противники-саларианцы заменят обычных в боевой симуляции."));
+                    stringRefs.Add(new TLKStringRef(338492, "Противники-батарианцы заменят обычных в боевой симуляции."));
                     stringRefs.Add(new TLKStringRef(338493, "Монстры"));
-                    stringRefs.Add(new TLKStringRef(338494,
-                        "Монструозные напарники заменят обычных в боевой симуляции."));
+                    stringRefs.Add(new TLKStringRef(338494, "Монструозные напарники заменят обычных в боевой симуляции."));
                     stringRefs.Add(new TLKStringRef(338495, "Смешанные"));
-                    stringRefs.Add(new TLKStringRef(338496,
-                        "Противнпки из всех доступных фракций появятся в боевой симуляции."));
+                    stringRefs.Add(new TLKStringRef(338496, "Противнпки из всех доступных фракций появятся в боевой симуляции."));
                     stringRefs.Add(new TLKStringRef(338497, "Все настройки: По умолчанию"));
                     stringRefs.Add(new TLKStringRef(338498, "Все настройки"));
-                    stringRefs.Add(new TLKStringRef(338499,
-                        "Все настройки будут переключены на опции из оригинала. Для сторонников чистой «Станции „Вершина“»."));
+                    stringRefs.Add(new TLKStringRef(338499, "Все настройки будут переключены на опции из оригинала. Для сторонников чистой «Станции „Вершина“»."));
                     stringRefs.Add(new TLKStringRef(338500, "Все настройки: Рекомендованные"));
-                    stringRefs.Add(new TLKStringRef(338501,
-                        "Все настройки будут переключены на опции, рекомендованные для этого ремастера."));
+                    stringRefs.Add(new TLKStringRef(338501, "Все настройки будут переключены на опции, рекомендованные для этого ремастера."));
                     stringRefs.Add(new TLKStringRef(338502, "Выбрано"));
                     stringRefs.Add(new TLKStringRef(338503, "Не выбрано"));
                     stringRefs.Add(new TLKStringRef(338504, "Тип противника не изменен."));
                     stringRefs.Add(new TLKStringRef(338505, "Тип противника был изменен"));
                     stringRefs.Add(new TLKStringRef(338506, "По умолчанию"));
+
+                    // Salarian
+                    stringRefs.Add(new TLKStringRef(338507, "Саларианский Наемник"));
+                    stringRefs.Add(new TLKStringRef(338508, "Саларианский Снайпер"));
+                    stringRefs.Add(new TLKStringRef(338509, "Саларианский Стражник"));
+                    stringRefs.Add(new TLKStringRef(338510, "Саларианский Штурмовик"));
+
+                    // Batarian
+                    stringRefs.Add(new TLKStringRef(338512, "Батарианский Рейдер"));
+
+                    // Extras
+                    stringRefs.Add(new TLKStringRef(338550, "Рекорд:"));
+
                     break;
                 case "ES":
                     AddEnglishStringRefs();
@@ -286,67 +287,59 @@ namespace CrossGenV.Classes
                     // Localization by Herobrine24
                     stringRefs.Add(new TLKStringRef(338464, "Herunterladen von Daten"));
                     stringRefs.Add(new TLKStringRef(338465, "Simulatoreinstellungen"));
-                    stringRefs.Add(new TLKStringRef(338466,
-                        "Öffnen")); // Context: Activatable console to open the simulator settings
+                    stringRefs.Add(new TLKStringRef(338466, "Öffnen")); // Context: Activatable console to open the simulator settings
                     stringRefs.Add(new TLKStringRef(338467, "AKTIVIERT"));
                     stringRefs.Add(new TLKStringRef(338468, "DEAKTIVIERT"));
                     stringRefs.Add(new TLKStringRef(338469, "Aktivieren"));
                     stringRefs.Add(new TLKStringRef(338470, "Deaktivieren"));
                     stringRefs.Add(new TLKStringRef(338471, "Musik"));
-                    stringRefs.Add(new TLKStringRef(338472,
-                        "Zu jeder Simulatorkarte werden passende Musiktitel hinzugefügt, die sich mit zunehmender Intensität ändern."));
-                    stringRefs.Add(new TLKStringRef(338473,
-                        "Wie im Original-DLC wird im Simulator keine Musik abgespielt."));
+                    stringRefs.Add(new TLKStringRef(338472, "Zu jeder Simulatorkarte werden passende Musiktitel hinzugefügt, die sich mit zunehmender Intensität ändern."));
+                    stringRefs.Add(new TLKStringRef(338473, "Wie im Original-DLC wird im Simulator keine Musik abgespielt."));
                     stringRefs.Add(new TLKStringRef(338474, "XP auf dem 1. Platz"));
-                    stringRefs.Add(new TLKStringRef(338475,
-                        "Sie erhalten Erfahrung, wenn Sie auf einer Simulatorkarte den 1. Platz erreichen. Wenn Sie auf jeder Simulatorkarte zum ersten Mal den 1. Platz erreichen, erhalten Sie 1/3 der XP eines Levels. Weitere XP erhalten Sie, wenn Sie Ihren Rekord schlagen und das Spezialszenario abschließen."));
-                    stringRefs.Add(new TLKStringRef(338476,
-                        "Für das Abschließen einer Simulatorkarte wird keine Erfahrung gewährt."));
-                    stringRefs.Add(new TLKStringRef(338477, "Überleben: Anstieg der Feindzahl"));
+                    stringRefs.Add(new TLKStringRef(338475, "Sie erhalten Erfahrung, wenn Sie auf einer Simulatorkarte den 1. Platz erreichen. Wenn Sie auf jeder Simulatorkarte zum ersten Mal den 1. Platz erreichen, erhalten Sie 1/3 der XP eines Levels. Weitere XP erhalten Sie, wenn Sie Ihren Rekord schlagen und das Spezialszenario abschließen."));
+                    stringRefs.Add(new TLKStringRef(338476, "Für das Abschließen einer Simulatorkarte wird keine Erfahrung gewährt."));
+                    stringRefs.Add(new TLKStringRef(338477, "Anstieg Schwierigkeit: Feindanzahl"));
                     stringRefs.Add(new TLKStringRef(338478, "Anstieg der Feindzahl"));
-                    stringRefs.Add(new TLKStringRef(338479,
-                        "Die Anzahl der erscheinenden Feinde wird auf die ursprüngliche Standardversion festgelegt."));
-                    stringRefs.Add(new TLKStringRef(338480,
-                        "Die Zahl der Feinde im Überlebensmodus nimmt mit der Zeit zu, wodurch mit fortschreitender Zeit eine zunehmende Schwierigkeitskurve entsteht."));
+                    stringRefs.Add(new TLKStringRef(338479, "Die Anzahl der erscheinenden Feinde wird auf die ursprüngliche Standardversion festgelegt."));
+                    stringRefs.Add(new TLKStringRef(338480, "NUR ÜBERLEBEN/EROBERN\n\nIm Verlauf einer Mission steigt die Zahl der Feinde, wodurch das Szenario spannender wird."));
                     stringRefs.Add(new TLKStringRef(338481, "Anstieg Schwierigkeit: Talente"));
-                    stringRefs.Add(new TLKStringRef(338482,
-                        "Im Verlauf einer Mission erhalten die Feinde Talente und Kräfte, die sie tödlicher machen."));
-                    stringRefs.Add(new TLKStringRef(338483,
-                        "Feinde erhalten im Verlauf der Simulatormissionen keine Talente. Dies ist der Standardwert."));
-                    stringRefs.Add(new TLKStringRef(338484, "Anstieg Schwierigkeit: Waffen"));
-                    stringRefs.Add(new TLKStringRef(338485,
-                        "Im Verlauf einer Mission erhalten Feinde Waffenmodifikationen, die sie tödlicher machen."));
-                    stringRefs.Add(new TLKStringRef(338486,
-                        "Feinde erhalten im Verlauf der Simulatormissionen keine Waffenmodifikationen. Dies ist der Standardwert."));
+                    stringRefs.Add(new TLKStringRef(338482, "NUR ÜBERLEBEN/EROBERN\n\nIm Verlauf einer Mission entwickeln Feinde Talente und Fähigkeiten, die sie tödlicher machen."));
+                    stringRefs.Add(new TLKStringRef(338483, "Feinde erhalten im Verlauf der Simulatormissionen keine Talente. Dies ist der Standardwert."));
+                    stringRefs.Add(new TLKStringRef(338484, "Anstieg Schwierigkeit: Waffen-Upgrades"));
+                    stringRefs.Add(new TLKStringRef(338485, "NUR ÜBERLEBEN/EROBERN\n\nIm Verlauf einer Mission erhalten Feinde Waffen-Upgrades, die sie tödlicher machen."));
+                    stringRefs.Add(new TLKStringRef(338486, "Feinde erhalten im Verlauf der Simulatormissionen keine Waffenmodifikationen. Dies ist der Standardwert."));
                     stringRefs.Add(new TLKStringRef(338487, "Simulator: Feindauswahl"));
                     stringRefs.Add(new TLKStringRef(338488, "Feindtyp auswählen"));
                     stringRefs.Add(new TLKStringRef(338489, "Diese Feindgruppe ist derzeit nicht aktiviert."));
-                    stringRefs.Add(new TLKStringRef(338490,
-                        "Asari-Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
-                    stringRefs.Add(new TLKStringRef(338491,
-                        "Salarianische Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
-                    stringRefs.Add(new TLKStringRef(338492,
-                        "Batarianische Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
+                    stringRefs.Add(new TLKStringRef(338490, "Asari-Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
+                    stringRefs.Add(new TLKStringRef(338491, "Salarianische Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
+                    stringRefs.Add(new TLKStringRef(338492, "Batarianische Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
                     stringRefs.Add(new TLKStringRef(338493, "Monster"));
-                    stringRefs.Add(new TLKStringRef(338494,
-                        "Monströse Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
+                    stringRefs.Add(new TLKStringRef(338494, "Monströse Feinde werden die normalen Feinde im Kampfsimulator ersetzen."));
                     stringRefs.Add(new TLKStringRef(338495, "Gemischte Feinde"));
-                    stringRefs.Add(new TLKStringRef(338496,
-                        "Feinde aller verfügbaren Fraktionen werden im Kampfsimulator erscheinen."));
+                    stringRefs.Add(new TLKStringRef(338496, "Feinde aller verfügbaren Fraktionen werden im Kampfsimulator erscheinen."));
                     stringRefs.Add(new TLKStringRef(338497, "Alle Einstellungen: Vanilla"));
                     stringRefs.Add(new TLKStringRef(338498, "Alle Einstellungen"));
-                    stringRefs.Add(new TLKStringRef(338499,
-                        "Alle Simulatoreinstellungen werden auf ihren ursprünglichen Mass Effect 1-Standardwert eingestellt. Für Pinnacle Station-Puristen."));
+                    stringRefs.Add(new TLKStringRef(338499, "Alle Simulatoreinstellungen werden auf ihren ursprünglichen Mass Effect 1-Standardwert eingestellt. Für Pinnacle Station-Puristen."));
                     stringRefs.Add(new TLKStringRef(338500, "Alle Einstellungen: Empfohlen"));
-                    stringRefs.Add(new TLKStringRef(338501,
-                        "Alle Simulatoreinstellungen werden für diesen Remaster auf die empfohlenen Zustände gesetzt."));
+                    stringRefs.Add(new TLKStringRef(338501, "Alle Simulatoreinstellungen werden für diesen Remaster auf die empfohlenen Zustände gesetzt."));
                     stringRefs.Add(new TLKStringRef(338502, "Ausgewählt"));
                     stringRefs.Add(new TLKStringRef(338503, "Nicht ausgewählt"));
-                    stringRefs.Add(new TLKStringRef(338504,
-                        "Die Feindtypen werden gegenüber den Standardeinstellungen nicht geändert."));
-                    stringRefs.Add(new TLKStringRef(338505,
-                        "Die Feindtypen wurden gegenüber den Standardeinstellungen geändert."));
+                    stringRefs.Add(new TLKStringRef(338504, "Die Feindtypen werden gegenüber den Standardeinstellungen nicht geändert."));
+                    stringRefs.Add(new TLKStringRef(338505, "Die Feindtypen wurden gegenüber den Standardeinstellungen geändert."));
                     stringRefs.Add(new TLKStringRef(338506, "Standard"));
+
+                    // Salarian
+                    stringRefs.Add(new TLKStringRef(338507, "Salarianischer Söldner"));
+                    stringRefs.Add(new TLKStringRef(338508, "Salarianischer Scharfschütze"));
+                    stringRefs.Add(new TLKStringRef(338509, "Salarianischer Wache"));
+                    stringRefs.Add(new TLKStringRef(338510, "Salarianischer Bezwinger"));
+
+                    // Batarian
+                    stringRefs.Add(new TLKStringRef(338512, "Batarianischer Räuber"));
+
+                    // Extras
+                    stringRefs.Add(new TLKStringRef(338550, "Zu schlagender Punktestand:"));
                     break;
                 case "JA":
                     AddEnglishStringRefs();
@@ -435,6 +428,10 @@ namespace CrossGenV.Classes
                 // Extras
                 // TODO: HOOK THIS UP IN THE SOURCE FILE
                 new TLKStringRef(338550, "Score to beat:"),
+
+                // PR2 - All
+                new TLKStringRef(338451, "Simulator prototypes"),
+                new TLKStringRef(338452, "Enemies that were part of the original simulator design but were never finished will appear in the combat simulator."),
 
 
         ];
