@@ -221,7 +221,7 @@ namespace CrossGenV.Classes
                     if (f.GetUnrealLocalization() == MELocalization.None)
                         return; // Do not port
 
-                    vTestOptions.cache = rootCache.ChainNewCache();
+                    // vTestOptions.cache = rootCache.ChainNewCache();
                     PortFile(f, vTestLevel, false, vTestOptions);
                 });
 
