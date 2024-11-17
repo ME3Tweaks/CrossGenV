@@ -207,10 +207,10 @@ namespace CrossGenV.Classes.Modes
             KismetHelper.SetComment(addIntTC, "Increase max amount of additional talents allowed");
 
             // Log for debugging
-            var logWMChance = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Chance **");
-            var logWMCount = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Count **");
-            var logTChance = SequenceObjectCreator.CreateLog(seq, "** Talent Chance **");
-            var logTCount = SequenceObjectCreator.CreateLog(seq, "** Talent Count **");
+            var logWMChance = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Chance **", false, vTestOptions.cache);
+            var logWMCount = SequenceObjectCreator.CreateLog(seq, "** Weapon Mod Count **", false, vTestOptions.cache);
+            var logTChance = SequenceObjectCreator.CreateLog(seq, "** Talent Chance **", false, vTestOptions.cache);
+            var logTCount = SequenceObjectCreator.CreateLog(seq, "** Talent Count **", false, vTestOptions.cache);
 
             VTestKismet.HookupLog(logWMChance, "Weapon Mod Chance: ", floatVal: modChance);
             VTestKismet.HookupLog(logTChance, "Talent Chance: ", floatVal: talentChance);
@@ -260,6 +260,7 @@ namespace CrossGenV.Classes.Modes
 
             //int current = 0;
             //foreach (var respawner in newRespawners)
+
             //{
             //    current++;
             //    
@@ -278,7 +279,7 @@ namespace CrossGenV.Classes.Modes
                 while (currentRamp < MaxEnemyRampCount)
                 {
                     var links = KismetHelper.GetVariableLinksOfNode(respawners[0]);
-                    var newRespawner = KismetHelper.CloneObject(respawners[0], seq, cloneChildren: true);
+                    var newRespawner = KismetHelper.CloneObject(respawners[0], seq, cloneChildren: true, keepPositioning: true);
                     newRespawners.Add(newRespawner);
                     var enemyNum = SequenceObjectCreator.CreateInt(seq, currentEnemyNum, vTestOptions.cache);
                     links[2].LinkedNodes[0] = enemyNum; // Repoint to our new enemy number

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Unreal;
 
 namespace CrossGenV.Classes.Modes
 {
@@ -19,21 +20,36 @@ namespace CrossGenV.Classes.Modes
         /// <exception cref="NotImplementedException"></exception>
         public static void InstallSurvivalRamping(ExportEntry startTimerObj, ExportEntry seq, VTestOptions vTestOptions)
         {
+
+            var updateEnemies = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_Gate", -3474, 1102); // SUR LAVA
+            updateEnemies ??= VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_Gate", 89, 1075); // SUR THAI
+            updateEnemies ??= VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_Log", 1214, 865); // SUR CAVE
+
+
             var respawners = VTestKismet.GetSequenceObjectReferences(seq, "SUR_Respawner");
-
-
             List<ExportEntry> newRespawners = new List<ExportEntry>();
             if (respawners.Any())
             {
+                var respawnerSeqRef = respawners[0];
+
                 int currentEnemyNum = respawners.Count + 1;
 
                 var currentRamp = 0;
                 while (currentRamp < MaxEnemyRampCount)
                 {
-                    var links = KismetHelper.GetVariableLinksOfNode(respawners[0]);
-                    var newRespawner = KismetHelper.CloneObject(respawners[0], seq, cloneChildren: true);
+                    var links = KismetHelper.GetVariableLinksOfNode(respawnerSeqRef);
+                    var newRespawner = KismetHelper.CloneObject(respawnerSeqRef, keepPositioning: true); //, seq, cloneChildren: true);
+                    var objName = VTestKismet.GetSequenceName(newRespawner);
+                    if (objName == respawnerSeqRef.ObjectName.Instanced)
+                    {
+                        newRespawner.WriteProperty(new StrProperty(newRespawner.ObjectName.Instanced, "ObjName"));
+                    }
+
+                    Console.WriteLine($">> Cloned - {VTestKismet.GetSequenceFullPath(respawnerSeqRef)} to {VTestKismet.GetSequenceFullPath(newRespawner)}");
+                    var spawnList = KismetHelper.CloneObject(links[0].LinkedNodes[0] as ExportEntry); // Clone the spawnlist so crossgen wavelist distribution is more varied
                     newRespawners.Add(newRespawner);
                     var enemyNum = SequenceObjectCreator.CreateInt(seq, currentEnemyNum, vTestOptions.cache);
+                    links[0].LinkedNodes[0] = spawnList; // Set new spawn list
                     links[2].LinkedNodes[0] = enemyNum; // Repoint to our new enemy number
 
                     KismetHelper.WriteVariableLinksToNode(newRespawner, links);
@@ -54,9 +70,8 @@ namespace CrossGenV.Classes.Modes
             }
 
             // Todo: Make this dynamic for different levels that have different survival times
-            float startTime = 35f;
+            float startTime = 45f;
             var currentTime = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Float", "OFFICIAL_TIME", vTestOptions.cache);
-            var gameHandler = VTestKismet.GetSequenceObjectReferences(seq, "Check_Capping_Completion");
 
             // Subdivide into ramp chunks
             // We +1 to ensure it's never zero, as well as not having a guaranteed 100% all the time.
@@ -108,10 +123,14 @@ namespace CrossGenV.Classes.Modes
                 current++;
                 var gate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
                 var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+                var unlockLog = SequenceObjectCreator.CreateLog(seq, "Activating a new ramping respawner", cache: vTestOptions.cache);
                 KismetHelper.CreateOutputLink(gate, "Out", pmCheck, 0); // Gate to Initialize
                 KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close gate
 
-                KismetHelper.CreateOutputLink(pmCheck, "True", respawner, 1); // PMCheck to Initialize
+
+                KismetHelper.CreateOutputLink(pmCheck, "True", unlockLog); // PMCheck to Log
+                KismetHelper.CreateOutputLink(unlockLog, "Out", respawner, 1); // Log to Initialize
+                KismetHelper.CreateOutputLink(updateEnemies, "Out" , respawner, 0); // Update guys goes to Activate it seems...
 
                 var time = SequenceObjectCreator.CreateFloat(seq, startTime);
                 var compare = SequenceObjectCreator.CreateCompareFloat(seq, currentTime, time, vTestOptions.cache);
@@ -124,7 +143,11 @@ namespace CrossGenV.Classes.Modes
                 }
                 else
                 {
-                    KismetHelper.CreateOutputLink(gameHandler[0], "Update_Guys", compare);
+                    var tickEvent = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "TimerTick", vTestOptions.cache);
+                    var logTime = SequenceObjectCreator.CreateLog(seq, "Seconds ticked: ", cache: vTestOptions.cache);
+                    KismetHelper.CreateVariableLink(logTime, "Float", currentTime);
+                    KismetHelper.CreateOutputLink(tickEvent, "Out", logTime);
+                    KismetHelper.CreateOutputLink(logTime, "Out", compare);
                 }
 
                 // Weapon, Talent chances increase every ramp
@@ -143,7 +166,30 @@ namespace CrossGenV.Classes.Modes
                 }
 
                 previousCompareFloat = compare;
-                startTime += 13; // How many seconds between enemy ramping
+                startTime += 30; // How many seconds between enemy ramping
+            }
+
+            {
+                // 11/14/2024 - Mob Player
+                startTime += 7; // 7 more seconds after we start to really crank up the difficulty (20 since last extra spawn)
+
+                var time = SequenceObjectCreator.CreateFloat(seq, startTime);
+                var compare = SequenceObjectCreator.CreateCompareFloat(seq, currentTime, time, vTestOptions.cache);
+                var gate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
+                var pmCheck = SequenceObjectCreator.CreatePMCheckState(seq, VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, vTestOptions.cache); // We put this behind gate as we use this for ramping difficulty
+                var berserk = SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Bool", "BerserkMode", vTestOptions.cache);
+                var setBerserk = SequenceObjectCreator.CreateSetBool(seq, berserk, SequenceObjectCreator.CreateBool(seq, true, vTestOptions.cache));
+                var goBerserk = SequenceObjectCreator.CreateActivateRemoteEvent(seq, "GoBerserk", vTestOptions.cache);
+                KismetHelper.SetComment(setBerserk, "Pawns will force-target the player until they get in close-range, then AI switches back to the original");
+                var goneBerserkLog = SequenceObjectCreator.CreateLog(seq, "Berserk mode ACTIVATED", cache: vTestOptions.cache);
+
+                KismetHelper.CreateOutputLink(previousCompareFloat, "A >= B", compare, 0); // Previous compare to ours
+                KismetHelper.CreateOutputLink(compare, "A >= B", gate); // Current time to gate
+                KismetHelper.CreateOutputLink(gate, "Out", gate, 2); // Close gate
+                KismetHelper.CreateOutputLink(gate, "Out", pmCheck); // Gate to feature check
+                KismetHelper.CreateOutputLink(pmCheck, "True", setBerserk); // PMCheck to setbool
+                KismetHelper.CreateOutputLink(setBerserk, "Out", goBerserk); // setBerserk to signal
+                KismetHelper.CreateOutputLink(goBerserk, "Out", goneBerserkLog);
             }
         }
     }
