@@ -190,7 +190,7 @@ namespace CrossGenV.Classes
             KismetHelper.AddObjectsToSequence(sequence, false, startMusicEvt, stopMusicEvt, plotCheck, musOn, musOff, musVolSeqObj, stateBeingSet, musicStatePlotInt, setInt);
 
             KismetHelper.CreateOutputLink(startMusicEvt, "Out", plotCheck);
-            KismetHelper.CreateOutputLink(plotCheck, "False", setInt); // CHANGE TO musOff IN FINAL BUILD
+            KismetHelper.CreateOutputLink(plotCheck, "True", setInt); // CHANGE TO musOff IN FINAL BUILD
             KismetHelper.CreateOutputLink(setInt, "Out", musOn);
             KismetHelper.CreateOutputLink(stopMusicEvt, "Out", musOff);
 
@@ -202,8 +202,8 @@ namespace CrossGenV.Classes
             KismetHelper.CreateVariableLink(setInt, "Value", stateBeingSet);
 
             // Music bool
-            KismetHelper.SetComment(plotCheck, "Music is disabled?");
-            plotCheck.WriteProperty(new IntProperty(7657, "m_nIndex"));
+            KismetHelper.SetComment(plotCheck, "Is music enabled?");
+            plotCheck.WriteProperty(new IntProperty(VTestPlot.CROSSGEN_PMB_INDEX_MUSIC_ENABLED, "m_nIndex"));
 
             // Setup SetInt values
             stateBeingSet.WriteProperty(new IntProperty(soundState, "IntValue"));

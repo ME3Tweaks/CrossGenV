@@ -50,7 +50,7 @@ namespace CrossGenV.Classes
                 classText += "Super.OnDeath(Killer); }";
 
                 var results = UnrealScriptCompiler.CompileClass(package, classText, lib, usop, parent: cggc);
-                package.Save();
+                // package.Save();
                 var compiledClass = package.FindExport($"{cggc.InstancedFullPath}.{className}");
                 if (compiledClass == null)
                 {

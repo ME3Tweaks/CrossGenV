@@ -22,8 +22,8 @@ namespace CrossGenV.Classes
         public const int CROSSGEN_PMB_INDEX_UNUSED7 = 7660;
 
         // MOD SETTINGS =====================
-        // Flag to indicate if music should be enabled. default = false = music on
-        public const int CROSSGEN_PMB_INDEX_MUSIC_DISABLED = 7657;
+        // Flag to indicate if music should be enabled.
+        public const int CROSSGEN_PMB_INDEX_MUSIC_ENABLED = 7657;
 
         // Flag to indicate if mission completion exp should be rewarded
         public const int CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE_ENABLED = 7576;
@@ -44,9 +44,11 @@ namespace CrossGenV.Classes
 
         // INTEGERS ==============================================
         // The following are unused integers at below the vanilla range cap
-        public const int CROSSGEN_PMI_INDEX_UNUSED3 = 139;
         public const int CROSSGEN_PMI_INDEX_UNUSED4 = 140;
 
+
+        // Used to indicate which version of settings were applied.
+        public const int CROSSGEN_PMI_INDEX_SETTINGSDEFAULTVERSION = 139;
         // Used to indicate which faction is currently selected in the wave class list (LEXSeqAct_CrossgenEnemyListModifier, MSM)
         public const int CROSSGEN_PMI_INDEX_SIMULATOR_FACTION = 132;
         // Internally used to detect desyncs  (LEXSeqAct_CrossgenEnemyListModifier, MSM)
