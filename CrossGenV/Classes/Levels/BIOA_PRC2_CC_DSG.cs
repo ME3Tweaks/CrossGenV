@@ -1,4 +1,5 @@
-﻿using CrossGenV.Classes.Modes;
+﻿using System;
+using CrossGenV.Classes.Modes;
 using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
@@ -258,7 +259,7 @@ namespace CrossGenV.Classes.Levels
             //var removeCrusts = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_RemoveAllCrustEffects", options.cache);
             //KismetHelper.CreateVariableLink(removeCrusts, "Target", currentPawn);
             //KismetHelper.InsertActionAfter(deathSetObj, "Out", removeCrusts, 0, "Out");
-            
+
         }
 
         /// <summary>
@@ -303,139 +304,41 @@ namespace CrossGenV.Classes.Levels
             // Kill streak voice line sequence
             VTestKismet.InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence", "HelperSequences.KillStreakVoiceLine", vTestOptions);
 
-            // 09/24/2024 - Add additional enemies logic
-            VTestAdditionalContent.AddExtraEnemyTypes(le1File, vTestOptions);
-
             PreventSavingOnSimLoad(le1File, vTestOptions);
             ResetRamping(le1File, vTestOptions);
 
             // 10/22/2024 - NaNuke - Custom capture ring shader
             VTestPostCorrections.AddCustomShader(le1File, "CROSSGENV.StrategicRing_Cap_MAT_NEW");
 
+            // 2024: Disable running until sim wipe starts which helps prevents touching capture points too soon.
             VTestPostCorrections.DisallowRunningUntilModeStarts(le1File, vTestOptions);
-
 
             VTestAudio.SetupMusicIntensity(le1File, upperFName, vTestOptions);
             VTestAudio.SetupKillStreakVO(le1File, vTestOptions);
 
-            // Force the pawns that will spawn to have their meshes in memory
+            // 11/14/2024 - Note on this - This is for default enemies (not wavelist, but originals), this prevents a blocking load on first spawn
+            // as demiurge's pre-caching doesn't work.
+            // 2021: Force the pawns that will spawn to have their meshes in memory
             // They are not referenced directly
             var assetsToReference = le1File.Exports.Where(x => assetsToEnsureReferencedInSim.Contains(x.InstancedFullPath)).ToArray();
             VTestUtility.AddWorldReferencedObjects(le1File, assetsToReference);
 
+            // depends on SpawnSingleGuy sequence name.
             VTestCapture.AddCaptureEngagementSequencing(le1File, vTestOptions);
 
-            foreach (var exp in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
+            // PASS 1
+            foreach (var seq in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
             {
-                var seqName = exp.GetProperty<StrProperty>("ObjName")?.Value;
+                var seqName = VTestKismet.GetSequenceName(seq);
 
                 #region Skip broken SeqAct_ActorFactory for bit explosion | Increase Surival Mode Engagement
 
                 if (seqName == "Spawn_Single_Guy")
                 {
-                    RemoveBitExplosionEffect(exp, vTestOptions);
-                    FixGethFlashlights(exp, vTestOptions);
-                    // Increase survival mode engagement by forcing the player to engage with enemies that charge the player.
-                    // This prevents them from camping and getting free survival time
-                    // This also covers CAH
-                    if (VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Respawner"))
-                    {
-                        // Sequence objects + add to sequence
-                        var crustAttach = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_AttachCrustEffect", 5920, 1672);
-                        var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqVar_Object", 4536, 2016);
-                        var death = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqEvent_Death", 1664, 2608);
+                    RemoveBitExplosionEffect(seq, vTestOptions);
+                    FixGethFlashlights(seq, vTestOptions);
 
-                        // AI change
-                        var delay = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_Delay", vTestOptions.cache);
-                        var delayDuration = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_RandomFloat", vTestOptions.cache);
-                        var aiChoiceRand = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_RandomFloat", vTestOptions.cache);
-                        var aiChoiceComp = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqCond_CompareFloat", vTestOptions.cache);
-                        var aiChoiceAssaultThreshold = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-                        var changeAiCharge = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_ChangeAI", vTestOptions.cache);
-                        var changeAiAssault = SequenceObjectCreator.CreateSequenceObject(le1File, "BioSeqAct_ChangeAI", vTestOptions.cache);
-                        var chargeAiLog = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_Log", vTestOptions.cache);
-                        var assaultAiLog = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_Log", vTestOptions.cache);
-
-                        // Toxic and Phasic
-                        var setWeaponAttributes = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SetWeaponAttribute", vTestOptions.cache);
-                        var toxicFactor = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-                        var phasicFactor = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-                        //var addToxicFactor = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-                        //var addPhasicFactor = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-                        //var respawnCount = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqVar_Float", vTestOptions.cache);
-
-                        KismetHelper.AddObjectsToSequence(exp, false, delay, delayDuration, aiChoiceRand, aiChoiceComp, aiChoiceAssaultThreshold, changeAiCharge, changeAiAssault, assaultAiLog, chargeAiLog, setWeaponAttributes, toxicFactor, phasicFactor);
-
-                        // Configure sequence object properties
-                        delayDuration.WriteProperty(new FloatProperty(11, "Min"));
-                        delayDuration.WriteProperty(new FloatProperty(20, "Max"));
-                        KismetHelper.SetComment(toxicFactor, "Toxic to counter player regen");
-                        KismetHelper.SetComment(phasicFactor, "Phasic to counter player powers");
-                        toxicFactor.WriteProperty(new FloatProperty(1, "FloatValue"));
-                        phasicFactor.WriteProperty(new FloatProperty(1, "FloatValue"));
-
-
-                        // CHARGE AI BRANCH
-                        var chargeAiClass = EntryImporter.EnsureClassIsInFile(le1File, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
-                        changeAiCharge.WriteProperty(new ObjectProperty(chargeAiClass, "ControllerClass"));
-                        KismetHelper.SetComment(chargeAiLog, "CROSSGEN: Engaging player with CrossgenAI_Charge");
-
-                        // ASSAULT AI BRANCH
-                        var assaultAiClass = EntryImporter.EnsureClassIsInFile(le1File, "CrossgenAI_Assault", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
-                        changeAiAssault.WriteProperty(new ObjectProperty(assaultAiClass, "ControllerClass"));
-                        KismetHelper.SetComment(assaultAiLog, "CROSSGEN: Relaxing player engagement with CrossgenAI_Assault");
-
-                        // ASSAULT CHANCE - 1 in 4 chance
-                        aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
-                        aiChoiceRand.WriteProperty(new FloatProperty(4, "Max"));
-                        aiChoiceAssaultThreshold.WriteProperty(new FloatProperty(3f, "FloatValue")); // The generated random number must be above this to change to assault. 
-
-                        // Connect sequence objects - Stop AI change timer when pawn dies 10/26/2024
-                        KismetHelper.CreateOutputLink(death, "Out", delay, 1); // Stop
-
-                        // Connect sequence objects - Delay and branch pick
-                        KismetHelper.CreateOutputLink(crustAttach, "Done", delay);
-                        KismetHelper.CreateVariableLink(delay, "Duration", delayDuration);
-                        KismetHelper.CreateOutputLink(delay, "Finished", aiChoiceComp);
-                        KismetHelper.CreateVariableLink(aiChoiceComp, "A", aiChoiceRand);
-                        KismetHelper.CreateVariableLink(aiChoiceComp, "B", aiChoiceAssaultThreshold);
-
-                        // Connect sequence objects - CHARGE BRANCH
-                        KismetHelper.CreateOutputLink(aiChoiceComp, "A < B", changeAiCharge);
-                        KismetHelper.CreateOutputLink(changeAiCharge, "Out", chargeAiLog);
-                        KismetHelper.CreateVariableLink(changeAiCharge, "Pawn", currentPawn);
-                        KismetHelper.CreateVariableLink(chargeAiLog, "Object", currentPawn);
-
-                        // Connect sequence objects - ASSAULT BRANCH
-                        KismetHelper.CreateOutputLink(aiChoiceComp, "A >= B", changeAiAssault);
-                        KismetHelper.CreateOutputLink(changeAiAssault, "Out", assaultAiLog);
-                        KismetHelper.CreateVariableLink(changeAiAssault, "Pawn", currentPawn);
-                        KismetHelper.CreateVariableLink(assaultAiLog, "Object", currentPawn);
-
-                        // Stop timer on any event in this sequence 
-                        var events = KismetHelper.GetAllSequenceElements(exp).OfType<ExportEntry>().Where(x => x.IsA("SeqEvent")).ToList();
-                        foreach (var seqEvent in events)
-                        {
-                            KismetHelper.CreateOutputLink(seqEvent, "Out", delay, 1); // Cancel the delay as spawn stopped or changed (or restarted)
-                        }
-
-                        // Connect sequence object - toxic / phasic (Needs gated to only activate later!)
-                        KismetHelper.CreateOutputLink(crustAttach, "Done", setWeaponAttributes);
-                        KismetHelper.CreateVariableLink(setWeaponAttributes, "Pawn", currentPawn);
-                        KismetHelper.CreateVariableLink(setWeaponAttributes, "Toxic Factor", toxicFactor);
-                        KismetHelper.CreateVariableLink(setWeaponAttributes, "Phasic Factor", phasicFactor);
-
-                        if (VTestKismet.IsContainedWithinSequenceNamed(exp, "CAH_Respawner"))
-                        {
-                            exp.WriteProperty(new StrProperty("Spawn_Single_Guy_CAH", "ObjName"));
-                        }
-                        else
-                        {
-                            exp.WriteProperty(new StrProperty("Spawn_Single_Guy_SUR", "ObjName"));
-                        }
-                        VTestAdditionalContent.InstallTalentRamping(crustAttach, "Done", vTestOptions);
-                        VTestAdditionalContent.InstallPowerRamping(crustAttach, "Done", vTestOptions);
-                    }
+                    // Spawn_Single_Guy is also updated in a second pass since we clone sequences and this loop will miss that.
                 }
 
                 #endregion
@@ -444,7 +347,7 @@ namespace CrossGenV.Classes.Levels
 
                 else if (seqName == "Hench_Take_Damage")
                 {
-                    var sequenceObjects = exp.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects").Select(x => x.ResolveToEntry(le1File) as ExportEntry).ToList();
+                    var sequenceObjects = seq.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects").Select(x => x.ResolveToEntry(le1File) as ExportEntry).ToList();
                     var attachEvents = sequenceObjects.Where(x => x.ClassName == "SeqAct_AttachToEvent").ToList(); // We will route one of these to the other
                     var starting = sequenceObjects.First(x => x.ClassName == "SeqEvent_SequenceActivated");
                     //var ending = sequenceObjects.First(x => x.ClassName == "SeqEvent_FinishSequence");
@@ -461,52 +364,52 @@ namespace CrossGenV.Classes.Levels
                     // Time Trial
 
                     // Auto draw weapon (hookup)
-                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState"/*, 712, 2256*/);
+                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_SetActionState"/*, 712, 2256*/);
 
                     // RALLY
                     var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                    KismetHelper.AddObjectToSequence(rallyObj, exp);
+                    KismetHelper.AddObjectToSequence(rallyObj, seq);
                     KismetHelper.CreateOutputLink(startObj, "Out", rallyObj);
 
                     // Time to beat notification
-                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
-                    var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
-                    var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, seq.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                    var showMessage = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                    var scoreString = SequenceObjectCreator.CreateString(seq, "<Unset>", vTestOptions.cache);
                     KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
                     KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
-                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(seq, 2.5f, vTestOptions.cache));
                     KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
                     KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
-                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay", 72, 1736), vTestOptions);
+                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_Delay", 72, 1736), vTestOptions);
 
-                    PlayerQuitStreamingFix(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", -904, 3544), "Out");
+                    PlayerQuitStreamingFix(VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetBool", -904, 3544), "Out");
                 }
                 else if (seqName == "Check_Capping_Completion")
                 {
                     // Survival uses this as game mode?
                     // Capture...?
                     // Both use this same named item because why not
-                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState"/*, 584, 2200*/);
+                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_SetActionState"/*, 584, 2200*/);
 
                     // RALLY
                     var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                    KismetHelper.AddObjectToSequence(rallyObj, exp);
+                    KismetHelper.AddObjectToSequence(rallyObj, seq);
                     KismetHelper.CreateOutputLink(startObj, "Out", rallyObj); // RALLY
-                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay"/*, -152, 1768*/), vTestOptions);
+                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_Delay"/*, -152, 1768*/), vTestOptions);
 
 
                     // Time to beat notification
-                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
-                    var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
-                    var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, seq.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                    var showMessage = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                    var scoreString = SequenceObjectCreator.CreateString(seq, "<Unset>", vTestOptions.cache);
                     KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
                     KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
-                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(seq, 2.5f, vTestOptions.cache));
                     KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
                     KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
 
 
-                    var surDecayStart = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_DUISetTextStringRef", 3544, 2472);
+                    var surDecayStart = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_DUISetTextStringRef", 3544, 2472);
                     if (surDecayStart != null)
                     {
                         // It's survival
@@ -518,46 +421,46 @@ namespace CrossGenV.Classes.Levels
 
                         // Add signal to decay start
                         var surDecaySignal = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
-                        KismetHelper.AddObjectToSequence(surDecaySignal, exp);
+                        KismetHelper.AddObjectToSequence(surDecaySignal, seq);
                         surDecaySignal.WriteProperty(new NameProperty("CROSSGEN_START_SUR_HEALTHGATE_DECAY", "EventName"));
                         KismetHelper.CreateOutputLink(surDecayStart, "Out", surDecaySignal);
                     }
 
                     // Same sequence names, different positions.
-                    var playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", 144, 4136);
+                    var playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetBool", 144, 4136);
                     if (playerQuitSetBool == null)
                     {
-                        playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqAct_SetBool", -568, 3408);
+                        playerQuitSetBool = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqAct_SetBool", -568, 3408);
                     }
                     PlayerQuitStreamingFix(playerQuitSetBool, "Out");
                 }
                 else if (seqName == "Vampire_Mode_Handler")
                 {
                     // Hunt
-                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_SetActionState" /*, 1040, 2304*/);
+                    var startObj = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_SetActionState" /*, 1040, 2304*/);
 
                     // RALLY
                     var rallyObj = SequenceObjectCreator.CreateSequenceObject(le1File, "LEXSeqAct_SquadCommand", vTestOptions.cache);
-                    KismetHelper.AddObjectToSequence(rallyObj, exp);
+                    KismetHelper.AddObjectToSequence(rallyObj, seq);
                     KismetHelper.CreateOutputLink(startObj, "Out", rallyObj); // RALLY
 
                     // Score to beat notification
-                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
-                    var showMessage = SequenceObjectCreator.CreateSequenceObject(exp, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
-                    var scoreString = SequenceObjectCreator.CreateString(exp, "<Unset>", vTestOptions.cache);
+                    var topScore = VTestKismet.InstallVTestHelperSequenceNoInput(le1File, seq.InstancedFullPath, "HelperSequences.GetTopScore", vTestOptions);
+                    var showMessage = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ShowMessageEx", vTestOptions.cache);
+                    var scoreString = SequenceObjectCreator.CreateString(seq, "<Unset>", vTestOptions.cache);
                     KismetHelper.CreateVariableLink(topScore, "ScoreString", scoreString);
                     KismetHelper.CreateVariableLink(showMessage, "Message", scoreString);
-                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(exp, 2.5f, vTestOptions.cache));
+                    KismetHelper.CreateVariableLink(showMessage, "DisplayTime", SequenceObjectCreator.CreateFloat(seq, 2.5f, vTestOptions.cache));
                     KismetHelper.CreateOutputLink(topScore, "Out", showMessage);
                     KismetHelper.CreateOutputLink(rallyObj, "Out", topScore);
-                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "BioSeqAct_Delay", 304, 1952), vTestOptions);
+                    BIOA_PRC2_CC_DSG.FixSimMapTextureLoading(VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_Delay", 304, 1952), vTestOptions);
                 }
                 else if (seqName is "Play_Ahern_Quip_For_TA_Intro" or "Play_Ahern_Quip_For_SUR_Intro" or "Play_Ahern_Quip_For_VAM_Intro" or "Play_Ahern_Quip_For_CAH_Intro")
                 {
                     // Install music remote event at the end
-                    var setBool = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().First(x => x.ClassName == "SeqAct_SetBool" && x.GetProperty<ArrayProperty<StructProperty>>("OutputLinks")[0].GetProp<ArrayProperty<StructProperty>>("Links").Count == 0);
+                    var setBool = KismetHelper.GetSequenceObjects(seq).OfType<ExportEntry>().First(x => x.ClassName == "SeqAct_SetBool" && x.GetProperty<ArrayProperty<StructProperty>>("OutputLinks")[0].GetProp<ArrayProperty<StructProperty>>("Links").Count == 0);
                     var remoteEvent = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
-                    KismetHelper.AddObjectToSequence(remoteEvent, exp);
+                    KismetHelper.AddObjectToSequence(remoteEvent, seq);
                     KismetHelper.CreateOutputLink(setBool, "Out", remoteEvent);
                     remoteEvent.WriteProperty(new NameProperty("StartSimMusic", "EventName"));
                 }
@@ -565,15 +468,18 @@ namespace CrossGenV.Classes.Levels
                 // SURVIVAL RAMPING - Survival Thai, Cave, Lava (Crate doesn't have one, no point doing it for Ahern's)
                 else if (seqName is "SUR_Thai_Handler" or "SUR_Cave_Handler" or "SUR_Lava_Handler")
                 {
-                    var startTimerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(exp, "START_TIMER");
-                    var delay = KismetHelper.GetSequenceObjects(exp).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
+                    var startTimerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(seq, "START_TIMER");
+                    var delay = KismetHelper.GetSequenceObjects(seq).OfType<ExportEntry>().FirstOrDefault(x => x.ClassName == "BioSeqAct_Delay"); // First one is the one we care about
                     KismetHelper.InsertActionAfter(delay, "Finished", startTimerSignal, 0, "Out");
 
-                    VTestSurvival.InstallSurvivalRamping(startTimerSignal, exp, vTestOptions);
+                    VTestKismet.InstallVTestHelperSequenceNoInput(le1File, seq.InstancedFullPath, "HelperSequences.SurvivalHealthGateCurve", vTestOptions);
+
+                    // We install survival ramping in another pass as our loop on sequence objects will not detect the changes
+                    VTestSurvival.InstallSurvivalRamping(startTimerSignal, seq, vTestOptions);
                 }
                 else if (seqName is "CAH_Cave_Handler" or "CAH_Thai_Handler" or "CAH_Lava_Handler")
                 {
-                    VTestCapture.InstallCaptureRamping(exp, vTestOptions);
+                    VTestCapture.InstallCaptureRamping(seq, vTestOptions);
                 }
                 //else if (seqName == "Cap_And_Hold_Point")
                 //{
@@ -587,7 +493,7 @@ namespace CrossGenV.Classes.Levels
                 #region Black Screen Fade In instead of just turning off
                 if (seqName is "Vampire_Mode_Handler" or "Check_Capping_Completion" or "TA_V3_Gametype_Handler")
                 {
-                    var sequenceObjects = exp.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects").Select(x => x.ResolveToEntry(le1File) as ExportEntry).ToList();
+                    var sequenceObjects = seq.GetProperty<ArrayProperty<ObjectProperty>>("SequenceObjects").Select(x => x.ResolveToEntry(le1File) as ExportEntry).ToList();
                     var fadeFromBlacks = sequenceObjects.Where(x => x.ClassName == "BioSeqAct_BlackScreen").ToList(); // We will route one of these to the other
                     if (fadeFromBlacks.Count != 1)
                         Debugger.Break();
@@ -604,32 +510,173 @@ namespace CrossGenV.Classes.Levels
                 else if (seqName == "OL_Size")
                 {
                     // Fadein is handled by scoreboard DSG
-                    var compareBool = VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqCond_CompareBool", 8064, 3672);
+                    var compareBool = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqCond_CompareBool", 8064, 3672);
                     KismetHelper.SkipSequenceElement(compareBool, "True"); // Skip out to true
 
                     // Add signal to stop decay and restore healthgate
-                    if (VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Lava_Handler", true) ||
-                        VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Thai_Handler", true) ||
-                        VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Crate_Handler", true) ||
-                        VTestKismet.IsContainedWithinSequenceNamed(exp, "SUR_Cave_Handler", true))
+                    if (VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Lava_Handler", true) ||
+                        VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Thai_Handler", true) ||
+                        //VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Crate_Handler", true) ||
+                        VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Cave_Handler", true))
                     {
                         // It's survival, we should signal to restore the healthgate
                         var surRestoreHealthgateSignal = SequenceObjectCreator.CreateSequenceObject(le1File, "SeqAct_ActivateRemoteEvent", vTestOptions.cache);
-                        KismetHelper.AddObjectToSequence(surRestoreHealthgateSignal, exp);
+                        KismetHelper.AddObjectToSequence(surRestoreHealthgateSignal, seq);
                         surRestoreHealthgateSignal.WriteProperty(new NameProperty("CROSSGEN_RESTORE_SUR_HEALTHGATE", "EventName"));
-                        KismetHelper.CreateOutputLink(VTestKismet.FindSequenceObjectByClassAndPosition(exp, "SeqEvent_SequenceActivated"), "Out", surRestoreHealthgateSignal);
+                        KismetHelper.CreateOutputLink(VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqEvent_SequenceActivated"), "Out", surRestoreHealthgateSignal);
                     }
 
                 }
                 #endregion
+            }
 
-                else if (seqName == "SUR_Lava_Handler" || seqName == "SUR_Thai_Handler" || seqName == "SUR_Crate_Handler" || seqName == "SUR_Cave_Handler")
+            // PASS 2
+            foreach (var seq in le1File.Exports.Where(x => x.ClassName == "Sequence").ToList())
+            {
+                // Increase survival mode engagement by forcing the player to engage with enemies that charge the player.
+                // This prevents them from camping and getting free survival time
+                // This also covers CAH as it uses SUR_Respawner sequence.
+                // 11/14/2024 - Filter out VAM_Respawner
+                if (VTestKismet.GetSequenceName(seq) == "Spawn_Single_Guy" && VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Respawner")
+                                                                           && !VTestKismet.IsContainedWithinSequenceNamed(seq, "VAM_Respawner") && !VTestKismet.IsContainedWithinSequenceNamed(seq, "TA_Respawner"))
                 {
-                    VTestKismet.InstallVTestHelperSequenceNoInput(le1File, exp.InstancedFullPath, "HelperSequences.SurvivalHealthGateCurve", vTestOptions);
+                    Console.WriteLine($">> Spawn_Single_Guy SUR {seq.UIndex} - {VTestKismet.GetSequenceFullPath(seq)}");
+
+                    InstallRespawnerChanges(seq, vTestOptions);
                 }
             }
 
+
+            // 09/24/2024 - Add additional enemies logic
+            // 11/15/2024 - Must go after pass 2 so respawn cloning sets this up propperly
+            VTestAdditionalContent.AddExtraEnemyTypes(le1File, vTestOptions);
+
             FixSoftlockWhenRagdollOnGameEnd();
+        }
+
+        public static void InstallRespawnerChanges(ExportEntry seq, VTestOptions vTestOptions)
+        {
+            // seq.FileRef.Save();
+            var seqName = VTestKismet.GetSequenceFullPath(seq);
+            var berserkAi = EntryImporter.EnsureClassIsInFile(seq.FileRef, "CrossgenAI_MobPlayer", new RelinkerOptionsPackage() { Cache = vTestOptions.cache });
+
+            // Sequence objects + add to sequence
+            var crustAttach = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "BioSeqAct_AttachCrustEffect", 5920, 1672);
+            var currentPawn = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqVar_Object", 4536, 2016);
+            var death = VTestKismet.FindSequenceObjectByClassAndPosition(seq, "SeqEvent_Death", 1664, 2608);
+
+            // AI change
+            var delay = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "BioSeqAct_Delay", vTestOptions.cache);
+            var delayDuration = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_RandomFloat", vTestOptions.cache);
+            var aiChoiceRand = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_RandomFloat", vTestOptions.cache);
+            var aiChoiceComp = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqCond_CompareFloat", vTestOptions.cache);
+            var aiChoiceAssaultThreshold = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+            var changeAiCharge = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "BioSeqAct_ChangeAI", vTestOptions.cache);
+            var changeAiAssault = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "BioSeqAct_ChangeAI", vTestOptions.cache);
+            var chargeAiLog = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqAct_Log", vTestOptions.cache);
+            var assaultAiLog = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqAct_Log", vTestOptions.cache);
+
+            //11/14/2024 - Berserk mode
+            var berserkCheck = SequenceObjectCreator.CreateCompareBool(seq, SequenceObjectCreator.CreateScopeNamed(seq, "SeqVar_Bool", "BerserkMode", vTestOptions.cache), vTestOptions.cache);
+            var changeAiBerserk = SequenceObjectCreator.CreateChangeAI(seq, berserkAi, currentPawn, true, vTestOptions.cache);
+            var berserkGate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
+            var berserkSignal = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "GoBerserk", vTestOptions.cache);
+            var berserkStaggerDelay = SequenceObjectCreator.CreateRandomDelay(seq, 1, 4, vTestOptions.cache); // stagger a bit so it's not all at once
+            KismetHelper.CreateOutputLink(berserkSignal, "Out", berserkGate);
+            KismetHelper.CreateOutputLink(berserkGate, "Out", berserkGate, 2); // Close the gate
+            KismetHelper.CreateOutputLink(berserkGate, "Out", berserkStaggerDelay);
+            KismetHelper.CreateOutputLink(berserkStaggerDelay, "Finished", changeAiBerserk); // Go berserk
+            var goneBerserkLog = SequenceObjectCreator.CreateLog(seq, "Pawn has gone berserk", true, vTestOptions.cache);
+            KismetHelper.CreateOutputLink(changeAiBerserk, "Out", goneBerserkLog);
+
+            // Toxic and Phasic
+            var setWeaponAttributes = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "LEXSeqAct_SetWeaponAttribute", vTestOptions.cache);
+            var toxicFactor = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+            var phasicFactor = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+            //var addToxicFactor = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+            //var addPhasicFactor = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+            //var respawnCount = SequenceObjectCreator.CreateSequenceObject(seq.FileRef, "SeqVar_Float", vTestOptions.cache);
+
+            KismetHelper.AddObjectsToSequence(seq, false, delay, delayDuration, aiChoiceRand, aiChoiceComp, aiChoiceAssaultThreshold, changeAiCharge, changeAiAssault, assaultAiLog, chargeAiLog, setWeaponAttributes, toxicFactor, phasicFactor);
+
+            // Configure sequence object properties
+            delayDuration.WriteProperty(new FloatProperty(11, "Min"));
+            delayDuration.WriteProperty(new FloatProperty(20, "Max"));
+            KismetHelper.SetComment(toxicFactor, "Toxic to counter player regen");
+            KismetHelper.SetComment(phasicFactor, "Phasic to counter player powers");
+            toxicFactor.WriteProperty(new FloatProperty(1, "FloatValue"));
+            phasicFactor.WriteProperty(new FloatProperty(1, "FloatValue"));
+
+
+            // CHARGE AI BRANCH
+            var chargeAiClass = EntryImporter.EnsureClassIsInFile(seq.FileRef, "CrossgenAI_Charge", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
+            changeAiCharge.WriteProperty(new ObjectProperty(chargeAiClass, "ControllerClass"));
+            KismetHelper.SetComment(chargeAiLog, "CROSSGEN: Engaging player with CrossgenAI_Charge");
+
+            // ASSAULT AI BRANCH
+            var assaultAiClass = EntryImporter.EnsureClassIsInFile(seq.FileRef, "CrossgenAI_Assault", new RelinkerOptionsPackage() { PortExportsAsImportsWhenPossible = true, Cache = vTestOptions.cache });
+            changeAiAssault.WriteProperty(new ObjectProperty(assaultAiClass, "ControllerClass"));
+            KismetHelper.SetComment(assaultAiLog, "CROSSGEN: Relaxing player engagement with CrossgenAI_Assault");
+
+            // ASSAULT CHANCE - 1 in 4 chance
+            aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
+            aiChoiceRand.WriteProperty(new FloatProperty(4, "Max"));
+            aiChoiceAssaultThreshold.WriteProperty(new FloatProperty(3f, "FloatValue")); // The generated random number must be above this to change to assault. 
+
+            // Connect sequence objects - Stop AI change timer when pawn dies 10/26/2024
+            KismetHelper.CreateOutputLink(death, "Out", delay, 1); // Stop
+
+            // Connect sequence objects - Delay and branch pick
+            KismetHelper.CreateOutputLink(crustAttach, "Done", berserkCheck);
+            // -- Berserk
+            KismetHelper.CreateOutputLink(berserkCheck, "True", changeAiBerserk);
+            // -- Not berserk
+            KismetHelper.CreateOutputLink(berserkCheck, "False", delay);
+            KismetHelper.CreateVariableLink(delay, "Duration", delayDuration);
+            KismetHelper.CreateOutputLink(delay, "Finished", aiChoiceComp);
+            KismetHelper.CreateVariableLink(aiChoiceComp, "A", aiChoiceRand);
+            KismetHelper.CreateVariableLink(aiChoiceComp, "B", aiChoiceAssaultThreshold);
+
+            // Connect sequence objects - CHARGE BRANCH
+            KismetHelper.CreateOutputLink(aiChoiceComp, "A < B", changeAiCharge);
+            KismetHelper.CreateOutputLink(changeAiCharge, "Out", chargeAiLog);
+            KismetHelper.CreateVariableLink(changeAiCharge, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(chargeAiLog, "Object", currentPawn);
+
+            // Connect sequence objects - ASSAULT BRANCH
+            KismetHelper.CreateOutputLink(aiChoiceComp, "A >= B", changeAiAssault);
+            KismetHelper.CreateOutputLink(changeAiAssault, "Out", assaultAiLog);
+            KismetHelper.CreateVariableLink(changeAiAssault, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(assaultAiLog, "Object", currentPawn);
+
+            // Stop timer on any event in this sequence 
+            var events = KismetHelper.GetAllSequenceElements(seq).OfType<ExportEntry>().Where(x => x.IsA("SeqEvent")).ToList();
+            foreach (var seqEvent in events)
+            {
+                KismetHelper.CreateOutputLink(seqEvent, "Out", delay, 1); // Cancel the delay as spawn stopped or changed (or restarted)
+            }
+
+            // Connect sequence object - toxic / phasic (Needs gated to only activate later!)
+            KismetHelper.CreateOutputLink(crustAttach, "Done", setWeaponAttributes);
+            KismetHelper.CreateVariableLink(setWeaponAttributes, "Pawn", currentPawn);
+            KismetHelper.CreateVariableLink(setWeaponAttributes, "Toxic Factor", toxicFactor);
+            KismetHelper.CreateVariableLink(setWeaponAttributes, "Phasic Factor", phasicFactor);
+
+            // Uniquely name sequences to make it easier to tell what a sequence is actually doing...
+            if (VTestKismet.IsContainedWithinSequenceNamed(seq, "CAH_Respawner"))
+            {
+                seq.WriteProperty(new StrProperty("Spawn_Single_Guy_CAH", "ObjName"));
+            }
+            else if (VTestKismet.IsContainedWithinSequenceNamed(seq, "SUR_Respawner"))
+            {
+                seq.WriteProperty(new StrProperty("Spawn_Single_Guy_SUR", "ObjName"));
+            }
+            else
+            {
+                // VAM
+            }
+            VTestAdditionalContent.InstallTalentRamping(crustAttach, "Done", vTestOptions);
+            VTestAdditionalContent.InstallPowerRamping(crustAttach, "Done", vTestOptions);
         }
 
         private void PlayerQuitStreamingFix(ExportEntry hookup, string outlinkName)
