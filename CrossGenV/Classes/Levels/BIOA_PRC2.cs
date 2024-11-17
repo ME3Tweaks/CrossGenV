@@ -82,6 +82,74 @@ namespace CrossGenV.Classes.Levels
 
             // Inventory package, as we will be importing out of this package.
             VTestExperiment.InventoryPackage(le1File, vTestOptions);
+
+            // 11/15/2024 - Add signaling per second
+            var duiTimer = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.SequenceReference_12.Sequence_39.BioSeqAct_DUITimer_0");
+            var timerSeq = KismetHelper.GetParentSequence(duiTimer);
+            var timerSignal = SequenceObjectCreator.CreateActivateRemoteEvent(timerSeq, "TimerTick", vTestOptions.cache);
+            KismetHelper.InsertActionAfter(duiTimer, "Interval", timerSignal, 0, "Out");
+
+            AddVariableDebug();
+        }
+
+        private void AddVariableDebug()
+        {
+            var mainSeq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var console = SequenceObjectCreator.CreateSeqEventConsole(mainSeq, "CG_PrintVars", vTestOptions.cache);
+
+            List<(string varName, int plotIdx, EPlotElementTypes plotType)> varsToPrint = new();
+            varsToPrint.Add(("Music enabled", VTestPlot.CROSSGEN_PMB_INDEX_MUSIC_ENABLED, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL));
+            varsToPrint.Add(("V2 XP system enabled", VTestPlot.CROSSGEN_PMB_INDEX_FIRSTPLACE_EXPERIENCE_ENABLED, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL));
+            varsToPrint.Add(("Enemy count ramping", VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL));
+            varsToPrint.Add(("Talent ramping", VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL));
+            varsToPrint.Add(("Weapon mod ramping", VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL));
+
+            varsToPrint.Add(("Crossgen settings version", VTestPlot.CROSSGEN_PMI_INDEX_SETTINGSDEFAULTVERSION, EPlotElementTypes.BIO_SE_ELEMENT_TYPE_INT));
+
+
+            List<ExportEntry> previousLogs = new List<ExportEntry>();
+            previousLogs.Add(console);// First hookup
+            foreach (var varToPrint in varsToPrint)
+            {
+                ExportEntry attachPoint = null;
+                switch (varToPrint.plotType)
+                {
+                    case EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL:
+                        // There is no SeqVar_PlotBool or similar
+                        {
+                            var checkState = SequenceObjectCreator.CreatePMCheckState(mainSeq, varToPrint.plotIdx);
+                            foreach (var previousEntry in previousLogs)
+                            {
+                                KismetHelper.CreateOutputLink(previousEntry, "Out", checkState);
+                            }
+                            previousLogs.Clear();
+
+                            var logItemTrue = SequenceObjectCreator.CreateLog(mainSeq, $"{varToPrint.varName}: True", cache: vTestOptions.cache);
+                            var logItemFalse = SequenceObjectCreator.CreateLog(mainSeq, $"{varToPrint.varName}: False", cache: vTestOptions.cache);
+
+                            KismetHelper.CreateOutputLink(checkState, "True", logItemTrue);
+                            KismetHelper.CreateOutputLink(checkState, "False", logItemFalse);
+
+                            previousLogs.Add(logItemTrue);
+                            previousLogs.Add(logItemFalse);
+                        }
+                        break;
+                    case EPlotElementTypes.BIO_SE_ELEMENT_TYPE_INT:
+                        {
+                            var logItem = SequenceObjectCreator.CreateLog(mainSeq, $"{varToPrint.varName}: ", cache: vTestOptions.cache);
+                            foreach (var previousEntry in previousLogs)
+                            {
+                                KismetHelper.CreateOutputLink(previousEntry, "Out", logItem);
+                            }
+                            previousLogs.Clear();
+                            previousLogs.Add(logItem);
+
+                            KismetHelper.CreateVariableLink(logItem, "Int", SequenceObjectCreator.CreatePlotInt(mainSeq, varToPrint.plotIdx, vTestOptions.cache));
+                        }
+                        break;
+
+                }
+            }
         }
 
         private void DisableRunUntilMatchStart()
@@ -195,6 +263,12 @@ namespace CrossGenV.Classes.Levels
             var tCount = SequenceObjectCreator.CreateInt(seq, 0, vTestOptions.cache);
             tCount.WriteProperty(new NameProperty("CG_RAMP_TALENTS_COUNT", "VarName"));
 
+            // Survival: Berserk mode
+            var berserkMode = SequenceObjectCreator.CreateBool(seq, false, vTestOptions.cache);
+            KismetHelper.SetComment(berserkMode, "Berserk mode: Enemies spawn with MobPlayer AI to force distance closing immediately");
+            berserkMode.WriteProperty(new NameProperty("BerserkMode", "VarName"));
+
+
             var resetRamping = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "CG_RESET_RAMPING");
             var zeroFloat = SequenceObjectCreator.CreateFloat(seq, 0, vTestOptions.cache);
             var zeroInt = SequenceObjectCreator.CreateInt(seq, 0, vTestOptions.cache);
@@ -202,6 +276,7 @@ namespace CrossGenV.Classes.Levels
             entries.Add(SequenceObjectCreator.CreateSetFloat(seq, tChance, zeroFloat, vTestOptions.cache));
             entries.Add(SequenceObjectCreator.CreateSetInt(seq, wmCount, zeroInt, vTestOptions.cache));
             entries.Add(SequenceObjectCreator.CreateSetInt(seq, tCount, zeroInt, vTestOptions.cache));
+            entries.Add(SequenceObjectCreator.CreateSetBool(seq, berserkMode, SequenceObjectCreator.CreateBool(seq, false, vTestOptions.cache), vTestOptions.cache)); // Set berserk mode
 
             ExportEntry previous = resetRamping;
             foreach (var entry in entries)
