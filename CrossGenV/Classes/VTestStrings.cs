@@ -695,7 +695,7 @@ namespace CrossGenV.Classes
             new()
             {
                 StringID = 338451,
-                INT = "",
+                INT = "Simulator prototypes",
                 ESN = "Prototipos del simulador",
                 DEU = "",
                 FRA = "",
@@ -709,7 +709,7 @@ namespace CrossGenV.Classes
             new()
             {
                 StringID = 338452,
-                INT = "",
+                INT = "Enemies that were part of the original simulator design but were never finished will appear in the combat simulator.",
                 ESN = "Los enemigos que formaban parte del diseño original del simulador pero que nunca se terminaron aparecerán en el simulador de combate.",
                 DEU = "",
                 FRA = "",
