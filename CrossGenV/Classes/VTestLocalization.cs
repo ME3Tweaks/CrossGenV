@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.Unreal.BinaryConverters;
-using LegendaryExplorerCore.UnrealScript.Lexing;
 
 namespace CrossGenV.Classes
 {
@@ -37,7 +33,7 @@ namespace CrossGenV.Classes
                 var engTlkM = le1File.GetUExport(eng.Male);
                 var engTlkF = le1File.GetUExport(eng.Female);
 
-                // Add CS
+                // Add new languages.
                 foreach (var lang in newLangs)
                 {
                     if (!btfs.TlkSets.TryGetValue(lang, out _))
@@ -64,6 +60,13 @@ namespace CrossGenV.Classes
                 var plTlkF = le1File.GetUExport(plSet.Female);
                 ImportLocalization(le1File.FileNameNoExtension, "PL", plTlkM, plTlkF, options);
 
+                // 11/17/2024 - Hungarian Localization
+                var huSet = btfs.TlkSets["HU"];
+                var huTlkM = le1File.GetUExport(huSet.Male);
+                var huTlkF = le1File.GetUExport(huSet.Female);
+                ImportLocalization(le1File.FileNameNoExtension, "HU", huTlkM, huTlkF, options);
+
+
                 btfsExp.WriteBinary(btfs);
             }
 
@@ -82,6 +85,12 @@ namespace CrossGenV.Classes
             }
 
             var localizedPath = Path.Combine(VTestPaths.VTest_SourceDir, locPath, $"{packageName}.SFM");
+            if (!File.Exists(localizedPath))
+            {
+                // Try .pcc as it might be from LE1 version
+                localizedPath = Path.Combine(VTestPaths.VTest_SourceDir, locPath, $"{packageName}.pcc");
+            }
+
             if (File.Exists(localizedPath))
             {
                 var localizedPackage = MEPackageHandler.OpenMEPackage(localizedPath);
@@ -92,6 +101,11 @@ namespace CrossGenV.Classes
                     // Pull from PL instead
                     tlkMIFP = tlkMIFP[..^2];
                 }
+                if (localization == "HU")
+                {
+                    // Pull from INT instead (source was HU injected to INT)
+                    tlkMIFP = tlkMIFP[..^3]; // Remove _hu
+                }
 
                 var locTlkM = localizedPackage.FindExport(tlkMIFP);
                 CopyLocalization(locTlkM, destTlkM, options);
@@ -101,6 +115,12 @@ namespace CrossGenV.Classes
                 {
                     // Pull from PL instead (source doesn't have PLPC)
                     tlkFIFP = tlkFIFP[..^2];
+                }
+
+                if (localization == "HU")
+                {
+                    // Pull from INT instead (source was HU injected to INT)
+                    tlkFIFP = tlkFIFP[..^3]; // Remove _hu
                 }
 
                 var locTlkF = localizedPackage.FindExport(tlkFIFP);

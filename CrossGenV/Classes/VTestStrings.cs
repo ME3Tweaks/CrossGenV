@@ -781,19 +781,12 @@ namespace CrossGenV.Classes
 
         public static readonly List<LocalizedStringRef> CreditStrings =
         [
+            // Name of the DLC
             new() {
-                StringID = 0,
+                StringID = 0, 
+                CopyINT = true,
                 CreditType = ECreditType.HEADER,
                 INT = "Pinnacle Station",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Pinnacle Station",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -826,16 +819,8 @@ namespace CrossGenV.Classes
             new() {
                 StringID = 0,
                 CreditType = ECreditType.NAMES,
+                CopyINT = true,
                 INT = "Mgamerz\nSirCxyrtyx\nKinkojiro\nHenBagle",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Mgamerz\nSirCxyrtyx\nKinkojiro\nHenBagle",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -853,17 +838,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Audemus\nNaNuke\nDropTheSquid",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Audemus\nNaNuke\nDropTheSquid",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -881,17 +858,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Khaar Machinima",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Khaar Machinima",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -909,17 +878,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "d00telemental\nTheBenefactor",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "d00telemental\nTheBenefactor",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -937,20 +898,13 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Herobrine24",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Herobrine24",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.TITLE,
                 INT = "French localization",
                 ESN = "",
@@ -965,17 +919,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "karolie\nLoadingue\nDri",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "karolie\nLoadingue\nDri",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -993,17 +939,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Deep King\nnoxbalverine",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Deep King\nnoxbalverine",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -1021,17 +959,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Cole Phelps\nArcViolon\nBehar\nCoachEgar\nntr73\n parabashka\nAlabarna\n 13urn\nSPRiHOD",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Cole Phelps\nArcViolon\nBehar\nCoachEgar\nntr73\n parabashka\nAlabarna\n 13urn\nSPRiHOD",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -1049,17 +979,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "StargazerKyra",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "StargazerKyra",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -1077,17 +999,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "Gatzek\nSonashii\nTTTr95\nGimmyBreaker\nMichu351\nKwasek",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "Gatzek\nSonashii\nTTTr95\nGimmyBreaker\nMichu351\nKwasek",
-                CZE = "",
-                JP = ""
             },
             new() {
                 StringID = 0,
@@ -1105,17 +1019,9 @@ namespace CrossGenV.Classes
             },
             new() {
                 StringID = 0,
+                CopyINT = true,
                 CreditType = ECreditType.NAMES,
                 INT = "HJ",
-                ESN = "",
-                DEU = "",
-                FRA = "",
-                ITA = "",
-                RUS = "",
-                POL = "",
-                HUN = "",
-                CZE = "",
-                JP = ""
             }
         ];
     }

@@ -38,6 +38,11 @@ namespace CrossGenV.Classes
         // Only set on credit strings.
         public ECreditType? CreditType { get; set; }
 
+        /// <summary>
+        /// If this string is not localized and should just use INT
+        /// </summary>
+        public bool CopyINT { get; set; }
+
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
@@ -45,15 +50,19 @@ namespace CrossGenV.Classes
             sb.AppendLine("new() {");
             sb.AppendLine($"\tStringID = {StringID},");
             sb.AppendLine($"\tINT = \"{INT}\",");
-            sb.AppendLine($"\tESN = \"{ESN}\",");
-            sb.AppendLine($"\tDEU = \"{DEU}\",");
-            sb.AppendLine($"\tFRA = \"{FRA}\",");
-            sb.AppendLine($"\tITA = \"{ITA}\",");
-            sb.AppendLine($"\tRUS = \"{RUS}\",");
-            sb.AppendLine($"\tPOL = \"{POL}\",");
-            sb.AppendLine($"\tHUN = \"{HUN}\",");
-            sb.AppendLine($"\tCZE = \"{CZE}\",");
-            sb.AppendLine($"\tJP = \"{JP}\"");
+            if (!CopyINT)
+            {
+                sb.AppendLine($"\tESN = \"{ESN}\",");
+                sb.AppendLine($"\tDEU = \"{DEU}\",");
+                sb.AppendLine($"\tFRA = \"{FRA}\",");
+                sb.AppendLine($"\tITA = \"{ITA}\",");
+                sb.AppendLine($"\tRUS = \"{RUS}\",");
+                sb.AppendLine($"\tPOL = \"{POL}\",");
+                sb.AppendLine($"\tHUN = \"{HUN}\",");
+                sb.AppendLine($"\tCZE = \"{CZE}\",");
+                sb.AppendLine($"\tJP = \"{JP}\"");
+            }
+
             sb.Append("}");
 
             return sb.ToString();
@@ -106,6 +115,9 @@ namespace CrossGenV.Classes
 
         public string GetString(string lang)
         {
+            if (CopyINT)
+                return INT;
+
             switch (lang)
             {
                 case "ES":
@@ -438,7 +450,7 @@ namespace CrossGenV.Classes
         {
             var basePath = Path.Combine(VTestPaths.VTest_FinalDestDir, "DLC_MOD_Vegas_GlobalTlk");
             // "" = English. It has no suffix
-            var langsToUpdate = new[] { "", "RA", "RU", "DE", "FR", "IT", "ES", "JA", "PL", "PLPC" };
+            var langsToUpdate = new[] { "", "RA", "RU", "DE", "FR", "IT", "ES", "JA", "PL", "PLPC", "HU" };
             foreach (var lang in langsToUpdate)
             {
                 var intermedBasePath = basePath;

@@ -180,6 +180,10 @@ namespace CrossGenV.Classes
                 vTestOptions.assetCachePackage = MEPackageHandler.OpenMEPackage(assetCachePath, forceLoadFromDisk: true);
             }
 
+            //TLKShiftPackage(vTestOptions.vTestHelperPackage);
+
+            //return;
+
             vTestOptions.SetStatusText("Running VTest");
 
             // Uncomment to not do the main chunk of work
@@ -439,6 +443,21 @@ namespace CrossGenV.Classes
                     persistentUDK.Exports.First(exp => exp.ClassName == "WorldInfo").WriteProperty(streamingLevelsProp);
                     persistentUDK.Save();
 
+                }
+            }
+        }
+
+        private static void TLKShiftPackage(IMEPackage package)
+        {
+            foreach (var exp in package.Exports)
+            {
+                var props = exp.GetProperties();
+                foreach (var prop in props)
+                {
+                    if (prop is StringRefProperty srp)
+                    {
+                        Debug.WriteLine($"{package.FileNameNoExtension} {exp.InstancedFullPath} {srp.Value}");
+                    }
                 }
             }
         }
