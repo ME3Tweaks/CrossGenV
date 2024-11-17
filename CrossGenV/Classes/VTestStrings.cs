@@ -1088,6 +1088,34 @@ namespace CrossGenV.Classes
                 HUN = "Gatzek\nSonashii\nTTTr95\nGimmyBreaker\nMichu351\nKwasek",
                 CZE = "",
                 JP = ""
+            },
+            new() {
+                StringID = 0,
+                CreditType = ECreditType.TITLE,
+                INT = "Hungarian localization",
+                ESN = "",
+                DEU = "",
+                FRA = "",
+                ITA = "",
+                RUS = "",
+                POL = "",
+                HUN = "",
+                CZE = "",
+                JP = ""
+            },
+            new() {
+                StringID = 0,
+                CreditType = ECreditType.NAMES,
+                INT = "HJ",
+                ESN = "",
+                DEU = "",
+                FRA = "",
+                ITA = "",
+                RUS = "",
+                POL = "",
+                HUN = "",
+                CZE = "",
+                JP = ""
             }
         ];
     }
