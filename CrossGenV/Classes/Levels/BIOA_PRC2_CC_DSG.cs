@@ -288,7 +288,12 @@ namespace CrossGenV.Classes.Levels
             KismetHelper.CreateOutputLink(startDelay, "Finished", remoteEventStreamIn); // Initial 1 frame delay to event signal
             KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInTextures); // Event Signal to StreamInTextures
             KismetHelper.CreateOutputLink(remoteEventStreamIn, "Out", streamInDelay); // Event Signal to Loading Screen Delay
-            KismetHelper.CreateOutputLink(streamInDelay, "Finished", stopLoadingMovie); // Loading Screen Delay to Stop Loading Movie
+
+            // 11/15/2024 - Add block for texture
+            var blockForTextureStreaming = SequenceObjectCreator.CreateBlockForTextureStreaming(sequence, vTestOptions.cache);
+            KismetHelper.CreateOutputLink(streamInDelay, "Finished", blockForTextureStreaming); // Loading Screen Delay to block for any remaining streaming
+            KismetHelper.CreateOutputLink(blockForTextureStreaming, "Finished", stopLoadingMovie); // Block to Stop Loading Movie
+
         }
 
         public void SharedPostPortingCorrection()
