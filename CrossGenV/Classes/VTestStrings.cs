@@ -16,7 +16,7 @@ namespace CrossGenV.Classes
                 ITA = "Scaricamento Dati",
                 RUS = "Загрузка данных",
                 POL = "Pobieranie danych",
-                HUN = "",
+                HUN = "Adat letöltése",
                 CZE = "",
                 JP = ""
             },
@@ -30,7 +30,7 @@ namespace CrossGenV.Classes
                 ITA = "Impostazioni Simulatore",
                 RUS = "Настройки симулятора",
                 POL = "Ustawienia symulatora",
-                HUN = "",
+                HUN = "Szimulátor beállítások",
                 CZE = "",
                 JP = ""
             },
@@ -44,7 +44,7 @@ namespace CrossGenV.Classes
                 ITA = "Apri",
                 RUS = "Открыть",
                 POL = "Otwórz",
-                HUN = "",
+                HUN = "Kinyitás",
                 CZE = "",
                 JP = ""
             },
@@ -58,7 +58,7 @@ namespace CrossGenV.Classes
                 ITA = "ABILITATO",
                 RUS = "АКТИВИРОВАНО",
                 POL = "WŁĄCZONE",
-                HUN = "",
+                HUN = "ENGEDÉLYEZVE",
                 CZE = "",
                 JP = ""
             },
@@ -72,7 +72,7 @@ namespace CrossGenV.Classes
                 ITA = "DISABILITATO",
                 RUS = "ДЕАКТИВИРОВАНО",
                 POL = "WYŁĄCZONE",
-                HUN = "",
+                HUN = "LETILTVA",
                 CZE = "",
                 JP = ""
             },
@@ -86,7 +86,7 @@ namespace CrossGenV.Classes
                 ITA = "Abilita",
                 RUS = "Активировано",
                 POL = "Włącz",
-                HUN = "",
+                HUN = "Engedélyezés",
                 CZE = "",
                 JP = ""
             },
@@ -100,7 +100,7 @@ namespace CrossGenV.Classes
                 ITA = "Disabilita",
                 RUS = "Деактивировано",
                 POL = "Wyłącz",
-                HUN = "",
+                HUN = "Letiltás",
                 CZE = "",
                 JP = ""
             },
@@ -114,7 +114,7 @@ namespace CrossGenV.Classes
                 ITA = "Musica",
                 RUS = "Музыка",
                 POL = "Muzyka",
-                HUN = "",
+                HUN = "Zene",
                 CZE = "",
                 JP = ""
             },
@@ -128,7 +128,7 @@ namespace CrossGenV.Classes
                 ITA = "Tracce misucali appropriate saranno aggiunte a ciascuna mappa del simulatore, e cambieranno con l'aumentare dell'intensità.",
                 RUS = "К каждой карте симулятора будут добавлены подходящие музыкальные треки, которые будут меняться по мере нарастания напряжения.",
                 POL = "Do każdej mapy symulatora zostaną dodane odpowiednie ścieżki muzyczne, które będą się zmieniać w miarę wzrostu intensywności rozgrywki.",
-                HUN = "",
+                HUN = "Minden szimulátor térképnél odaillő zenék lesznek, amelyek az intenzitás növekedésével változnak.",
                 CZE = "",
                 JP = ""
             },
@@ -142,7 +142,7 @@ namespace CrossGenV.Classes
                 ITA = "Come nel DLC originale, non sarà riprodotta alcuna misuca all'interno del simulatore.",
                 RUS = "Как и в оригинальном DLC, во время симуляция не будет никакой музыки.",
                 POL = "Podobnie jak w oryginalnym DLC, w symulatorze nie będzie odtwarzana żadna muzyka.",
-                HUN = "",
+                HUN = "Az eredeti DLC-hez hasonlóan a szimulátorban nem szól majd zene.",
                 CZE = "",
                 JP = ""
             },
@@ -156,7 +156,7 @@ namespace CrossGenV.Classes
                 ITA = "XP al 1o Posto",
                 RUS = "ОП за 1-е место",
                 POL = "PD za 1. miejsce",
-                HUN = "",
+                HUN = "XP az első helyért",
                 CZE = "",
                 JP = ""
             },
@@ -170,7 +170,7 @@ namespace CrossGenV.Classes
                 ITA = "Riceverai esperienza dopo aver raggiunto il 1o posto in una mappa del simulatore. Riceverai 1/3 degli XP totali di un livello appena raggiungerai il 1o posto per la prima volta in ciascuna mappa del simulatore. XP aggiuntivi ti saranno assegnati se batterai un tuo record, o al completamento di uno scenario speciale.",
                 RUS = "Вы получаете опыт за 1-е место на карте симуляции. За 1-е место на каждой карте симулятора начисляется треть ОП, необходимых для повышения уровня. Дополнительные ОП будут начисляться за побитый рекорд, а также за прохождение особого сценария.",
                 POL = "Doświadczenie zdobywasz, gdy zajmiesz 1. miejsce na mapie symulatora. Za pierwszym razem, gdy zdobędziesz 1. miejsce na każdej mapie symulatora, otrzymasz 1/3 PD. Dodatkowe PD zdobywa się za pobicie swojego rekordu i ukończenie specjalnego scenariusza.",
-                HUN = "",
+                HUN = "Tapasztalati pontot kapsz, ha 1. helyezést érsz el egy szimulátor térképen. Egy szint 1/3-nyi XP-t kapsz, ha először érsz el 1. helyezést minden egyes szimulátor térképen. További XP-t kapsz a rekordod megdöntéséért és a speciális forgatókönyv teljesítéséért.",
                 CZE = "",
                 JP = ""
             },
@@ -184,7 +184,7 @@ namespace CrossGenV.Classes
                 ITA = "Non riceverai alcuna esperienza al completamento di una mappa del simulatore.",
                 RUS = "Опыт не будет начисляться за прохождение карт симулятора.",
                 POL = "Po ukończeniu mapy symulatora nie zostanie przyznane żadne doświadczenie.",
-                HUN = "",
+                HUN = "A szimulátor térkép teljesítésével nem szerezhető tapasztalat.",
                 CZE = "",
                 JP = ""
             },
@@ -198,7 +198,7 @@ namespace CrossGenV.Classes
                 ITA = "Sopravvivenza: Aumento del Numero di Nemici",
                 RUS = "Рост Сложности: Число Противников",
                 POL = "Przetrwanie: Liczba wrogów wzrasta",
-                HUN = "",
+                HUN = "Nehézségi fokozat: Ellenség számának növelése",
                 CZE = "",
                 JP = ""
             },
@@ -212,7 +212,7 @@ namespace CrossGenV.Classes
                 ITA = "Aumento Nemici",
                 RUS = "Больше противника",
                 POL = "Wzrost liczby wrogów",
-                HUN = "",
+                HUN = "Ellenség növelése",
                 CZE = "",
                 JP = ""
             },
@@ -226,7 +226,7 @@ namespace CrossGenV.Classes
                 ITA = "Il numero di amici generati è fisso al numero di default, come da versione originale.",
                 RUS = "Количество противника будет фиксированным, как и в оригинальной версии.",
                 POL = "Liczba pojawiających się wrogów zostanie ustalona na poziomie domyślnym, oryginalnym.",
-                HUN = "",
+                HUN = "A megjelenő ellenségek száma az alapértelmezett, eredeti verzióhoz lesz igazítva.",
                 CZE = "",
                 JP = ""
             },
@@ -240,7 +240,7 @@ namespace CrossGenV.Classes
                 ITA = "Il numero di nemici i nmodalità sopravvivenza aumenterà nel tempo, creando una curva di difficoltà crescente col tempo.",
                 RUS = "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии число противников будет расти, создавая всё более захватывающий сценарий.",
                 POL = "Liczba wrogów w trybie przetrwania będzie się z czasem zwiększać, co spowoduje wzrost poziomu trudności rozgrywki.",
-                HUN = "",
+                HUN = "CSAK TÚLÉLÉS/ELFOGLALÁS\n\nA küldetés előrehaladtával az ellenségek száma növekszik, ami jobb forgatókönyvet eredményez.",
                 CZE = "",
                 JP = ""
             },
@@ -254,7 +254,7 @@ namespace CrossGenV.Classes
                 ITA = "Aumento Difficoltà: Talenti",
                 RUS = "Рост Сложности: Умения",
                 POL = "Zwiększ poziom trudności: Talenty",
-                HUN = "",
+                HUN = "Nehézségi fokozat: Képességek",
                 CZE = "",
                 JP = ""
             },
@@ -268,7 +268,7 @@ namespace CrossGenV.Classes
                 ITA = "Mano a mano che la missione progredisce, i nemici guadagneranno talenti e poteri che li renderanno più letali.",
                 RUS = "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии противники будут получать боевые умения, становясь все более смертельными.",
                 POL = "W miarę postępów misji wrogowie będą zdobywać talenty i moce, które uczynią ich bardziej zabójczymi.",
-                HUN = "",
+                HUN = "CSAK TÚLÉLÉS/ELFOGLALÁS\n\nA küldetés előrehaladtával az ellenségek olyan tehetségekre és képességekre tesznek szert, amelyek halálosabbá teszik őket.",
                 CZE = "",
                 JP = ""
             },
@@ -282,7 +282,7 @@ namespace CrossGenV.Classes
                 ITA = "I nemici non guadagneranno talenti col progredire delle missioni del simulatore. Questo è il valore predefinito.",
                 RUS = "Противник не будет получать таланты по мере прохождения миссий симуляции. Опция по умолчанию.",
                 POL = "Wrogowie nie będą zdobywać talentów w miarę postępu misji w symulatorze. Jest to wartość domyślna.",
-                HUN = "",
+                HUN = "Az ellenségek nem szereznek tehetségeket és képességeket a szimulátor küldetések előrehaladtával. Ez az alapértelmezett érték.",
                 CZE = "",
                 JP = ""
             },
@@ -296,7 +296,7 @@ namespace CrossGenV.Classes
                 ITA = "Aumento Difficoltà: Armi",
                 RUS = "Рост Сложности: Модификации оружия",
                 POL = "Zwiększ poziom trudności: Bronie",
-                HUN = "",
+                HUN = "Nehézségi fokozat: Fegyver módosítások",
                 CZE = "",
                 JP = ""
             },
@@ -310,7 +310,7 @@ namespace CrossGenV.Classes
                 ITA = "Mano a mano che la missione progredisce, i nemimci guadagneranno mod per le loro armi che le renderanno più letali.",
                 RUS = "ТОЛЬКО ВЫЖИВАНИЕ/ЗАХВАТ\n\nПо мере прогресса миссии противники будут получать модификации оружия, становясь все более смертельными.",
                 POL = "W miarę postępów misji przeciwnicy będą zdobywać ulepszenia broni, które uczynią ją bardziej zabójczą.",
-                HUN = "",
+                HUN = "CSAK TÚLÉLÉS/ELFOGLALÁS\n\nA küldetés előrehaladtával az ellenségek fegyver módosításokat kapnak, amelyek halálosabbá teszik őket.",
                 CZE = "",
                 JP = ""
             },
@@ -324,7 +324,7 @@ namespace CrossGenV.Classes
                 ITA = "I nemici non guadagneranno mod per le loro armicol progredire delle missioni del simulatore. Questo è il valore predefinito.",
                 RUS = "Противник не будет получать модификации оружия по мере прохождения. Опция по умолчанию.",
                 POL = "Wrogowie nie będą zdobywać modyfikacji broni w miarę postępu misji w symulatorze. Jest to wartość domyślna.",
-                HUN = "",
+                HUN = "Az ellenségek nem kapnak fegyver módosításokat a szimulátor küldetések előrehaladtával. Ez az alapértelmezett érték.",
                 CZE = "",
                 JP = ""
             },
@@ -338,7 +338,7 @@ namespace CrossGenV.Classes
                 ITA = "Simulatore: Selettore Nemici",
                 RUS = "Симулятор: Селектор противника",
                 POL = "Symulator: Wybór wroga",
-                HUN = "",
+                HUN = "Szimulátor: Ellenség kiválasztó",
                 CZE = "",
                 JP = ""
             },
@@ -352,7 +352,7 @@ namespace CrossGenV.Classes
                 ITA = "Seleziona il tipo di nemici",
                 RUS = "Выберите тип противника",
                 POL = "Wybierz typ wroga",
-                HUN = "",
+                HUN = "Ellenség típus kiválasztása",
                 CZE = "",
                 JP = ""
             },
@@ -366,7 +366,7 @@ namespace CrossGenV.Classes
                 ITA = "Questo set di nemici è al momento disabilitato.",
                 RUS = "Этот сет противников не активирован.",
                 POL = "Ten zestaw wrogów nie jest obecnie włączony.",
-                HUN = "",
+                HUN = "Az ellenségeknek ez a csoportja jelenleg nincs engedélyezve.",
                 CZE = "",
                 JP = ""
             },
@@ -380,7 +380,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici Asari sostituiranno i nemici normali nel simulatore di compabbimento.",
                 RUS = "Противники-азари заменят обычных в боевой симуляции.",
                 POL = "W symulatorze walki normalnych wrogów zastąpią asari.",
-                HUN = "",
+                HUN = "Aszári ellenségek a normál ellenségek helyett a harci szimulátorban.",
                 CZE = "",
                 JP = ""
             },
@@ -394,7 +394,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici Salarian sostituiranno i nemici normali nel simulatore di compabbimento.",
                 RUS = "Противники-саларианцы заменят обычных в боевой симуляции.",
                 POL = "W symulatorze walki normalnych wrogów zastąpią salarianie.",
-                HUN = "",
+                HUN = "Szalári ellenségek a normál ellenségek helyett a harci szimulátorban.",
                 CZE = "",
                 JP = ""
             },
@@ -408,7 +408,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici Batarian sostituiranno i nemici normali nel simulatore di compabbimento.",
                 RUS = "Противники-батарианцы заменят обычных в боевой симуляции.",
                 POL = "W symulatorze walki normalnych wrogów zastąpią batarianie.",
-                HUN = "",
+                HUN = "Batári ellenségek a normál ellenségek helyett a harci szimulátorban.",
                 CZE = "",
                 JP = ""
             },
@@ -422,7 +422,7 @@ namespace CrossGenV.Classes
                 ITA = "Mostri",
                 RUS = "Монстры",
                 POL = "Potwory",
-                HUN = "",
+                HUN = "Szörnyek",
                 CZE = "",
                 JP = ""
             },
@@ -436,7 +436,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici mostruosi sostituiranno i nemici normali nel simulatore di compabbimento.",
                 RUS = "Монструозные напарники заменят обычных в боевой симуляции.",
                 POL = "W symulatorze walki normalnych wrogów zastąpią potwory.",
-                HUN = "",
+                HUN = "A harci szimulátorban szörny ellenségek helyettesítik a normál ellenségeket.",
                 CZE = "",
                 JP = ""
             },
@@ -450,7 +450,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici Misti",
                 RUS = "Смешанные",
                 POL = "Mieszani wrogowie",
-                HUN = "",
+                HUN = "Vegyes ellenségek",
                 CZE = "",
                 JP = ""
             },
@@ -464,7 +464,7 @@ namespace CrossGenV.Classes
                 ITA = "Nemici di tutte le fazioni sostituiranno i nemici normali nel simulatore di compabbimento.",
                 RUS = "Противнпки из всех доступных фракций появятся в боевой симуляции.",
                 POL = "W symulatorze walki pojawią się przeciwnicy ze wszystkich dostępnych frakcji.",
-                HUN = "",
+                HUN = "Az összes elérhető frakció ellenségei megjelennek a harci szimulátorban.",
                 CZE = "",
                 JP = ""
             },
@@ -478,7 +478,7 @@ namespace CrossGenV.Classes
                 ITA = "Tutte le impostazioni: Vanilla",
                 RUS = "Все настройки: По умолчанию",
                 POL = "Wszystkie ustawienia: vanilla",
-                HUN = "",
+                HUN = "Minden beállítás: Vanilla",
                 CZE = "",
                 JP = ""
             },
@@ -492,7 +492,7 @@ namespace CrossGenV.Classes
                 ITA = "Tutte le impostazioni",
                 RUS = "Все настройки",
                 POL = "Wszystkie ustawienia",
-                HUN = "",
+                HUN = "Minden beállítás",
                 CZE = "",
                 JP = ""
             },
@@ -506,7 +506,7 @@ namespace CrossGenV.Classes
                 ITA = "Tutte le impostazioni del simulatore saranno impostate al loro valore vanilla originale di Mass Effect 1. Per i puristi di Stazione Pinnacle,",
                 RUS = "Все настройки будут переключены на опции из оригинала. Для сторонников чистой «Станции „Вершина“».",
                 POL = "Wszystkie ustawienia symulatora zostaną ustawione na oryginalną wartość Mass Effect 1. Dla purystów Pinnacle Station.",
-                HUN = "",
+                HUN = "Minden szimulátorbeállítás a vanilla, eredeti Mass Effect 1 értékre lesz állítva. A Pinnacle Station puristáknak.",
                 CZE = "",
                 JP = ""
             },
@@ -520,7 +520,7 @@ namespace CrossGenV.Classes
                 ITA = "Tutte le impostazioni: Consigliate",
                 RUS = "Все настройки: Рекомендованные",
                 POL = "Wszystkie ustawienia: Zalecane",
-                HUN = "",
+                HUN = "Minden beállítás: Ajánlott",
                 CZE = "",
                 JP = ""
             },
@@ -534,7 +534,7 @@ namespace CrossGenV.Classes
                 ITA = "Tutte le impostazioni del simulatore saranno impostate al loro valore consigliato per questa remaster.",
                 RUS = "Все настройки будут переключены на опции, рекомендованные для этого ремастера.",
                 POL = "Wszystkie ustawienia symulatora zostaną przywrócone do stanu zalecanego dla tego moda.",
-                HUN = "",
+                HUN = "A szimulátor minden beállítása az ajánlott állapotba lesz állítva ehhez a remasterhez.",
                 CZE = "",
                 JP = ""
             },
@@ -548,7 +548,7 @@ namespace CrossGenV.Classes
                 ITA = "Selezionato",
                 RUS = "Выбрано",
                 POL = "Wybrane",
-                HUN = "",
+                HUN = "Kiválasztva",
                 CZE = "",
                 JP = ""
             },
@@ -562,7 +562,7 @@ namespace CrossGenV.Classes
                 ITA = "Non selezionato",
                 RUS = "Не выбрано",
                 POL = "Nie wybrane",
-                HUN = "",
+                HUN = "Nincs kiválasztva",
                 CZE = "",
                 JP = ""
             },
@@ -576,7 +576,7 @@ namespace CrossGenV.Classes
                 ITA = "I tipi di nemici non saranno cambiati rispetto ai predefiniti.",
                 RUS = "Тип противника не изменен.",
                 POL = "Typy wrogów nie ulegną zmianie w stosunku do ustawień domyślnych.",
-                HUN = "",
+                HUN = "Az ellenség típusok nem változnak az alapértelmezettekhez képest.",
                 CZE = "",
                 JP = ""
             },
@@ -590,7 +590,7 @@ namespace CrossGenV.Classes
                 ITA = "I tipi di nemici sono stati cambiati rispetto ai predefiniti.",
                 RUS = "Тип противника был изменен",
                 POL = "Zmieniono domyślne typy wrogów.",
-                HUN = "",
+                HUN = "Az ellenség típusok megváltoztak az alapértelmezettekhez képest.",
                 CZE = "",
                 JP = ""
             },
@@ -604,7 +604,7 @@ namespace CrossGenV.Classes
                 ITA = "Predefiniti",
                 RUS = "По умолчанию",
                 POL = "Domyślne",
-                HUN = "",
+                HUN = "Alapértelmezett",
                 CZE = "",
                 JP = ""
             },
@@ -618,7 +618,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Саларианский Наемник",
                 POL = "",
-                HUN = "",
+                HUN = "Szalári zsoldos",
                 CZE = "",
                 JP = ""
             },
@@ -632,7 +632,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Саларианский Снайпер",
                 POL = "",
-                HUN = "",
+                HUN = "Szalári mesterlövész",
                 CZE = "",
                 JP = ""
             },
@@ -646,7 +646,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Саларианский Стражник",
                 POL = "",
-                HUN = "",
+                HUN = "Szalári őr",
                 CZE = "",
                 JP = ""
             },
@@ -660,7 +660,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Саларианский Штурмовик",
                 POL = "",
-                HUN = "",
+                HUN = "Szalári élharcos",
                 CZE = "",
                 JP = ""
             },
@@ -674,7 +674,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Батарианский Рейдер",
                 POL = "",
-                HUN = "",
+                HUN = "Batári támadó",
                 CZE = "",
                 JP = ""
             },
@@ -688,7 +688,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Рекорд:",
                 POL = "",
-                HUN = "",
+                HUN = "Legjobb eredmény: %1",
                 CZE = "",
                 JP = ""
             },
@@ -730,7 +730,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "PLACEHOLDER",
                 CZE = "",
                 JP = ""
             },
@@ -744,7 +744,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Batári támadó",
                 CZE = "",
                 JP = ""
             },
@@ -758,7 +758,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Szimulátor prototípusok",
                 CZE = "",
                 JP = ""
             },
@@ -772,7 +772,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Megjelennek a harci szimulátorban azok az ellenségek, amelyek a szimulátor eredeti tervének részei voltak, de soha nem fejezték be.",
                 CZE = "",
                 JP = ""
             }
@@ -791,7 +791,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Pinnacle Station",
                 CZE = "",
                 JP = ""
             },
@@ -805,7 +805,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Az eredeti DLC-t a Demiurge Studio fejlesztette\nMegújította a ME3Tweaks Development Team",
                 CZE = "",
                 JP = ""
             },
@@ -819,7 +819,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "ME3Tweaks Fejlesztői csapat",
                 CZE = "",
                 JP = ""
             },
@@ -833,7 +833,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Mgamerz\nSirCxyrtyx\nKinkojiro\nHenBagle",
                 CZE = "",
                 JP = ""
             },
@@ -847,7 +847,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Asset közreműködők",
                 CZE = "",
                 JP = ""
             },
@@ -861,7 +861,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Audemus\nNaNuke\nDropTheSquid",
                 CZE = "",
                 JP = ""
             },
@@ -875,7 +875,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Tesztelés",
                 CZE = "",
                 JP = ""
             },
@@ -889,7 +889,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Khaar Machinma",
                 CZE = "",
                 JP = ""
             },
@@ -903,7 +903,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Technikai támogatás",
                 CZE = "",
                 JP = ""
             },
@@ -917,7 +917,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "d00telemental\nTheBenefactor",
                 CZE = "",
                 JP = ""
             },
@@ -931,7 +931,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Német fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -945,7 +945,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Herobrine24",
                 CZE = "",
                 JP = ""
             },
@@ -959,7 +959,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Francia fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -973,7 +973,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "karolie\nLoadingue\nDri",
                 CZE = "",
                 JP = ""
             },
@@ -987,7 +987,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Spanyol fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -1001,7 +1001,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Deep King\nnoxbalverine",
                 CZE = "",
                 JP = ""
             },
@@ -1015,7 +1015,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Orosz fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -1029,7 +1029,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Cole Phelps\nArcViolon\nBehar\nCoachEgar\nntr73\n parabashka\nAlabarna\n 13urn\nSPRiHOD",
                 CZE = "",
                 JP = ""
             },
@@ -1043,7 +1043,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Olasz fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -1057,7 +1057,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "StargazerKyra",
                 CZE = "",
                 JP = ""
             },
@@ -1071,7 +1071,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Lengyel fordítás",
                 CZE = "",
                 JP = ""
             },
@@ -1085,7 +1085,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Gatzek\nSonashii\nTTTr95\nGimmyBreaker\nMichu351\nKwasek",
                 CZE = "",
                 JP = ""
             }
