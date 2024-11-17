@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using LegendaryExplorerCore.Gammtek.Extensions;
 using LegendaryExplorerCore.Helpers;
-using LegendaryExplorerCore.Localization;
 using LegendaryExplorerCore.Packages;
 using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Pathing;
@@ -17,7 +16,7 @@ using LegendaryExplorerCore.Unreal.ObjectInfo;
 
 namespace CrossGenV.Classes
 {
-    public class VTestExperiment
+    public class VTestPipeline
     {
 
         #region Vars
