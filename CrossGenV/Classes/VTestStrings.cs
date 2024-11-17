@@ -882,14 +882,14 @@ namespace CrossGenV.Classes
             new() {
                 StringID = 0,
                 CreditType = ECreditType.NAMES,
-                INT = "Khaar Machinma",
+                INT = "Khaar Machinima",
                 ESN = "",
                 DEU = "",
                 FRA = "",
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "Khaar Machinma",
+                HUN = "Khaar Machinima",
                 CZE = "",
                 JP = ""
             },
