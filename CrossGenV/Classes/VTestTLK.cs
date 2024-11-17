@@ -345,7 +345,7 @@ namespace CrossGenV.Classes
 
             // Original DLC credits.
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry("; The following is from the original DLC"));
-            creditsSegment.Entries.Add(new DuplicatingIni.IniEntry($"ScrollingCreditInserts=(srTitle=183717, srNames=182828, srHeading=172358, PlaceAfterNames={currentCredit.Title.StringID})"));
+            creditsSegment.Entries.Add(new DuplicatingIni.IniEntry($"ScrollingCreditInserts=(srTitle=183717, srNames=182828, srHeading=172358, PlaceAfterNames={currentCredit.Names.StringID})"));
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry("ScrollingCreditInserts=(srTitle=183718, srNames=182844, PlaceAfterNames=182828)"));
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry("ScrollingCreditInserts=(srTitle=172345, srNames=183719, PlaceAfterNames=182844)"));
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry("ScrollingCreditInserts=(srTitle=172349, srNames=183720, PlaceAfterNames=183719)"));

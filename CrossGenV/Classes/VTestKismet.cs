@@ -242,5 +242,28 @@ namespace CrossGenV.Classes
             KismetHelper.AddObjectToSequence(newObj as ExportEntry, seq);
             return newObj as ExportEntry;
         }
+
+        public static string GetSequenceFullPath(ExportEntry seq)
+        {
+            string ret = "";
+            IEntry parent = seq;
+            while (parent is ExportEntry exp)
+            {
+                var objName = GetSequenceName(exp);
+                if (ret == "")
+                {
+                    // Leaf
+                    ret = objName ?? parent.ObjectName.Instanced;
+                }
+                else
+                {
+                    // Not leaf
+                    ret = $"{objName ?? parent.ObjectName.Instanced}.{ret}";
+                }
+                parent = parent.Parent;
+            }
+
+            return ret;
+        }
     }
 }

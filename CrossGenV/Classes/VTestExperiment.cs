@@ -547,7 +547,7 @@ namespace CrossGenV.Classes
 
             var levelName = Path.GetFileNameWithoutExtension(le1File.FilePath);
 
-            vTestOptions.SetStatusText($"Preparing {levelName}");
+            vTestOptions.SetStatusText($"Preparing {levelName} ===========================");
 
             // ME1 PS3 version changed names of base files due to engine version change
             me1File.ReplaceName("BIOC_Base", "SFXGame");
