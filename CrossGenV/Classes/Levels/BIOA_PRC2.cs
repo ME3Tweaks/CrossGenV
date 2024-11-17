@@ -81,7 +81,7 @@ namespace CrossGenV.Classes.Levels
             VTestPromotional.AddTrailerCameras(le1File, vTestOptions);
 
             // Inventory package, as we will be importing out of this package.
-            VTestExperiment.InventoryPackage(le1File, vTestOptions);
+            VTestPipeline.InventoryPackage(le1File, vTestOptions);
 
             // 11/15/2024 - Add signaling per second
             var duiTimer = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.SequenceReference_12.Sequence_39.BioSeqAct_DUITimer_0");

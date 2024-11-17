@@ -69,7 +69,7 @@ namespace CrossGenV
 
 
             vTestOptions.SetStatusText("Performing VTest");
-            VTestExperiment.RunVTest(vTestOptions);
+            VTestPipeline.RunVTest(vTestOptions);
 
             vTestOptions.SetStatusText($"VTest run completed at {DateTime.Now:G}");
             if (installAndBootGame)
