@@ -1,4 +1,5 @@
 ﻿using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
 using LegendaryExplorerCore.Unreal;
 
 namespace CrossGenV.Classes.Levels
@@ -32,15 +33,30 @@ namespace CrossGenV.Classes.Levels
 
         public void PostPortingCorrection()
         {
-            // The door lighting channels needs fixed up.
-            //08/24/2024 - Disabled lighting changes due to static lighting bake
-            /*
-            var door = le1File.FindExport(@"TheWorld.PersistentLevel.BioDoor_1.SkeletalMeshComponent_1");
-            var channels = door.GetProperty<StructProperty>("LightingChannels");
-            channels.Properties.AddOrReplaceProp(new BoolProperty(false, "Static"));
-            channels.Properties.AddOrReplaceProp(new BoolProperty(false, "Dynamic"));
-            channels.Properties.AddOrReplaceProp(new BoolProperty(false, "CompositeDynamic"));
-            door.WriteProperty(channels); */
+            SetSimSettingsConsoleColor();
+        }
+
+        /// <summary>
+        /// Sets the color of the console to blue to make it more obvious there is something here that is interactable.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
+        private void SetSimSettingsConsoleColor()
+        {
+            // 11/17/2024
+            var parent = le1File.FindExport("BIOG_V_Env_Hologram_Z.Instances");
+            var blue1 = vTestOptions.vTestHelperPackage.FindExport("CCSIM03_LAY.Screen_01_Ins1_Blue");
+            var blue3 = vTestOptions.vTestHelperPackage.FindExport("CCSIM03_LAY.Screen_01_Ins3_Blue");
+
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, blue1, le1File, parent, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var portedBlue1);
+            EntryImporter.ImportAndRelinkEntries(EntryImporter.PortingOption.CloneAllDependencies, blue3, le1File, parent, true, new RelinkerOptionsPackage() { Cache = vTestOptions.cache }, out var portedBlue3);
+
+            var consoleScreen = le1File.FindExport("TheWorld.PersistentLevel.StaticMeshCollectionActor_31.StaticMeshActor_138_SMC");
+            var materials = new ArrayProperty<ObjectProperty>("Materials");
+            materials.Add(new ObjectProperty(portedBlue1));
+            materials.Add(new ObjectProperty(portedBlue1));
+            materials.Add(new ObjectProperty(portedBlue3));
+            materials.Add(new ObjectProperty(portedBlue3));
+            consoleScreen.WriteProperty(materials);
         }
     }
 }
