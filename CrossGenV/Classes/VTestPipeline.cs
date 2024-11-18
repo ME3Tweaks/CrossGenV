@@ -127,7 +127,7 @@ namespace CrossGenV.Classes
                         vTestOptions.SetStatusText($@"Inventorying VTestHelper");
                         vTestOptions.vTestHelperPackage = MEPackageHandler.OpenMEPackage(file, forceLoadFromDisk: true); // Do not put into cache
 
-                        InventoryPackage(vTestOptions.vTestHelperPackage, vTestOptions);
+                        InventoryPackage(vTestOptions.vTestHelperPackage, true, vTestOptions);
                     }
                     else
                     {
@@ -496,7 +496,7 @@ namespace CrossGenV.Classes
         /// </summary>
         /// <param name="package"></param>
         /// <param name="options"></param>
-        public static void InventoryPackage(IMEPackage package, VTestOptions options)
+        public static void InventoryPackage(IMEPackage package, bool log, VTestOptions options)
         {
             // Inventory the classes from vtest helper to ensure they can be created without having to be in the 
             // code for LEC
@@ -504,7 +504,11 @@ namespace CrossGenV.Classes
             foreach (var e in vTestSeqObjClasses)
             {
                 var classInfo = GlobalUnrealObjectInfo.generateClassInfo(e);
-                options.SetStatusText($@"  Inventorying class {e.InstancedFullPath}");
+                if (log)
+                {
+                    options.SetStatusText($@"  Inventorying class {e.InstancedFullPath}");
+                }
+
                 if (e.InheritsFrom("SequenceObject"))
                 {
                     var defaults = e.GetDefaults();

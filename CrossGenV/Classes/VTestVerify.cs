@@ -21,7 +21,7 @@ namespace CrossGenV.Classes
         {
             // Make sure we inventory package so references check is accurate
             // Since this goes alphabetically it should have masters go first
-            VTestPipeline.InventoryPackage(package, vTestOptions);
+            VTestPipeline.InventoryPackage(package, false, vTestOptions);
 
             // Legacy: Check levels have at least 2 actors in the list
             var level = package.FindExport("TheWorld.PersistentLevel");

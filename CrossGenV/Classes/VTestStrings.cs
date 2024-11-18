@@ -775,6 +775,34 @@ namespace CrossGenV.Classes
                 HUN = "Megjelennek a harci szimulátorban azok az ellenségek, amelyek a szimulátor eredeti tervének részei voltak, de soha nem fejezték be.",
                 CZE = "",
                 JP = ""
+            },
+            new()
+            {
+                StringID = 338553,
+                INT = "Enemy Selector",
+                ESN = "",
+                DEU = "",
+                FRA = "",
+                ITA = "",
+                RUS = "",
+                POL = "",
+                HUN = "",
+                CZE = "",
+                JP = ""
+            },
+            new()
+            {
+                StringID = 338554,
+                INT = "Select which types of enemies to fight in the simulator.",
+                ESN = "",
+                DEU = "",
+                FRA = "",
+                ITA = "",
+                RUS = "",
+                POL = "",
+                HUN = "",
+                CZE = "",
+                JP = ""
             }
         ];
 
