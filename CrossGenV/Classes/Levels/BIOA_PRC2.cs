@@ -9,6 +9,28 @@ using System.Linq;
 
 namespace CrossGenV.Classes.Levels
 {
+    class LayerSetting
+    {
+
+        /// <summary>
+        /// Installed on object.
+        /// </summary>
+        public string SettingName { get; set; }
+
+        /// <summary>
+        /// For bool only
+        /// </summary>
+        public bool BoolValue { get; set; }
+
+        /// <summary>
+        /// For ints only
+        /// </summary>
+        public int IntValue { get; set; }
+
+        public int Index { get; set; }
+        public EPlotElementTypes PlotType { get; set; }
+    }
+
     internal class BIOA_PRC2 : ILevelSpecificCorrections
     {
         public IMEPackage me1File { get; init; }
@@ -81,7 +103,7 @@ namespace CrossGenV.Classes.Levels
             VTestPromotional.AddTrailerCameras(le1File, vTestOptions);
 
             // Inventory package, as we will be importing out of this package.
-            VTestPipeline.InventoryPackage(le1File, vTestOptions);
+            VTestPipeline.InventoryPackage(le1File, true, vTestOptions);
 
             // 11/15/2024 - Add signaling per second
             var duiTimer = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.SequenceReference_12.Sequence_39.BioSeqAct_DUITimer_0");
@@ -90,6 +112,87 @@ namespace CrossGenV.Classes.Levels
             KismetHelper.InsertActionAfter(duiTimer, "Interval", timerSignal, 0, "Out");
 
             AddVariableDebug();
+            AddVariableDefaults();
+        }
+
+        private void AddVariableDefaults()
+        {
+            var mainSeq = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+
+            // On entry from Galaxy Map, we set the defaults
+            var hookup = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_PMExecuteTransition_14");
+            var triggerEvent = SequenceObjectCreator.CreateActivateRemoteEvent(mainSeq, "SetSimulatorDefaults", vTestOptions.cache);
+            KismetHelper.TrimVariableLinks(triggerEvent);
+            KismetHelper.InsertActionAfter(hookup, "Out", triggerEvent, 0, "Out");
+
+            hookup = SequenceObjectCreator.CreateSeqEventRemoteActivated(mainSeq, "SetSimulatorDefaults", vTestOptions.cache);
+
+            // DEFAULTS LAYER 2 (November 2024)
+            List<LayerSetting> layer2 = new();
+            layer2.Add(new LayerSetting() { SettingName = "Music Enabled", Index = VTestPlot.CROSSGEN_PMB_INDEX_MUSIC_ENABLED, PlotType = EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL, BoolValue = true });
+            layer2.Add(new LayerSetting() { SettingName = "Enemy Ramping Enabled", Index = VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_SPAWNCOUNT_ENABLED, PlotType = EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL, BoolValue = true });
+            layer2.Add(new LayerSetting() { SettingName = "Talent Ramping Enabled", Index = VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_TALENTS_ENABLED, PlotType = EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL, BoolValue = true });
+            layer2.Add(new LayerSetting() { SettingName = "Weapon Mod Ramping Enabled", Index = VTestPlot.CROSSGEN_PMB_INDEX_RAMPING_WEAPONMODS_ENABLED, PlotType = EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL, BoolValue = true });
+            hookup = AddDefaultsLayer(mainSeq, hookup, "Out", 2, layer2);
+
+
+        }
+
+        /// <summary>
+        /// Creates a defaults layer branch in kismet.
+        /// </summary>
+        /// <param name="seq"></param>
+        /// <param name="hookup"></param>
+        /// <param name="layerVersion"></param>
+        /// <param name="layer"></param>
+        /// <returns>The version check object so a later version can be chained.</returns>
+        private ExportEntry AddDefaultsLayer(ExportEntry seq, ExportEntry hookup, string hookupLinkName, int layerVersion, List<LayerSetting> layer)
+        {
+            var currentSettingsVersion = SequenceObjectCreator.CreatePlotInt(seq, VTestPlot.CROSSGEN_PMI_INDEX_SETTINGSDEFAULTVERSION, vTestOptions.cache);
+            KismetHelper.SetComment(currentSettingsVersion, "The version of settings we have applied for Pinnacle Station\nThis is so we don't overwrite user settings if new ones are made");
+
+            var layerVersionObj = SequenceObjectCreator.CreateInt(seq, layerVersion, vTestOptions.cache);
+
+            var versionCheck = SequenceObjectCreator.CreateCompareInt(seq, currentSettingsVersion, layerVersionObj, vTestOptions.cache);
+            KismetHelper.CreateOutputLink(hookup, hookupLinkName, versionCheck);
+            hookup = versionCheck;
+            hookupLinkName = "A < B";
+
+            // If current settings version < layer version, we apply this branch
+            foreach (var setting in layer)
+            {
+                if (setting.PlotType == EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL)
+                {
+                    var index = SequenceObjectCreator.CreateInt(seq, setting.Index, vTestOptions.cache);
+                    var val = SequenceObjectCreator.CreateBool(seq, setting.BoolValue, vTestOptions.cache);
+                    var setPlotVar = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_SetPlotBool", vTestOptions.cache);
+                    KismetHelper.SetComment(setPlotVar, setting.SettingName);
+                    KismetHelper.CreateVariableLink(setPlotVar, "Index", index);
+                    KismetHelper.CreateVariableLink(setPlotVar, "Value", val);
+                    KismetHelper.CreateOutputLink(hookup, hookupLinkName, setPlotVar, 0);
+                    hookup = setPlotVar;
+                    hookupLinkName = "Out";
+                }
+                else if (setting.PlotType == EPlotElementTypes.BIO_SE_ELEMENT_TYPE_INT)
+                {
+                    var val = SequenceObjectCreator.CreateInt(seq, setting.IntValue, vTestOptions.cache);
+                    var plotInt = SequenceObjectCreator.CreatePlotInt(seq, setting.Index, vTestOptions.cache);
+                    var setPlotVar = SequenceObjectCreator.CreateSetInt(seq, plotInt, val, vTestOptions.cache);
+                    KismetHelper.SetComment(setPlotVar, setting.SettingName);
+                    KismetHelper.CreateOutputLink(hookup, hookupLinkName, setPlotVar, 0);
+                    hookup = setPlotVar;
+                    hookupLinkName = "Out";
+                }
+            }
+
+
+
+            var setInt = SequenceObjectCreator.CreateSetInt(seq, currentSettingsVersion, layerVersionObj, vTestOptions.cache);
+            KismetHelper.SetComment(setInt, "Mark settings layer as applied");
+            KismetHelper.RemoveOutputLinks(setInt, true);
+            KismetHelper.CreateOutputLink(hookup, hookupLinkName, setInt);
+
+            return versionCheck;
         }
 
         private void AddVariableDebug()
