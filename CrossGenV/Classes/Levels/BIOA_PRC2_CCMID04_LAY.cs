@@ -1,4 +1,7 @@
-﻿using LegendaryExplorerCore.Packages;
+﻿using System.Linq;
+using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Packages.CloningImportingAndRelinking;
+using LegendaryExplorerCore.Unreal;
 
 namespace CrossGenV.Classes.Levels
 {
@@ -10,6 +13,16 @@ namespace CrossGenV.Classes.Levels
 
         public void PrePortingCorrection()
         {
+            // We want to use the VTest v1 window as the frost effect does not look good on the huge window.
+            var matToClone = me1File.Exports.FirstOrDefault(x => x.ClassName == "Material");
+            var clonedMat = EntryCloner.CloneEntry(matToClone);
+            clonedMat.Parent = me1File.FindExport("BIOA_PRC2_S");
+            clonedMat.ObjectName = "BIOA_PRC2_MainPortWindow"; // Pick up the donor
+            var mainWindow = me1File.FindExport("TheWorld.PersistentLevel.StaticMeshCollectionActor_26.StaticMeshActor_0_SMC");
+            mainWindow.WriteProperty(new ArrayProperty<ObjectProperty>("Materials"){ clonedMat});
+
+
+            // Other Windows for this map
             VTestPreCorrections.SetupForWindowMaterialDonor(me1File);
         }
         public void PostPortingCorrection()
