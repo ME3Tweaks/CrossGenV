@@ -688,7 +688,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Рекорд: %1",
                 POL = "",
-                HUN = "Legjobb eredmény: %1",
+                HUN = "Legyőzendő rekord: %1",
                 CZE = "",
                 JP = ""
             },
@@ -702,7 +702,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Прототипы симулятора",
                 POL = "",
-                HUN = "",
+                HUN = "Szimulátor prototípusok",
                 CZE = "",
                 JP = ""
             },
@@ -717,7 +717,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "Противники, которые были частью оригинального дизайна симулятора, но не были доработаны, появятся в боевом симуляторе.",
                 POL = "",
-                HUN = "",
+                HUN = "Megjelennek a harci szimulátorban azok az ellenségek, amelyek a szimulátor eredeti tervének részei voltak, de soha nem fejezték be.",
                 CZE = "",
                 JP = ""
             },
@@ -787,7 +787,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Ellenség kiválasztó",
                 CZE = "",
                 JP = ""
             },
@@ -801,7 +801,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Válaszd ki, milyen típusú ellenfelekkel harcolsz a szimulátorban.",
                 CZE = "",
                 JP = ""
             }
@@ -1041,7 +1041,7 @@ namespace CrossGenV.Classes
                 ITA = "",
                 RUS = "",
                 POL = "",
-                HUN = "",
+                HUN = "Magyar fordítás",
                 CZE = "",
                 JP = ""
             },
