@@ -820,8 +820,9 @@ namespace CrossGenV.Classes
             new() {
                 StringID = 0,
                 CreditType = ECreditType.NAMES,
-                INT = "DLC original desarrollado por Demiurge Studios\nRemasterizado por el equipo de desarrollo de ME3Tweaks",
+                INT = "Original DLC developed by Demiurge Studios\nRemastered by ME3Tweaks development team.",
                 DEU = "Original-DLC entwickelt von Demiurge Studios\nRemastered von ME3Tweaks",
+                ESN = "DLC original desarrollado por Demiurge Studios\nRemasterizado por el equipo de desarrollo de ME3Tweaks",
                 FRA = "",
                 ITA = "",
                 RUS = "",
