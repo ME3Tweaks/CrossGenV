@@ -712,7 +712,6 @@ namespace CrossGenV.Classes
                 INT = "Enemies that were part of the original simulator design but were never finished will appear in the combat simulator.",
                 ESN = "Los enemigos que formaban parte del diseño original del simulador pero que nunca se terminaron aparecerán en el simulador de combate.",
                 DEU = "Im Kampfsimulator erscheinen Feinde, die Teil des ursprünglichen Simulatordesigns waren, aber nie fertiggestellt wurden.",
-                ESN = "Los enemigos que formaban parte del diseño original del simulador, pero que nunca fueron terminados, aparecerán en el simulador de combate.",
                 FRA = "Les ennemis faisant partie du design originel du simulateur mais qui n'ont jamais été terminés apparaîtront dans le simulateur de combat.",
                 ITA = "I nemici che erano parte del design originale del simulatore ma non sono mai stati completati appariranno nel simulatore di combattimento.",
                 RUS = "Противники, которые были частью оригинального дизайна симулятора, но не были доработаны, появятся в боевом симуляторе.",
