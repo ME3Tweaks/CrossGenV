@@ -260,6 +260,8 @@ namespace CrossGenV.Classes
             // 10/02/2024 - Framework all NPCs
             VTestFramework.FrameworkNPCs(vTestOptions);
 
+            // 11/17/2024 - Move doors to single PLC file and update streaming for it
+            VTestDoors.RipoutDoors(vTestOptions);
 
             #region VTest File Loop PASS 2 (Post Framework)
             rootCache = vTestOptions.cache;
@@ -524,8 +526,13 @@ namespace CrossGenV.Classes
             var levelName = Path.GetFileNameWithoutExtension(levelFileName).ToUpper();
 
             // Uncomment to force only certain files to port
-            //if (!forcePort && !levelFileName.Contains("AHERN", StringComparison.OrdinalIgnoreCase))
-            //    return;
+            if (!forcePort && (levelFileName.Contains("AHERN", StringComparison.OrdinalIgnoreCase) 
+                               || levelFileName.Contains("crate", StringComparison.OrdinalIgnoreCase) 
+                               || levelFileName.Contains("cave", StringComparison.OrdinalIgnoreCase) 
+                               || levelFileName.Contains("lava", StringComparison.OrdinalIgnoreCase)
+                               || levelFileName.Contains("thai", StringComparison.OrdinalIgnoreCase)
+                               ))
+                return;
 
             if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
             {

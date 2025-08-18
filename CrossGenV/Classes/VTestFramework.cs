@@ -110,6 +110,7 @@ namespace CrossGenV.Classes
             var mainSeq = package.FindExport("TheWorld.PersistentLevel.Main_Sequence");
             var levelLoaded = SequenceObjectCreator.CreateLevelLoaded(mainSeq, options.cache);
             var pawnRef = SequenceObjectCreator.CreateFindObject(mainSeq, $"NPC_{pawn.NPCName}", false, options.cache);
+            var oneFrameDelay = SequenceObjectCreator.CreateSequenceObject(mainSeq, "LEXSeqAct_OneFrameDelay", cache: options.cache);
             var setLoc = SequenceObjectCreator.CreateSetLocation(mainSeq, pawnRef, cache: options.cache);
             var sActive = SequenceObjectCreator.CreateSetActive(mainSeq, pawnRef, SequenceObjectCreator.CreateBool(mainSeq, true, options.cache), cache: options.cache);
             if (pawn.Location != null)
@@ -132,7 +133,8 @@ namespace CrossGenV.Classes
             }
 
             KismetHelper.CreateVariableLink(setLoc, "Target", pawnRef);
-            KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", setLoc);
+            KismetHelper.CreateOutputLink(levelLoaded, "Loaded and Visible", oneFrameDelay);
+            KismetHelper.CreateOutputLink(oneFrameDelay, "Finished", setLoc);
             KismetHelper.CreateOutputLink(setLoc, "Out", sActive);
         }
 
@@ -911,6 +913,16 @@ throw new Exception("This must be fixed for release!");
                 KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.BioSeqAct_ModifyPropertyPawn_4"), true);
                 KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_2.Sequence_982.SeqVar_Bool_4"), true);
 
+                // Remove deactivation of Vidinos as he should always be visible in frameworking setup.
+                var modifySetup = package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_ModifyPropertyPawn_7");
+                if (modifySetup != null)
+                {
+                    // Might be already removed in previous precorrection.
+                    KismetHelper.SkipSequenceElement(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_ModifyPropertyPawn_7"), "Out");
+                }
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqAct_ModifyPropertyPawn_7"), true);
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.BioSeqVar_ObjectFindByTag_5"), true);
+                KismetHelper.RemoveFromSequence(package.FindExport("TheWorld.PersistentLevel.Main_Sequence.SeqVar_Bool_30"), true);
             }
         }
 
