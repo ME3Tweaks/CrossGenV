@@ -20,6 +20,9 @@ namespace CrossGenV.Classes.Levels
             FixLoadingPostScoreboard();
 
             TightenPostMissionBlackScreens();
+
+            FixAhernQuipOnWin();
+
             // Ahern's post-mission dialogue. This installs the streaming textures event
             // 11/03/2024 - No longer used due to frameworking these pawns
             // var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin");
@@ -137,6 +140,18 @@ namespace CrossGenV.Classes.Levels
 }";
             UnrealScriptCompiler.CompileDefaultProperties(le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.InterpData_0.InterpGroupDirector_0.InterpTrackFade_0"), fadeCurve, fileLib, usop);
 
+        }
+
+        /// <summary>
+        /// 12/24/2025 - Ahern doesn't seem to appear on wins because his frameworked location is not where he stands.
+        /// He is missing a teleport to behind Ocaren. This function adds that teleport by re-using an existing one used
+        /// in other branches for the post-mission dialog.
+        /// </summary>
+        private void FixAhernQuipOnWin()
+        {
+            var sourceNode = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.BioSeqAct_Delay_5");
+            var destTeleportnode = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_Teleport_7");
+            KismetHelper.CreateOutputLink(sourceNode, "Finished", destTeleportnode);
         }
 
         private void DebugConversationConsoleEvents()
