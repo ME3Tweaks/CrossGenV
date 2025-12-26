@@ -765,10 +765,23 @@ throw new Exception("This must be fixed for release!");
                 "bActive")); // Make inactive, level-side handshake will activate them
 
             GenerateHandshake(npcPackage, npcVarName, portedActor, options);
-
+            GeneratePrimeTextures(npcPackage, npcVarName, portedActor, options);
             npcPackage.AddToLevelActorsIfNotThere(portedActor);
-
             npcPackage.Save();
+        }
+
+        /// <summary>
+        /// Generates the sequencing for priming textures that will soon be on the screen
+        /// </summary>
+        private static void GeneratePrimeTextures(IMEPackage npcPackage, string npcVarName, ExportEntry actor, VTestOptions options)
+        {
+            var sequence = npcPackage.FindExport("TheWorld.PersistentLevel.Main_Sequence");
+            var re = SequenceObjectCreator.CreateSeqEventRemoteActivated(sequence, $"PrimeTextures_NPC_{npcVarName}", options.cache);
+            var streamInActorTextures = SequenceObjectCreator.CreateSequenceObject(sequence, "LEXSeqAct_StreamInActorTextures", options.cache);
+            var actorObj = SequenceObjectCreator.CreateObject(sequence, actor, options.cache);
+
+            KismetHelper.CreateVariableLink(streamInActorTextures, "Target", actorObj);
+            KismetHelper.CreateOutputLink(re, "Out", streamInActorTextures);
         }
 
         private static void GenerateHandshake(IMEPackage npcPackage, string npcVarName, ExportEntry actor,
@@ -1062,11 +1075,6 @@ throw new Exception("This must be fixed for release!");
 
             foreach (var bts in package.Exports.Where(x => x.ClassName == "BioTriggerStream").ToList())
             {
-                if (bts.UIndex == 323)
-                {
-
-                }
-
                 var streamingStates = bts.GetProperty<ArrayProperty<StructProperty>>("StreamingStates");
                 foreach (var state in streamingStates)
                 {

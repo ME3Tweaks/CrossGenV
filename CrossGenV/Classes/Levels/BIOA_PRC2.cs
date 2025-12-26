@@ -329,7 +329,7 @@ namespace CrossGenV.Classes.Levels
                 {
                     if (ss.Count == 2)
                     {
-                    // State idx 1 is the one we want.
+                        // State idx 1 is the one we want.
                         var bts = BioTriggerStreaming.FromExport(export);
                         var state = bts.StreamingStates[1];
                         if (state.StateName.Name == "Load_Post_Scenario_Scoreboard")
@@ -349,17 +349,17 @@ namespace CrossGenV.Classes.Levels
                         var bts = BioTriggerStreaming.FromExport(export);
                         var state = bts.StreamingStates[0];
                         switch (state.InChunkName)
-                    {
+                        {
                             case "BIOA_PRC2_CCAhern" when state.InChunkName == "None":
                             case "BIOA_PRC2_CCLava" when state.InChunkName == "None":
                             case "BIOA_PRC2_CCCrate" when state.InChunkName == "Stream_Crate":
                             case "BIOA_PRC2_CCCave" when state.InChunkName == "cave_scoreboard":
                             case "BIOA_PRC2_CCThai" when state.InChunkName == "thai_scoreboard":
-                        Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
-                        foreach (var lta in levelsToAdd)
-                        {
+                              Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
+                                foreach (var lta in levelsToAdd)
+                                {
                                     state.LoadChunkNames.Add(lta);
-                        }
+                                }
 
                                 bts.WriteStreamingStates(export);
                                 break;

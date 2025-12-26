@@ -23,6 +23,8 @@ namespace CrossGenV.Classes.Levels
 
             FixAhernQuipOnWin();
 
+            PrimeTexturesOnMissionComplete();
+
             // Ahern's post-mission dialogue. This installs the streaming textures event
             // 11/03/2024 - No longer used due to frameworking these pawns
             // var sequence = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin");
@@ -92,6 +94,21 @@ namespace CrossGenV.Classes.Levels
 
             // 08/26/2024 - Add completion experience
             VTestAdditionalContent.AddMissionCompletionExperience(le1File, vTestOptions);
+        }
+
+        /// <summary>
+        /// Adds texture priming for a few NPCs right before they're probably going to be shown on screen
+        /// </summary>
+        private void PrimeTexturesOnMissionComplete()
+        {
+            var waitForLevels = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SeqAct_WaitForLevelsVisible_0");
+            string[] npcsToPrime = ["NPC_Ahern", "NPC_Ochren", "RivalNPC_Vidinos", "NPC_RivalBryant"];
+            var sequence = KismetHelper.GetParentSequence(waitForLevels);
+            foreach (var npc in npcsToPrime)
+            {
+                var node = SequenceObjectCreator.CreateActivateRemoteEvent(sequence, "PrimeTextures_" + npc);
+                KismetHelper.InsertActionAfter(waitForLevels, "Finished", node, 0, "Out");
+            }
         }
 
         /// <summary>
