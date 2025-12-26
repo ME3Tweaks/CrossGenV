@@ -1,5 +1,6 @@
 ﻿using LegendaryExplorerCore.Kismet;
 using LegendaryExplorerCore.Packages;
+using LegendaryExplorerCore.Pathing;
 using LegendaryExplorerCore.Unreal;
 using LegendaryExplorerCore.UnrealScript;
 
@@ -24,6 +25,8 @@ namespace CrossGenV.Classes.Levels
             FixAhernQuipOnWin();
 
             PrimeTexturesOnMissionComplete();
+
+            UpdateVidinosDickheadCamera();
 
             // Ahern's post-mission dialogue. This installs the streaming textures event
             // 11/03/2024 - No longer used due to frameworking these pawns
@@ -94,6 +97,39 @@ namespace CrossGenV.Classes.Levels
 
             // 08/26/2024 - Add completion experience
             VTestAdditionalContent.AddMissionCompletionExperience(le1File, vTestOptions);
+        }
+
+        /// <summary>
+        /// This updates the camera for Vidinos Camera 2. It's really weird in the original game. This is slightly less weird
+        /// </summary>
+        private void UpdateVidinosDickheadCamera()
+        {
+            // Only on first win there is cutscene with bryant and vidinos,
+            // and it will have bryant too high. If you try to do it via 
+            // console commands or other debugging means it correctly sets position
+            // but if you come from simulator its wrong
+            // no idea why. This forces it to be the correct loc
+            var bryantTeleportLoc = le1File.FindExport("TheWorld.PersistentLevel.BioPathPoint_8");
+            LevelTools.SetLocation(bryantTeleportLoc, -4589.17773f, 1851.34094f, -1209.0f); // Z is changed
+
+            // New camera angle for Vidinos02
+            var cameraActor = le1File.FindExport("TheWorld.PersistentLevel.CameraActor_12");
+            LevelTools.SetLocation(cameraActor, -4555.0f, 1773.0f, -1118.53882f);
+            LevelTools.SetRotation(cameraActor, -5461, -41871, 0);
+            cameraActor.WriteProperty(new FloatProperty(80f, "FOVAngle")); // Widen FOV by 5
+
+            var fadeInTrack = le1File.FindExport("TheWorld.PersistentLevel.Main_Sequence.Match_End_Cin.SequenceReference_0.Sequence_980.InterpData_0.InterpGroupDirector_0.InterpTrackFade_0");
+            var floatProp = fadeInTrack.GetProperty<StructProperty>("FloatTrack");
+            var points = floatProp.GetProp<ArrayProperty<StructProperty>>("Points");
+
+            // Point 0: 100% opacity
+            // Point 1: 0% opacity
+            // We remove the rest of the points cause we don't want the weird fade in/out.
+            while (points.Count > 2)
+            {
+                points.RemoveAt(2);
+            }
+            fadeInTrack.WriteProperty(floatProp);
         }
 
         /// <summary>
