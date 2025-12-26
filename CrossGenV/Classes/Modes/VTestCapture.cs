@@ -335,7 +335,6 @@ namespace CrossGenV.Classes.Modes
             string lastOutlink = "True";
 
             var amountInWave = 1;
-            var linkThroughIndex = 0;
             for (int i = 0; i < newRespawners.Count; i += amountInWave - 1) // -1 to account for the +1 we do at the end
             {
                 Debug.WriteLine($"Wave: {amountInWave}");

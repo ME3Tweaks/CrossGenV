@@ -498,7 +498,7 @@ namespace CrossGenV.Classes
         {
             // 08/18/2024 - Lighting rebake via UDK means we should try to port all lightmaps, so when we rebake in UDK the lightmap data is present
             return true;
-
+#if LEGACY
             // Disabled
             if (PossibleLightMapUsers.Contains(smEntry.InstancedFullPath))
             {
@@ -516,6 +516,7 @@ namespace CrossGenV.Classes
             }
 
             return false;
+#endif
         }
     }
 }

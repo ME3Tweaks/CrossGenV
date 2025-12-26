@@ -88,7 +88,7 @@ namespace CrossGenV.Classes
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("IT DIDN'T WORK!");
+                Debug.WriteLine($"IT DIDN'T WORK: {ex.Message}");
             }
         }
 
@@ -222,7 +222,7 @@ namespace CrossGenV.Classes
             else
             {
                 // Not a map
-                var referencer = ExportCreator.CreateObjectReferencer(package, cache);
+                var referencer = package.CreateObjectReferencer();
                 var references = referencer.GetProperty<ArrayProperty<ObjectProperty>>("ReferencedObjects") ?? new ArrayProperty<ObjectProperty>("ReferencedObjects");
                 references.AddRange(itemsToReference.Select(x=>new ObjectProperty(x)));
                 references.ReplaceAll(references.Distinct().ToList()); // ToList since it's modifying itself
