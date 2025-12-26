@@ -314,6 +314,7 @@ namespace CrossGenV.Classes.Levels
                 "BIONPC_VegasTurianGuard1",
                 "BIONPC_VegasTurianGuard2",
                 // Add stuff changed with door streaming
+                "BIOA_PRC2_CCMid",
                 "BIOA_PRC2_CCMID01",
                 "BIOA_PRC2_CCMID02",
                 "BIOA_PRC2_CCMID03",
@@ -348,14 +349,14 @@ namespace CrossGenV.Classes.Levels
                     {
                         var bts = BioTriggerStreaming.FromExport(export);
                         var state = bts.StreamingStates[0];
-                        switch (state.InChunkName)
+                        switch (state.InChunkName.Name)
                         {
-                            case "BIOA_PRC2_CCAhern" when state.InChunkName == "None":
-                            case "BIOA_PRC2_CCLava" when state.InChunkName == "None":
-                            case "BIOA_PRC2_CCCrate" when state.InChunkName == "Stream_Crate":
-                            case "BIOA_PRC2_CCCave" when state.InChunkName == "cave_scoreboard":
-                            case "BIOA_PRC2_CCThai" when state.InChunkName == "thai_scoreboard":
-                              Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
+                            case "BIOA_PRC2_CCAhern" when state.StateName.Name == "None":
+                            case "BIOA_PRC2_CCLava" when state.StateName.Name == "None":
+                            case "BIOA_PRC2_CCCrate" when state.StateName.Name == "Stream_Crate":
+                            case "BIOA_PRC2_CCCave" when state.StateName.Name == "cave_scoreboard":
+                            case "BIOA_PRC2_CCThai" when state.StateName.Name == "thai_scoreboard":
+                                Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
                                 foreach (var lta in levelsToAdd)
                                 {
                                     state.LoadChunkNames.Add(lta);
