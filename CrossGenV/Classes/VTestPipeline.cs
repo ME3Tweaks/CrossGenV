@@ -298,7 +298,7 @@ namespace CrossGenV.Classes
             #endregion
 
 
-            
+
             // 10/02/2024 - Lightmap textures don't stream in fast enough for this to be worth doing, just
             // save them in the package.
             // 10/31/2024 - Streamed lighting mode is used to render the loading screens
@@ -310,7 +310,6 @@ namespace CrossGenV.Classes
             }
 
             // PASS 3
-            Pass3:
             // 11/12/2024 - Ensure referencing in packages before we resynthesize them
             VTestReferencer.EnsureReferencesInDecooked(vTestOptions);
             VTestReferencer.EnsureReferencesInWavelists(vTestOptions);
@@ -329,8 +328,7 @@ namespace CrossGenV.Classes
                 }
             }
 
-        // VTest post QA
-        Checks:
+            // VTest post QA
             vTestOptions.SetStatusText("Performing checks");
 
             // Perform checks on all files
@@ -525,15 +523,16 @@ namespace CrossGenV.Classes
         {
             var levelName = Path.GetFileNameWithoutExtension(levelFileName).ToUpper();
 
+#if DEBUG
             // Uncomment to force only certain files to port
-            if (!forcePort && (levelFileName.Contains("AHERN", StringComparison.OrdinalIgnoreCase) 
-                               || levelFileName.Contains("crate", StringComparison.OrdinalIgnoreCase) 
-                               || levelFileName.Contains("cave", StringComparison.OrdinalIgnoreCase) 
+            if (!forcePort && (levelFileName.Contains("AHERN", StringComparison.OrdinalIgnoreCase)
+                               || levelFileName.Contains("crate", StringComparison.OrdinalIgnoreCase)
+                               || levelFileName.Contains("cave", StringComparison.OrdinalIgnoreCase)
                                || levelFileName.Contains("lava", StringComparison.OrdinalIgnoreCase)
                                || levelFileName.Contains("thai", StringComparison.OrdinalIgnoreCase)
                                ))
                 return;
-
+#endif
             if (levelFileName.Contains("_LOC_", StringComparison.OrdinalIgnoreCase))
             {
 #if DEBUG
@@ -633,6 +632,7 @@ namespace CrossGenV.Classes
                 IsCrossGame = true,
                 ImportExportDependencies = true,
                 TargetGameDonorDB = vTestOptions.objectDB,
+                ForceAllowMaterialPorting = true,
                 ErrorOccurredCallback = x =>
                 {
                     Debug.WriteLine($"Error relinking: {x}");
