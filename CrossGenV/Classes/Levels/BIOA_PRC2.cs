@@ -60,7 +60,7 @@ namespace CrossGenV.Classes.Levels
 
             FixGethPulseGunVFX();
 
-            FixBlockingLevelLoads();
+            FixPostScoreboardBlockingLoad();
 
             // Level Load Blocking Texture Streaming
             VTestKismet.InstallVTestHelperSequenceNoInput(le1File, "TheWorld.PersistentLevel.Main_Sequence", "HelperSequences.LevelLoadTextureStreaming", vTestOptions);
@@ -214,7 +214,6 @@ namespace CrossGenV.Classes.Levels
             previousLogs.Add(console);// First hookup
             foreach (var varToPrint in varsToPrint)
             {
-                ExportEntry attachPoint = null;
                 switch (varToPrint.plotType)
                 {
                     case EPlotElementTypes.BIO_SE_ELEMENT_TYPE_BOOL:
@@ -288,7 +287,10 @@ namespace CrossGenV.Classes.Levels
             VTestUtility.AddWorldReferencedObjects(le1File, gethPulseVfx);
         }
 
-        private void FixBlockingLevelLoads()
+        /// <summary>
+        /// Change what gets put into loaded state while post-mission scoreboard is up
+        /// </summary>
+        private void FixPostScoreboardBlockingLoad()
         {
             // Adjust the triggerstreams to pre-stream in some files to prevent a full blocking load from occurring.
             // They all have the same state name
@@ -301,27 +303,67 @@ namespace CrossGenV.Classes.Levels
                 // These ones are here just to pre-load things into memory in the event the player just mashes their way through
                 "BIOA_PRC2_CCSim",
                 "BIOA_PRC2_CCSim_ART",
-                "BIOA_PRC2_CCSim_DSG"
+                "BIOA_PRC2_CCSim_DSG",
+
+                // 12/24/2025 - Add extra stuff that was added when frameworking
+                "BIOA_PRC2_CCDoors",
+                "BIONPC_VegasHumanCrew1",
+                "BIONPC_VegasHumanCrew2",
+                "BIONPC_VegasHumanCrew3",
+                "BIONPC_VegasHumanCrew4",
+                "BIONPC_VegasTurianGuard1",
+                "BIONPC_VegasTurianGuard2",
+                // Add stuff changed with door streaming
+                "BIOA_PRC2_CCMID01",
+                "BIOA_PRC2_CCMID02",
+                "BIOA_PRC2_CCMID03",
+                "BIOA_PRC2_CCMID04",
+                "BIOA_PRC2_CCSPACE02",
             ];
 
             foreach (var export in le1File.Exports.Where(x => x.ClassName == "BioTriggerStream"))
             {
                 var ss = export.GetProperty<ArrayProperty<StructProperty>>("StreamingStates");
 
-                if (ss != null && ss.Count == 2)
+                if (ss != null)
                 {
-                    // State idx 1 is the one we want.
-                    var state = ss[1];
-                    if (state.GetProp<NameProperty>("StateName")?.Value.Name == "Load_Post_Scenario_Scoreboard")
+                    if (ss.Count == 2)
                     {
+                    // State idx 1 is the one we want.
+                        var bts = BioTriggerStreaming.FromExport(export);
+                        var state = bts.StreamingStates[1];
+                        if (state.StateName.Name == "Load_Post_Scenario_Scoreboard")
+                        {
+                            Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
+                            foreach (var lta in levelsToAdd)
+                            {
+                                state.LoadChunkNames.Add(lta);
+                            }
+
+                            bts.WriteStreamingStates(export);
+                        }
+                    }
+
+                    if (ss.Count == 1)
+                    {
+                        var bts = BioTriggerStreaming.FromExport(export);
+                        var state = bts.StreamingStates[0];
+                        switch (state.InChunkName)
+                    {
+                            case "BIOA_PRC2_CCAhern" when state.InChunkName == "None":
+                            case "BIOA_PRC2_CCLava" when state.InChunkName == "None":
+                            case "BIOA_PRC2_CCCrate" when state.InChunkName == "Stream_Crate":
+                            case "BIOA_PRC2_CCCave" when state.InChunkName == "cave_scoreboard":
+                            case "BIOA_PRC2_CCThai" when state.InChunkName == "thai_scoreboard":
                         Debug.WriteLine($"Updating streaming state for more preload: BIOA_PRC2 {export.ObjectName.Instanced}");
-                        var loadChunkNames = state.GetProp<ArrayProperty<NameProperty>>("LoadChunkNames");
                         foreach (var lta in levelsToAdd)
                         {
-                            loadChunkNames.Add(new NameProperty(lta));
+                                    state.LoadChunkNames.Add(lta);
                         }
 
-                        export.WriteProperty(ss);
+                                bts.WriteStreamingStates(export);
+                                break;
+                        }
                     }
                 }
             }
