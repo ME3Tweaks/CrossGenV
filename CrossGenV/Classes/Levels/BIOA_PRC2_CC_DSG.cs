@@ -40,6 +40,7 @@ namespace CrossGenV.Classes.Levels
                 var connections = KismetHelper.FindOutputConnectionsToNode(teleport, objs);
 
                 var forceTeleport = SequenceObjectCreator.CreateSequenceObject(seq, "LEXSeqAct_ForceTeleport", vTestOptions.cache);
+                KismetHelper.SetComment(forceTeleport, "Custom teleportation code that can overcome ragdoll blocking teleports and causing a softlock\nThis call also will cause the player to hit the trigger stream that preloads the station");
                 foreach (var con in connections)
                 {
                     var oVars = KismetHelper.GetVariableLinksOfNode(teleport);
@@ -582,6 +583,13 @@ namespace CrossGenV.Classes.Levels
             var berserkGate = SequenceObjectCreator.CreateGate(seq, vTestOptions.cache);
             var berserkSignal = SequenceObjectCreator.CreateSeqEventRemoteActivated(seq, "GoBerserk", vTestOptions.cache);
             var berserkStaggerDelay = SequenceObjectCreator.CreateRandomDelay(seq, 1, 4, vTestOptions.cache); // stagger a bit so it's not all at once
+            var instantAIChangeChance = SequenceObjectCreator.CreateRandFloat(seq, 0, 4);
+            var instantAIChangeComp = SequenceObjectCreator.CreateCompareFloat(seq, instantAIChangeChance, SequenceObjectCreator.CreateFloat(seq, 3.5f, vTestOptions.cache), vTestOptions.cache);
+
+            aiChoiceRand.WriteProperty(new FloatProperty(0, "Min"));
+            aiChoiceRand.WriteProperty(new FloatProperty(4, "Max"));
+            aiChoiceAssaultThreshold.WriteProperty(new FloatProperty(3f, "FloatValue")); // The generated random number must be above this to change to assault. 
+
             KismetHelper.CreateOutputLink(berserkSignal, "Out", berserkGate);
             KismetHelper.CreateOutputLink(berserkGate, "Out", berserkGate, 2); // Close the gate
             KismetHelper.CreateOutputLink(berserkGate, "Out", berserkStaggerDelay);
@@ -600,8 +608,8 @@ namespace CrossGenV.Classes.Levels
             KismetHelper.AddObjectsToSequence(seq, false, delay, delayDuration, aiChoiceRand, aiChoiceComp, aiChoiceAssaultThreshold, changeAiCharge, changeAiAssault, assaultAiLog, chargeAiLog, setWeaponAttributes, toxicFactor, phasicFactor);
 
             // Configure sequence object properties
-            delayDuration.WriteProperty(new FloatProperty(11, "Min"));
-            delayDuration.WriteProperty(new FloatProperty(20, "Max"));
+            delayDuration.WriteProperty(new FloatProperty(13, "Min"));
+            delayDuration.WriteProperty(new FloatProperty(21, "Max"));
             KismetHelper.SetComment(toxicFactor, "Toxic to counter player regen");
             KismetHelper.SetComment(phasicFactor, "Phasic to counter player powers");
             toxicFactor.WriteProperty(new FloatProperty(1, "FloatValue"));
@@ -631,7 +639,10 @@ namespace CrossGenV.Classes.Levels
             // -- Berserk
             KismetHelper.CreateOutputLink(berserkCheck, "True", changeAiBerserk);
             // -- Not berserk
-            KismetHelper.CreateOutputLink(berserkCheck, "False", delay);
+            KismetHelper.CreateOutputLink(berserkCheck, "False", instantAIChangeComp); // Link to instant change chance
+            KismetHelper.CreateOutputLink(instantAIChangeComp, "A >= B", delay); // Did not hit chance, default logic.
+            KismetHelper.CreateOutputLink(instantAIChangeComp, "A < B", changeAiCharge); // Instant AI change
+
             KismetHelper.CreateVariableLink(delay, "Duration", delayDuration);
             KismetHelper.CreateOutputLink(delay, "Finished", aiChoiceComp);
             KismetHelper.CreateVariableLink(aiChoiceComp, "A", aiChoiceRand);
