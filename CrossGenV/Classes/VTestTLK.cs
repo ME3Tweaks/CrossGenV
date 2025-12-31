@@ -354,7 +354,6 @@ namespace CrossGenV.Classes
             // Add final credit.
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry(currentCredit.GenerateIniEntry(placeAfter)));
 
-
             // Original DLC credits.
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry("; The following is from the original DLC"));
             creditsSegment.Entries.Add(new DuplicatingIni.IniEntry($"ScrollingCreditInserts=(srTitle=183717, srNames=182828, srHeading=172358, PlaceAfterNames={currentCredit.Names.StringID})"));
@@ -366,85 +365,6 @@ namespace CrossGenV.Classes
             File.WriteAllText(outFile, ini.ToString());
             HasBuiltCredits = true;
         }
-        /*
-         // 11/16/2024 - No longer used
-        public static readonly List<TLKStringRef> EnglishStringRefs =
-        [
-                new TLKStringRef(338464, "Downloading Data"),
-                new TLKStringRef(338465, "Simulator Settings"),
-                new TLKStringRef(338466, "Open"),
-                new TLKStringRef(338467, "ENABLED"),
-                new TLKStringRef(338468, "DISABLED"),
-                new TLKStringRef(338469, "Enable"),
-                new TLKStringRef(338470, "Disable"),
-                new TLKStringRef(338471, "Music"),
-                new TLKStringRef(338472, "Appropriate music tracks will be added to each simulator map, which will change as the intensity ramps up."),
-                new TLKStringRef(338473, "As in the original DLC, no music will be played in the simulator."),
-                new TLKStringRef(338474, "XP on 1st Place"),
-                new TLKStringRef(338475, "You will be granted experience upon getting 1st place in a simulator map. 1/3 of a level's worth of XP will be granted upon achieving 1st place for the first time on each simulator map. Additional XP will be granted upon beating your record, and upon completing the special scenario."),
-                new TLKStringRef(338476, "No experience will be granted upon completing a simulator map."),
-                new TLKStringRef(338477, "Difficulty Ramping: Enemy Count"),
-                new TLKStringRef(338478, "Enemy Ramping"),
-                new TLKStringRef(338479, "The amount of enemies that spawn will be fixed to the default, original version."),
-                new TLKStringRef(338480, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies numbers will increase, creating a more engaging scenario."),
-                new TLKStringRef(338481, "Difficulty Ramping: Talents"),
-                new TLKStringRef(338482, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies will gain talents and powers that make them more lethal."),
-                new TLKStringRef(338483, "Enemies will not gain talents as simulator missions progress. This is the default value."),
-                new TLKStringRef(338484, "Difficulty Ramping: Weapon mods"),
-                new TLKStringRef(338485, "SURVIVAL/CAPTURE ONLY\n\nAs a mission progresses, enemies will gain weapon mods that make them more lethal."),
-                new TLKStringRef(338486, "Enemies will not gain weapon mods as simulator missions progress. This is the default value."),
-                new TLKStringRef(338487, "Simulator: Enemy Selector"),
-                new TLKStringRef(338488, "Select enemy type"),
-                new TLKStringRef(338489, "This set of enemies is currently not enabled."),
-                new TLKStringRef(338490, "Asari enemies will replace the normal enemies in the combat simulator."),
-                new TLKStringRef(338491, "Salarian enemies will replace the normal enemies in the combat simulator."),
-                new TLKStringRef(338492, "Batarian enemies will replace the normal enemies in the combat simulator."),
-                new TLKStringRef(338493, "Monsters"),
-                new TLKStringRef(338494, "Monstrous enemies will replace the normal enemies in the combat simulator."),
-                new TLKStringRef(338495, "Mixed Enemies"),
-                new TLKStringRef(338496, "Enemies from all available factions will appear in the combat simulator."),
-                new TLKStringRef(338497, "All Settings: Vanilla"),
-                new TLKStringRef(338498, "All Settings"),
-                new TLKStringRef(338499, "All simulator settings will be set to their vanilla, original Mass Effect 1 value. For Pinnacle Station purists."),
-                new TLKStringRef(338500, "All Settings: Recommended"),
-                new TLKStringRef(338501, "All simulator settings will be set to their recommended states for this remaster."),
-                new TLKStringRef(338502, "Selected"),
-                new TLKStringRef(338503, "Not Selected"),
-                new TLKStringRef(338504, "Enemy types will not be changed from the defaults."),
-                new TLKStringRef(338505, "Enemy types have been changed from the defaults."),
-                new TLKStringRef(338506, "Default"), // As in 'default enemies'
-
-                // Enemy names
-
-                // Salarian
-                new TLKStringRef(338507, "Salarian Mercenary"),
-                new TLKStringRef(338508, "Salarian Sharpshooter"),
-                new TLKStringRef(338509, "Salarian Guard"),
-                new TLKStringRef(338510, "Salarian Vanquisher"),
-                new TLKStringRef(338511, "PLACEHOLDER"), // Blank placeholder
-
-                // Batarian
-                new TLKStringRef(338512, "Batarian Raider"),
-                new TLKStringRef(338513, "Batarian Commando"),
-
-                // Asari
-
-                // Monster
-
-
-                // Extras
-                new TLKStringRef(338550, "Score to beat: %1"),
-
-                // PR2 - All
-                new TLKStringRef(338551, "Simulator prototypes"),
-                new TLKStringRef(338552, "Enemies that were part of the original simulator design but were never finished will appear in the combat simulator."),
-
-
-
-        ];
-        */
-
-
 
         public static void PostUpdateTLKs(VTestOptions vTestOptions)
         {

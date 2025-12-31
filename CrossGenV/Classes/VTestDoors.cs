@@ -55,11 +55,17 @@ namespace CrossGenV.Classes
                     // Remove all prefab instances and biouseables as the are also for doors
                     foreach (var door in doorPackage.Exports.Where(x => x.ClassName is "PrefabInstance" or "BioUseable"))
                     {
+                        if (door.InstancedFullPath == @"TheWorld.PersistentLevel.BioUseable_1")
+                        {
+                            // do not remove - exit button
+                            continue;
+                        }
+
                         doorPackage.RemoveFromLevelActors(door);
                         // Door should get knocked out when we resynthesize package.
                     }
 
-                    KismetHelper.RemoveFromSequence(doorPackage.FindExport("TheWorld.PersistentLevel.Main_Sequences.Prefabs"), false);
+                    KismetHelper.RemoveFromSequence(doorPackage.FindExport("TheWorld.PersistentLevel.Main_Sequence.Prefabs"), false);
                 }
                 else
                 {
